@@ -91,11 +91,11 @@ jobs:
       - name: Install Blender runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglx-mesa0
           blender --version | head -n 1
           python3 -c "import numpy; print('system numpy', numpy.__version__)"
 
-      - name: Build and render visual v2 house in isolated Blender Python
+      - name: Build and export visual v2 house
         run: |
           mkdir -p models/house_200sqm/output
           env -u PYTHONHOME -u PYTHONPATH blender --background \
@@ -103,10 +103,19 @@ jobs:
             -- \
             --input .generated/house_200sqm/house_200sqm.pascal.json \
             --output models/house_200sqm/output/house_200sqm.blend \
-            --export-glb models/house_200sqm/output/house_200sqm.glb \
-            --preview models/house_200sqm/output/house_200sqm-preview.png
+            --export-glb models/house_200sqm/output/house_200sqm.glb
           test -s models/house_200sqm/output/house_200sqm.blend
           test -s models/house_200sqm/output/house_200sqm.glb
+
+      - name: Render visual preview under Xvfb
+        run: |
+          xvfb-run -a env -u PYTHONHOME -u PYTHONPATH blender --background \
+            models/house_200sqm/output/house_200sqm.blend \
+            --render-output "//house_200sqm-preview" \
+            --render-format PNG \
+            --render-frame 1
+          mv models/house_200sqm/output/house_200sqm-preview0001.png \
+             models/house_200sqm/output/house_200sqm-preview.png
           test -s models/house_200sqm/output/house_200sqm-preview.png
 
       - name: Upload house artifacts
