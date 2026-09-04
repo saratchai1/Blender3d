@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   python-static:
     runs-on: ubuntu-latest
@@ -128,3 +131,23 @@ jobs:
             models/house_200sqm/output/house_200sqm.glb
             models/house_200sqm/output/house_200sqm-preview.png
           if-no-files-found: error
+
+      - name: Publish reviewed web assets
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          publish="$(mktemp -d)"
+          cp models/house_200sqm/output/house_200sqm.glb "$publish/house_200sqm.glb"
+          cp models/house_200sqm/output/house_200sqm-preview.png "$publish/house_200sqm-preview.png"
+          cp .generated/house_200sqm/house_200sqm.pascal.json "$publish/house_200sqm.pascal.json"
+          printf '%s\n' "$GITHUB_SHA" > "$publish/source-main-sha.txt"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin generated-assets || true
+          git switch --orphan generated-assets
+          git rm -rf .
+          cp -a "$publish/." .
+          git add house_200sqm.glb house_200sqm-preview.png house_200sqm.pascal.json source-main-sha.txt
+          git commit -m "generated: reviewed house assets for ${GITHUB_SHA}"
+          git push --force origin HEAD:generated-assets
