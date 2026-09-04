@@ -88,11 +88,12 @@ jobs:
           python3 models/house_200sqm/pascal/validate_scene.py \
             .generated/house_200sqm/house_200sqm.pascal.json
 
-      - name: Install Blender
+      - name: Install Blender runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
           blender --version | head -n 1
+          python3 -c "import numpy; print('system numpy', numpy.__version__)"
 
       - name: Build house in isolated Blender Python
         run: |
