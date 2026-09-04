@@ -11,6 +11,9 @@ __pycache__/
 .mcp.generated.json
 .generated/
 
+# Reproducible external source snapshots (see integrations/* lock files)
+.external/
+
 # Blender local files / large scene data
 *.blend1
 *.blend2
