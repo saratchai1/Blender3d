@@ -14,5 +14,8 @@ dependencies = [
 [project.scripts]
 blender3d-control = "blender3d_control.cli:main"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/blender3d_control"]
