@@ -1,0 +1,60 @@
+name: office14
+on:
+  push:
+    branches: [main]
+    paths: ['web/office_10000sqm/**', 'models/office_10000sqm/**', '.github/workflows/office14.yml']
+  pull_request:
+    paths: ['web/office_10000sqm/**', 'models/office_10000sqm/**', '.github/workflows/office14.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: office14-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate areas, model geometry and GLB
+        run: node --test web/office_10000sqm/tools/model.test.mjs
+      - name: Build dependency-free offline app and model
+        run: node web/office_10000sqm/tools/build.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test runtime
+        run: |
+          pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Check real WebGL desktop/mobile interactions and export
+        run: |
+          python -m py_compile models/office_10000sqm/import_office.py
+          xvfb-run -a python web/office_10000sqm/tools/smoke.py --html .generated/office_10000sqm/index.html
+      - name: Upload web app, GLB, semantic scene and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: solstice-14-office-10000sqm
+          path: |
+            .generated/office_10000sqm/
+            .generated/office-tests/
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Publish tested standalone app and GLB to repository
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p web/office_10000sqm/assets
+          cp .generated/office_10000sqm/index.html web/office_10000sqm/standalone.html
+          cp .generated/office_10000sqm/solstice-14.glb web/office_10000sqm/assets/solstice-14.glb
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f web/office_10000sqm/standalone.html web/office_10000sqm/assets/solstice-14.glb
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'build: publish tested Solstice 14 app and GLB'
+          git pull --rebase origin main
+          git push origin HEAD:main

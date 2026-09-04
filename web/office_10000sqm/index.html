@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e7e7dd"><meta name="description" content="Solstice 14 — interactive 14-storey, 10,000 m² modern tropical office concept. Explore the real 3D model and export to Blender.">
+<title>SOLSTICE 14 · Interactive architecture</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23283229'/%3E%3Cpath d='M10 29V11h6v18m8 0V11h6v18' stroke='%23cfb68b' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+ <a class="brand" href="#" aria-label="Solstice 14 home"><span class="brandmark"><i></i><i></i><i></i></span><span>SOLSTICE <b>14</b><small>WORKPLACE, REIMAGINED.</small></span></a>
+ <div class="project-caption">MODERN TROPICAL OFFICE<span>CONCEPT DESIGN / 01</span></div>
+ <div class="header-actions"><span class="live"><i></i> LIVE 3D</span><button id="export" class="primary" title="ส่งออกโมเดล GLB เปิดใน Blender ได้">Export 3D <span>↗</span></button></div>
+</header>
+<div class="workspace">
+<aside class="sidebar" aria-label="Project information and controls">
+ <div class="intro"><div class="eyebrow"><span>01 /</span> ARCHITECTURAL CONCEPT</div><h1>A better place<br>to <em>work.</em></h1><p>ออฟฟิศที่ให้แสง พื้นที่สีเขียว<br>และสถาปัตยกรรมทำงานร่วมกัน</p></div>
+ <div class="metrics"><div><strong>10,000</strong><span>ตร.ม. พื้นที่รวม</span></div><div><strong>14</strong><span>ชั้นเหนือดิน</span></div><div><strong>55.1</strong><span>ม. ถึงพื้นหลังคา</span></div></div>
+ <nav class="tabs" role="tablist" aria-label="Project details"><button role="tab" id="tab-design" aria-controls="panel-design" aria-selected="true" data-tab="design">แนวคิด</button><button role="tab" id="tab-floors" aria-controls="panel-floors" aria-selected="false" data-tab="floors">ชั้นอาคาร</button><button role="tab" id="tab-energy" aria-controls="panel-energy" aria-selected="false" data-tab="energy">พลังงาน</button></nav>
+ <section id="panel-design" class="panel" role="tabpanel" aria-labelledby="tab-design">
+  <div class="section-title">DESIGN LANGUAGE <span>↘</span></div>
+  <div class="design-row"><span class="swatch bronze"></span><div><h3>ฟาซาดบรอนซ์สานจังหวะ</h3><p>ครีบแนวตั้งลึก ปรับมุมเป็นจังหวะ<br>คู่กับกันสาดแนวนอน</p></div></div>
+  <div class="design-row"><span class="swatch green"></span><div><h3>สวนกลางอาคาร 2 ระดับ</h3><p>พื้นที่พักชั้น 5 และ 10 เปิดรับวิว<br>แยกจากพื้นที่ปรับอากาศ</p></div></div>
+  <div class="design-row"><span class="swatch glass"></span><div><h3>เปลือกอาคารรับแสงพอดี</h3><p>แนวคิดกระจก Low-E และ spandrel<br>ต้องตรวจสเปกด้วย energy model</p></div></div>
+  <div class="section-title spaced">MODEL LAYERS</div>
+  <label class="switch-row"><span>ครีบฟาซาด / กันสาด</span><input id="facade" type="checkbox" checked><i></i></label>
+  <label class="switch-row"><span>ต้นไม้และพื้นที่สีเขียว</span><input id="landscape" type="checkbox" checked><i></i></label>
+  <label class="switch-row"><span>เปิดเปลือกอาคารดูภายใน</span><input id="interior" type="checkbox"><i></i></label>
+  <div class="range-title"><label for="finDepth">ความลึกครีบฟาซาด</label><output id="fin-value">0.95 m</output></div><input id="finDepth" type="range" min="0.4" max="1.5" step="0.05" value="0.95">
+ </section>
+ <section id="panel-floors" class="panel" role="tabpanel" aria-labelledby="tab-floors" hidden>
+  <div class="section-title">FLOOR SCHEDULE <span>14 LEVELS</span></div><p class="hint">เลือกชั้นจากรายการ หรือคลิกที่ตัวอาคาร</p><div id="floor-list" class="floor-list"></div>
+  <div class="area-total"><span>รวมพื้นที่ตามแบบแนวคิด</span><strong>10,000 m²</strong></div><p class="note">รวมสวนมีหลังคา 144 ตร.ม. ไม่ใช่พื้นที่เช่าสุทธิ และยังไม่ใช่ GFA ตามกฎหมาย</p>
+ </section>
+ <section id="panel-energy" class="panel" role="tabpanel" aria-labelledby="tab-energy" hidden>
+  <div class="section-title">PASSIVE FIRST <span>DESIGN INTENT</span></div>
+  <div class="energy-card"><span>ROOFTOP SOLAR</span><strong>43.2 <small>kWp</small></strong><p>96 แผง × 450 W/แผง เป็นสมมติฐานกำลังติดตั้ง ไม่ใช่ผลผลิตพลังงานจริง</p></div>
+  <div class="energy-item"><b>01</b><div><h3>ลดแดดก่อนลดอุณหภูมิ</h3><p>ครีบตะวันออก–ตะวันตก และกันสาดเหนือ–ใต้ เพื่อลดแดดตรงผ่านกระจก</p></div></div>
+  <div class="energy-item"><b>02</b><div><h3>Low-E + daylight controls</h3><p>เป้าหมาย SHGC 0.25–0.30 พร้อมระบบหรี่ไฟตามแสงธรรมชาติ ยังไม่ระบุผลิตภัณฑ์</p></div></div>
+  <div class="energy-item"><b>03</b><div><h3>ระบบอาคารที่ตอบสนองการใช้งาน</h3><p>แนวคิดแอร์ประสิทธิภาพสูง แยกโซน เซนเซอร์คน และมาตรวัดรายชั้น</p></div></div>
+  <div class="warning">ยังไม่ได้จำลอง EnergyPlus / OTTV / daylight จึงไม่แสดง % ประหยัดไฟ หรือรับรองมาตรฐานอาคารเขียว</div>
+ </section>
+ <footer class="sidebar-footer"><span>BLENDER3D / DESIGN LAB</span><a href="https://github.com/saratchai1/Blender3d" target="_blank" rel="noopener noreferrer">Source ↗</a></footer>
+</aside>
+<main class="viewport" id="viewport">
+ <canvas id="scene" tabindex="0" aria-label="โมเดลออฟฟิศสามมิติ ลากเพื่อหมุน ใช้สองนิ้วซูม หรือใช้ปุ่มลูกศร"></canvas>
+ <div class="viewport-heading"><span class="eyebrow">SOLSTICE / BANGKOK CLIMATE ASSUMPTION</span><h2>Architecture in balance.</h2><p>14-storey workplace · 10,000 m² · real-time model</p></div>
+ <div class="view-presets" role="group" aria-label="มุมมอง"><button data-view="hero" class="active" title="มุมภาพรวม">3D</button><button data-view="front" title="ด้านทิศใต้">S</button><button data-view="east" title="ด้านทิศตะวันออก">E</button><button data-view="top" title="มุมบน">TOP</button><button id="reset" title="คืนค่าเริ่มต้น">↺</button></div>
+ <div class="compass" aria-hidden="true"><span>N</span><svg id="compass-needle" viewBox="0 0 60 60"><path d="M30 6L23 37L30 33L37 37Z" fill="currentColor"/><circle cx="30" cy="30" r="24" fill="none" stroke="currentColor" stroke-opacity=".18"/></svg></div>
+ <div class="model-label" id="garden-label"><span></span><div>SKY GARDEN<small>L10 / OUTDOOR WORKSPACE</small></div></div>
+ <div class="selection" id="selection" hidden><button id="clear-selection" title="ยกเลิกเลือกชั้น">×</button><span class="eyebrow" id="selected-tag">LEVEL 01</span><h3 id="selected-use"></h3><strong id="selected-area"></strong><p id="selected-note"></p></div>
+ <div class="sun-panel"><div class="sun-heading"><span>☀ <b>Sun study</b></span><button id="night" aria-pressed="false" title="สลับบรรยากาศกลางคืน">☾</button></div><div class="sun-controls"><label class="sr-only" for="sun-hour">เวลาแสงอาทิตย์</label><input type="range" id="sun-hour" min="7" max="18" step="0.25" value="9.5"><output id="sun-time">09:30</output></div><div class="sun-foot"><select id="sun-season" aria-label="วันที่จำลองดวงอาทิตย์"><option value="80">21 MAR</option><option value="172">21 JUN</option><option value="264" selected>21 SEP</option><option value="355">21 DEC</option></select><span id="sun-altitude"></span></div><small>ไซต์สมมติกรุงเทพฯ / แสดงเงาเชิงแนวคิด</small></div>
+ <div class="bottom-dock"><div class="model-toolbar" role="group" aria-label="Model tools"><button id="orbit" aria-pressed="false"><span>◌</span> หมุนอัตโนมัติ</button><button id="explode" aria-pressed="false"><span>☷</span> แยกชั้น</button><button id="section" aria-pressed="false"><span>▱</span> ตัดชั้น</button><button id="capture" title="บันทึกภาพจากโมเดล"><span>⌗</span><span class="capture-text"> บันทึกภาพ</span></button></div><div id="section-control" class="section-control" hidden><label for="cutoff">แสดงถึงชั้น</label><input id="cutoff" type="range" min="1" max="14" step="1" value="14"><output id="cutoff-value">14 / 14</output></div><p class="gestures">ลากเพื่อหมุน · เลื่อนเพื่อซูม · Shift + ลากเพื่อเลื่อนมุมมอง</p></div>
+ <div class="viewport-footer"><span id="render-status">INITIALIZING 3D</span><span>CONCEPT ONLY · NOT FOR CONSTRUCTION</span></div>
+ <div id="loading" class="loading"><div class="loading-icon"></div><h3>Building your perspective.</h3><p>กำลังสร้างโมเดลสามมิติ</p></div>
+ <div id="error" class="error" role="alert" hidden><h3>เปิดโมเดล 3D ไม่สำเร็จ</h3><p id="error-message"></p><button onclick="location.reload()">ลองโหลดใหม่</button></div>
+ <div id="toast" role="status" class="toast"></div>
+</main>
+</div>
+<noscript>เว็บนี้ต้องเปิด JavaScript เพื่อแสดงโมเดลสามมิติ</noscript>
+<script type="module" src="./app.mjs"></script>
+</body></html>

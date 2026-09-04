@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { makeScene } from '../model.mjs';
+import { exportGLB } from '../export.mjs';
+const here=path.dirname(fileURLToPath(import.meta.url)),root=path.resolve(here,'..');
+const dest=path.resolve(process.argv[2]||path.join(root,'../../.generated/office_10000sqm'));
+fs.mkdirSync(dest,{recursive:true});
+const sources=['model.mjs','renderer.mjs','export.mjs','app.mjs'].map(name=>fs.readFileSync(path.join(root,name),'utf8').replace(/^import .*?;\s*$/gm,'').replace(/^export /gm,'')).join('\n');
+const css=fs.readFileSync(path.join(root,'style.css'),'utf8');
+let html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+html=html.replace('<link rel="stylesheet" href="./style.css">',`<style>${css}</style>`).replace('<script type="module" src="./app.mjs"></script>',`<script type="module">\n${sources}\n</script>`);
+fs.writeFileSync(path.join(dest,'index.html'),html);
+const scene=makeScene();fs.writeFileSync(path.join(dest,'office.scene.json'),JSON.stringify(scene));fs.writeFileSync(path.join(dest,'solstice-14.glb'),exportGLB(scene));
+console.log(JSON.stringify({destination:dest,objects:scene.objects.length,glbBytes:fs.statSync(path.join(dest,'solstice-14.glb')).size,htmlBytes:Buffer.byteLength(html)}));
