@@ -46,6 +46,18 @@ def ball(name,loc,r,m,col):
     for c in list(o.users_collection):c.objects.unlink(o)
     col.objects.link(o);return o
 
+def sloped_roof_prism(name,x0,z0,x1,z1,y0,y1,thickness,m,col,semantic):
+    # Explicit vertices avoid transform/rotation ambiguity and guarantee both roof planes meet at the ridge.
+    v=[
+        (x0,y0,z0),(x1,y0,z1),(x1,y1,z1),(x0,y1,z0),
+        (x0,y0,z0-thickness),(x1,y0,z1-thickness),(x1,y1,z1-thickness),(x0,y1,z0-thickness),
+    ]
+    f=[(0,1,2,3),(7,6,5,4),(0,4,5,1),(1,5,6,2),(2,6,7,3),(3,7,4,0)]
+    mesh=bpy.data.meshes.new(name+'_mesh'); mesh.from_pydata(v,[],f); mesh.update()
+    o=bpy.data.objects.new(name,mesh); col.objects.link(o); o.data.materials.append(m); o['derived_from_pascal_id']=semantic
+    bevel=o.modifiers.new('Roof edge softening','BEVEL'); bevel.width=.018; bevel.segments=2
+    return o
+
 def remove_old_visual_noise():
     for o in list(bpy.data.objects):
         n=o.name.lower()
@@ -65,12 +77,12 @@ def recolor_base(M):
         elif 'stair_step' in n:o.data.materials[0]=M['wood']
 
 def add_roof(C,M):
-    W=D=10.; over=.85; rise=2.0; run=W/2+over; slope=math.hypot(run,rise); pitch=math.atan2(rise,run); eave=6.38; ridge=eave+rise
-    for side,sgn in [('west',-1),('east',1)]:
-        box('rseg_house_200sqm_'+side,(W/2+sgn*run/2,D/2,eave+rise/2),(slope,D+2*over,.14),M['roof'],rot=(0,-sgn*pitch,0),bevel=.025,col=C,semantic='rseg_house_200sqm')
-    box('roof_ridge',(5,5,ridge+.02),(.18,D+2*over+.12,.20),M['charcoal'],bevel=.03,col=C,semantic='rseg_house_200sqm')
-    box('roof_fascia_w',(-over,5,eave),(.18,D+2*over,.25),M['charcoal'],bevel=.02,col=C,semantic='rseg_house_200sqm')
-    box('roof_fascia_e',(W+over,5,eave),(.18,D+2*over,.25),M['charcoal'],bevel=.02,col=C,semantic='rseg_house_200sqm')
+    W=D=10.; over=.85; rise=2.0; eave=6.42; ridge=eave+rise; y0=-over; y1=D+over
+    sloped_roof_prism('rseg_house_200sqm_west',-over,eave,W/2,ridge,y0,y1,.14,M['roof'],C,'rseg_house_200sqm')
+    sloped_roof_prism('rseg_house_200sqm_east',W/2,ridge,W+over,eave,y0,y1,.14,M['roof'],C,'rseg_house_200sqm')
+    box('roof_ridge',(W/2,D/2,ridge+.025),(.20,D+2*over+.12,.16),M['charcoal'],bevel=.025,col=C,semantic='rseg_house_200sqm')
+    box('roof_gutter_w',(-over,D/2,eave-.05),(.16,D+2*over,.18),M['charcoal'],bevel=.02,col=C,semantic='rseg_house_200sqm')
+    box('roof_gutter_e',(W+over,D/2,eave-.05),(.16,D+2*over,.18),M['charcoal'],bevel=.02,col=C,semantic='rseg_house_200sqm')
 
 def add_facade(C,M):
     # Base and floor reveal
@@ -114,7 +126,7 @@ def main():
     a=args();C=get_col('40_Architecture_v2');S=get_col('00_Site_v2')
     M={
       'stucco':mat('V2_Stucco',(.93,.91,.85),.82),'charcoal':mat('V2_Charcoal',(.055,.065,.075),.34,.18),'concrete':mat('V2_Concrete',(.36,.37,.37),.78),'stone':mat('V2_Stone',(.54,.49,.41),.88),'wood':mat('V2_Wood',(.34,.16,.065),.48),'wood_light':mat('V2_WoodLight',(.49,.25,.10),.50),'glass':mat('V2_Glass',(.10,.30,.41),.08,alpha=.30,trans=.72),'roof':mat('V2_Roof',(.075,.085,.09),.38,.12),'site':mat('V2_Site',(.18,.29,.17),.95),'path':mat('V2_Path',(.50,.48,.43),.88),'plant':mat('V2_Plant',(.10,.28,.12),.90)}
-    remove_old_visual_noise();recolor_base(M);add_roof(C,M);add_facade(C,M);add_site(S,M);camera_light();bpy.context.scene['model_version']='house_200sqm_v2_modern_tropical'
+    remove_old_visual_noise();recolor_base(M);add_roof(C,M);add_facade(C,M);add_site(S,M);camera_light();bpy.context.scene['model_version']='house_200sqm_v2_modern_tropical_mesh_roof'
     a.output.parent.mkdir(parents=True,exist_ok=True);bpy.ops.wm.save_as_mainfile(filepath=str(a.output.resolve()))
     if a.export_glb:a.export_glb.parent.mkdir(parents=True,exist_ok=True);bpy.ops.export_scene.gltf(filepath=str(a.export_glb.resolve()),export_format='GLB',export_extras=True)
     if a.preview:a.preview.parent.mkdir(parents=True,exist_ok=True);bpy.context.scene.render.filepath=str(a.preview.resolve());bpy.ops.render.render(write_still=True)
