@@ -22,7 +22,7 @@ jobs:
         run: uv sync
 
       - name: Compile Python sources
-        run: uv run python -m compileall -q src blender
+        run: uv run python -m compileall -q src blender models
 
       - name: Verify runtime patch registration
         run: |
@@ -36,6 +36,15 @@ jobs:
           assert addon_handler.KNOWN_ADDONS["kiri_3dgs"][0] == KIRI_RELEASE_URL
           print("compatibility patch registration: OK")
           PY
+
+      - name: Generate Pascal house scene
+        run: |
+          uv run python models/house_200sqm/pascal/generate_scene.py \
+            --spec models/house_200sqm/house_spec.json \
+            --output .generated/house_200sqm/house_200sqm.pascal.json
+
+      - name: Validate Pascal house scene
+        run: uv run python models/house_200sqm/pascal/validate_scene.py .generated/house_200sqm/house_200sqm.pascal.json
 
       - name: Check launcher help
         run: uv run blender3d-control --help
