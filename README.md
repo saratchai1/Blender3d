@@ -1,105 +1,145 @@
 # Blender3d — MCP + 3D Gaussian Splat Control
 
-This repository is the control layer for running Blender through MCP and working with 3D Gaussian Splatting (3DGS).
+Control Blender through MCP with a modern 3D Gaussian Splat (3DGS) compatibility layer.
 
-It intentionally **does not vendor Blender or copy the whole upstream MCP project**. Instead, it pins the upstream [`sandraschi/blender-mcp`](https://github.com/sandraschi/blender-mcp) package to a known commit and provides reproducible setup, launch, MCP-client configuration, and 3DGS diagnostics.
+This repository does **not** vendor Blender or copy the whole upstream MCP project. It pins [`sandraschi/blender-mcp`](https://github.com/sandraschi/blender-mcp) and launches it through `blender3d-control`, which patches current Blender/KIRI 3DGS behavior at runtime.
 
-## Pinned upstream
+## Pinned components
+
+### Blender MCP
 
 - Repository: `sandraschi/blender-mcp`
 - Commit: `6b51a6b302a149354d5c7820d077827f1129bb5c`
-- Upstream date: 2026-09-02
+- Upstream commit date: 2026-09-02
 - Python: 3.12+
-- Blender: 3.0+
 
-The pinned upstream exposes Blender MCP tools including `blender_addons`, `blender_splatting`, mesh/material/scene tools, rendering, export, and an optional live Blender bridge.
+### 3DGS
 
-## What this repo gives you
+- Add-on: KIRI `3DGS Render`
+- Release: `5.1.0`
+- Release date: 2026-08-26
+- Required for this 3DGS path: Blender 5.1+
+- Verified release SHA-256: `3965ef73904f15a56ea4cee65de64209faaacf7a018c1a70f7d6a4ed925f96ae`
 
-- Reproducible `uv` environment pinned to a specific Blender MCP commit.
-- Windows setup and launcher scripts.
-- macOS/Linux-compatible Python project layout.
-- Generated local MCP configuration without overwriting your global client settings.
-- Blender executable auto-detection on Windows.
-- 3DGS add-on diagnostics.
-- Documented Gaussian Splat import/cleanup/collision workflow.
-- A clean base for adding tree/point-cloud/DBH measurement tools later.
+KIRI's 5.1.0 release notes state that the package was clean-installed and tested on Windows with Blender 5.1.1 and Blender 5.2.0 LTS.
+
+## Why this repo has a compatibility layer
+
+The pinned Blender MCP already exposes `blender_addons`, `blender_splatting`, mesh/material/scene tools, rendering, export, and a live bridge. However, its bundled 3DGS registry currently points at legacy GitHub URLs that no longer resolve, and its splat importer targets older Blender operators.
+
+Current KIRI uses:
+
+```python
+bpy.ops.sna.dgs_render_import_ply_e0a3a(...)
+```
+
+Modern Blender native PLY import uses:
+
+```python
+bpy.ops.wm.ply_import(...)
+```
+
+`src/blender3d_control/compat.py` bridges those into the existing upstream MCP calls, so clients can continue using `blender_splatting(...)` instead of needing a separate MCP server.
 
 ## Windows quick start
-
-Clone this repository, then open PowerShell in the repo:
 
 ```powershell
 git clone https://github.com/saratchai1/Blender3d.git
 cd Blender3d
 
-# Check prerequisites and create the local environment.
+# If Git, uv and Blender are already installed:
 .\scripts\setup.ps1
 
-# If Git/uv are missing, allow the script to install them with winget.
+# Or allow setup to install missing prerequisites with winget:
 .\scripts\setup.ps1 -InstallPrereqs
 ```
 
-If Blender is installed in a non-standard location:
+If Blender is outside the normal install path:
 
 ```powershell
-.\scripts\setup.ps1 -BlenderExecutable "C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+.\scripts\setup.ps1 -BlenderExecutable "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
 ```
 
-The setup script runs `uv sync`, detects Blender, runs the upstream Blender health check, and generates `.mcp.generated.json` containing the absolute local repo path.
+The setup script:
+
+1. checks Git and `uv`;
+2. finds Blender;
+3. runs `uv sync` against the pinned MCP dependency;
+4. creates local `.env` if needed;
+5. generates `.mcp.generated.json` with absolute executable/repo paths;
+6. runs a Blender MCP health check.
+
+## Install 3DGS
+
+```powershell
+.\scripts\install-3dgs.ps1
+```
+
+This downloads the pinned KIRI release (~771 MB), verifies its SHA-256, caches it locally, and installs/enables it with Blender's extension command-line interface.
+
+Then verify everything:
+
+```powershell
+.\scripts\doctor.ps1
+```
+
+Expected summary:
+
+```text
+Core MCP: READY
+KIRI 3DGS: READY
+```
 
 ## Start MCP
 
-For a stdio MCP client such as Claude Desktop, Cursor, VS Code/Codex-compatible MCP clients:
+### stdio
+
+Use this for local MCP clients:
 
 ```powershell
 .\scripts\start.ps1
 ```
 
-For the upstream HTTP mode:
+### HTTP
 
 ```powershell
 .\scripts\start.ps1 -Http -Port 10849
 ```
 
-HTTP mode is intended for **local development**. Do not expose port `10849` directly to the public internet without an authentication/reverse-proxy layer.
+HTTP defaults to `127.0.0.1`. Keep it local unless you deliberately add authentication/TLS through a proper gateway. Do not expose the raw MCP port directly to the internet.
 
-## MCP client configuration
+## MCP client config
 
-After running setup, inspect:
-
-```text
-.mcp.generated.json
-```
-
-It will look like this, with the real absolute path filled in automatically:
+`setup.ps1` writes `.mcp.generated.json`. It uses this launcher:
 
 ```json
 {
   "mcpServers": {
     "blender3d": {
-      "command": "uv",
+      "command": "C:\\path\\to\\uv.exe",
       "args": [
         "--directory",
         "C:\\path\\to\\Blender3d",
         "run",
-        "blender-mcp",
+        "blender3d-control",
         "--stdio"
       ],
       "env": {
         "PYTHONUNBUFFERED": "1",
-        "BLENDER_EXECUTABLE": "C:\\Program Files\\Blender Foundation\\Blender 5.0\\blender.exe"
+        "BLENDER_EXECUTABLE": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe"
       }
     }
   }
 }
 ```
 
-Copy the `blender3d` server entry into your MCP client's config. The setup script deliberately does **not** edit a global Claude/Cursor/VS Code configuration automatically.
+The repository deliberately does not overwrite your global Claude/Cursor/VS Code configuration. Copy the generated `blender3d` server entry into the MCP client you want to use.
 
-## Enable 3D Gaussian Splatting
+## 3DGS MCP commands
 
-Once the MCP server is connected, use the upstream add-on manager:
+### Install through MCP
+
+The control launcher patches the legacy registry names to KIRI 5.1.0:
 
 ```text
 blender_addons(
@@ -109,38 +149,30 @@ blender_addons(
 )
 ```
 
-The upstream registry currently maps `gaussian_splat` to Stuffmatic FastGS. An alternative registry entry is `3dgs_blender`.
+The aliases `gaussian_splat`, `3dgs_blender`, and `kiri_3dgs` all resolve to the pinned KIRI package inside this control process.
 
-Then verify the installed add-ons:
-
-```text
-blender_addons(operation="list_installed")
-```
-
-For a normal Gaussian Splat file:
+### Import Gaussian Splat PLY
 
 ```text
 blender_splatting(
   operation="import_gs",
-  file_path="C:\\data\\scan.ply",
+  file_path="C:\\data\\tree_scan.ply",
   setup_proxy=true
 )
 ```
 
-The upstream `worldlabs` operation can attempt the add-on setup automatically before importing:
+The patched importer tries KIRI first, then legacy importers, then modern Blender PLY as a geometry-only fallback. The result tells you which engine actually succeeded.
+
+### Other existing upstream operations
 
 ```text
-blender_splatting(
-  operation="worldlabs",
-  file_path="C:\\data\\scan.ply"
-)
+blender_splatting(operation="crop_and_clean", crop_type="sphere", radius=10.0)
+blender_splatting(operation="generate_collision_mesh", decimation_ratio=0.1)
 ```
 
-See [`docs/3DGS.md`](docs/3DGS.md) for the full flow.
+See [`docs/3DGS.md`](docs/3DGS.md) for limitations. In particular, the pinned upstream `crop_and_clean` implementation is not yet a rigorous scientific 3DGS cleaning algorithm.
 
 ## Diagnostics
-
-Run:
 
 ```powershell
 .\scripts\doctor.ps1
@@ -148,33 +180,54 @@ Run:
 
 It checks:
 
-1. `git`
+1. Git
 2. `uv`
-3. Blender executable discovery
-4. `blender-mcp --check-blender`
-5. Blender-side 3DGS-related add-ons/operators
+3. Blender executable/version
+4. Python package import
+5. Blender MCP discovery
+6. KIRI operator `sna.dgs_render_import_ply_e0a3a`
+7. modern native PLY fallback `wm.ply_import`
 
-A healthy MCP install and a healthy 3DGS add-on are separate checks; this makes failures easier to isolate.
+Exit codes:
+
+- `0`: core + KIRI 3DGS ready
+- `1`: core setup problem
+- `2`: core ready, KIRI 3DGS not ready
 
 ## Tree / point-cloud / DBH direction
 
-This repo is structured so the next layer can add project-specific Blender tools without modifying the upstream MCP package. Candidate modules include:
+The next project-specific layer should live in this repository, not in the pinned upstream package. The intended architecture is:
 
-- import tree point clouds / splats;
-- select or isolate an individual tree;
-- define a measurement plane;
-- slice trunk points around the measurement plane;
-- robust circle/ellipse/cylinder fit;
-- compute DBH or alternative-diameter measurements;
-- attach tree ID, confidence, measurement method, and coordinates as Blender object properties;
-- show measured / alternative / not-measured states in the viewport;
-- export results to CSV/JSON/GeoJSON.
+```text
+MCP client
+   |
+blender3d-control
+   |-- upstream Blender MCP tools
+   |-- modern 3DGS compatibility
+   `-- project-specific tree/DBH tools (next)
+            |
+          Blender
+            |
+    LAS / LAZ / PLY / 3DGS
+```
 
-Those project-specific algorithms should live in this repository and call Blender through `bpy`/MCP, while upstream Blender MCP remains pinned as infrastructure.
+For DBH, use the underlying metric point geometry as the source of truth. 3DGS is primarily the visual/context representation; Gaussian ellipse size should not be interpreted directly as trunk diameter.
+
+Candidate next tools:
+
+- import LAS/LAZ/PLY tree point clouds;
+- isolate tree by ID/ROI;
+- define standard or alternative measurement plane;
+- slice trunk points;
+- robust circle/ellipse/cylinder fitting;
+- compute diameter + residual/confidence;
+- store tree ID, method, measurement plane, coordinates and status as Blender properties;
+- show `standard`, `alternative`, and `not measured` states in the viewport;
+- export CSV/JSON/GeoJSON.
 
 ## Updating upstream
 
-Change the exact Git commit in `pyproject.toml`, then run:
+Change the exact commit in `pyproject.toml`, then:
 
 ```powershell
 uv lock --upgrade-package blender-mcp
@@ -182,4 +235,4 @@ uv sync
 .\scripts\doctor.ps1
 ```
 
-Do not move the upstream pin blindly; review its changelog and run the diagnostics first.
+Review upstream changes before moving the pin because this repo intentionally patches specific compatibility gaps in the pinned implementation.
