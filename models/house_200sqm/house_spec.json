@@ -1,0 +1,119 @@
+{
+  "project": {
+    "id": "house_200sqm",
+    "name": "Modern Tropical House 200 sqm",
+    "style": "modern_tropical",
+    "gross_floor_area_sqm": 200.0,
+    "footprint_sqm": 100.0,
+    "width_m": 10.0,
+    "depth_m": 10.0,
+    "bedrooms": 4,
+    "bathrooms": 3,
+    "floor_to_floor_m": 3.2,
+    "wall_height_m": 3.0,
+    "wall_thickness_m": 0.15
+  },
+  "site": {
+    "id": "site_house_200sqm",
+    "polygon": [[-5,-5],[15,-5],[15,15],[-5,15]]
+  },
+  "building": {
+    "id": "building_house_200sqm"
+  },
+  "levels": [
+    {
+      "id": "level_ground_200sqm",
+      "name": "Ground Floor",
+      "level": 0,
+      "gross_area_sqm": 100.0,
+      "slab_id": "slab_g_200sqm",
+      "ceiling_id": "ceiling_g_200sqm",
+      "holes": [[[6.7,0.2],[9.5,0.2],[9.5,4.5],[6.7,4.5]]],
+      "rooms": [
+        {"id":"zone_g_living","name":"Living Room","room_type":"living","area_sqm":27.6,"polygon":[[0,0],[6,0],[6,4.6],[0,4.6]]},
+        {"id":"zone_g_dining_stair","name":"Dining + Stair","room_type":"dining_stair","area_sqm":18.4,"polygon":[[6,0],[10,0],[10,4.6],[6,4.6]],"contains_stair":true},
+        {"id":"zone_g_kitchen","name":"Kitchen","room_type":"kitchen","area_sqm":21.6,"polygon":[[0,4.6],[4,4.6],[4,10],[0,10]]},
+        {"id":"zone_g_guest","name":"Guest / Office","room_type":"guest_bedroom","area_sqm":16.2,"polygon":[[4,4.6],[10,4.6],[10,7.3],[4,7.3]]},
+        {"id":"zone_g_service","name":"Bath + Laundry","room_type":"bath_laundry","area_sqm":16.2,"polygon":[[4,7.3],[10,7.3],[10,10],[4,10]]}
+      ],
+      "walls": [
+        {"id":"wall_g_south","name":"Ground South Exterior","start":[0,0],"end":[10,0],"exterior":true},
+        {"id":"wall_g_east","name":"Ground East Exterior","start":[10,0],"end":[10,10],"exterior":true},
+        {"id":"wall_g_north","name":"Ground North Exterior","start":[10,10],"end":[0,10],"exterior":true},
+        {"id":"wall_g_west","name":"Ground West Exterior","start":[0,10],"end":[0,0],"exterior":true},
+        {"id":"wall_g_mid_south","name":"Ground Partition South","start":[0,4.6],"end":[10,4.6]},
+        {"id":"wall_g_v_south","name":"Ground Partition South Vertical","start":[6,0],"end":[6,4.6]},
+        {"id":"wall_g_v_north","name":"Ground Partition North Vertical","start":[4,4.6],"end":[4,10]},
+        {"id":"wall_g_mid_north","name":"Ground Partition North","start":[4,7.3],"end":[10,7.3]}
+      ],
+      "doors": [
+        {"id":"door_g_main","name":"Main Entrance","wall":"wall_g_south","x":7.7,"width":1.2,"height":2.3,"connects":["zone_g_dining_stair","outside"]},
+        {"id":"door_g_kitchen_back","name":"Kitchen Back Door","wall":"wall_g_north","x":8.4,"width":0.9,"height":2.2,"connects":["zone_g_kitchen","outside"]},
+        {"id":"door_g_living_kitchen","name":"Living to Kitchen","wall":"wall_g_mid_south","x":2.6,"width":1.0,"height":2.2,"connects":["zone_g_living","zone_g_kitchen"]},
+        {"id":"door_g_dining_guest","name":"Dining to Guest","wall":"wall_g_mid_south","x":7.6,"width":0.9,"height":2.2,"connects":["zone_g_dining_stair","zone_g_guest"]},
+        {"id":"door_g_guest_service","name":"Guest to Service","wall":"wall_g_mid_north","x":2.0,"width":0.9,"height":2.2,"connects":["zone_g_guest","zone_g_service"]}
+      ],
+      "windows": [
+        {"id":"window_g_south_living","name":"Living South Window","wall":"wall_g_south","x":2.5,"y":1.65,"width":2.4,"height":1.5},
+        {"id":"window_g_east_dining","name":"Dining East Window","wall":"wall_g_east","x":2.4,"y":1.65,"width":1.8,"height":1.5},
+        {"id":"window_g_east_guest","name":"Guest East Window","wall":"wall_g_east","x":6.0,"y":1.65,"width":1.8,"height":1.5},
+        {"id":"window_g_north_kitchen","name":"Kitchen North Window","wall":"wall_g_north","x":7.1,"y":1.65,"width":1.8,"height":1.5},
+        {"id":"window_g_north_service","name":"Service North Window","wall":"wall_g_north","x":2.2,"y":2.0,"width":1.2,"height":1.0},
+        {"id":"window_g_west_living","name":"Living West Window","wall":"wall_g_west","x":7.5,"y":1.65,"width":1.8,"height":1.5},
+        {"id":"window_g_west_kitchen","name":"Kitchen West Window","wall":"wall_g_west","x":2.6,"y":1.65,"width":1.8,"height":1.5}
+      ]
+    },
+    {
+      "id": "level_upper_200sqm",
+      "name": "Upper Floor",
+      "level": 1,
+      "gross_area_sqm": 100.0,
+      "slab_id": "slab_u_200sqm",
+      "ceiling_id": "ceiling_u_200sqm",
+      "holes": [[[6.7,0.2],[9.5,0.2],[9.5,4.5],[6.7,4.5]]],
+      "rooms": [
+        {"id":"zone_u_master","name":"Master Bedroom","room_type":"master_bedroom","area_sqm":25.0,"polygon":[[0,0],[5,0],[5,5],[0,5]]},
+        {"id":"zone_u_bed2","name":"Bedroom 2","room_type":"bedroom","area_sqm":25.0,"polygon":[[5,0],[10,0],[10,5],[5,5]]},
+        {"id":"zone_u_bed3","name":"Bedroom 3","room_type":"bedroom","area_sqm":20.0,"polygon":[[0,5],[4,5],[4,10],[0,10]]},
+        {"id":"zone_u_family","name":"Family Hall","room_type":"family","area_sqm":15.0,"polygon":[[4,5],[10,5],[10,7.5],[4,7.5]]},
+        {"id":"zone_u_bath","name":"Bath + Wardrobe","room_type":"bath_wardrobe","area_sqm":15.0,"polygon":[[4,7.5],[10,7.5],[10,10],[4,10]]}
+      ],
+      "walls": [
+        {"id":"wall_u_south","name":"Upper South Exterior","start":[0,0],"end":[10,0],"exterior":true},
+        {"id":"wall_u_east","name":"Upper East Exterior","start":[10,0],"end":[10,10],"exterior":true},
+        {"id":"wall_u_north","name":"Upper North Exterior","start":[10,10],"end":[0,10],"exterior":true},
+        {"id":"wall_u_west","name":"Upper West Exterior","start":[0,10],"end":[0,0],"exterior":true},
+        {"id":"wall_u_mid_south","name":"Upper Partition South","start":[0,5],"end":[10,5]},
+        {"id":"wall_u_v_south","name":"Upper Partition South Vertical","start":[5,0],"end":[5,5]},
+        {"id":"wall_u_v_north","name":"Upper Partition North Vertical","start":[4,5],"end":[4,10]},
+        {"id":"wall_u_mid_north","name":"Upper Partition North","start":[4,7.5],"end":[10,7.5]}
+      ],
+      "doors": [
+        {"id":"door_u_master_family","name":"Master to Hall","wall":"wall_u_mid_south","x":2.2,"width":0.9,"height":2.2,"connects":["zone_u_master","zone_u_family"]},
+        {"id":"door_u_bed2_family","name":"Bedroom 2 to Hall","wall":"wall_u_mid_south","x":7.2,"width":0.9,"height":2.2,"connects":["zone_u_bed2","zone_u_family"]},
+        {"id":"door_u_bed3_family","name":"Bedroom 3 to Hall","wall":"wall_u_v_north","x":1.2,"width":0.9,"height":2.2,"connects":["zone_u_bed3","zone_u_family"]},
+        {"id":"door_u_family_bath","name":"Hall to Bath","wall":"wall_u_mid_north","x":2.0,"width":0.9,"height":2.2,"connects":["zone_u_family","zone_u_bath"]}
+      ],
+      "windows": [
+        {"id":"window_u_south_master","name":"Master South Window","wall":"wall_u_south","x":2.4,"y":1.65,"width":2.2,"height":1.5},
+        {"id":"window_u_south_bed2","name":"Bedroom 2 South Window","wall":"wall_u_south","x":7.6,"y":1.65,"width":2.2,"height":1.5},
+        {"id":"window_u_east_bed2","name":"Bedroom 2 East Window","wall":"wall_u_east","x":2.4,"y":1.65,"width":1.8,"height":1.5},
+        {"id":"window_u_east_family","name":"Family East Window","wall":"wall_u_east","x":6.2,"y":1.65,"width":1.6,"height":1.5},
+        {"id":"window_u_north_bed3","name":"Bedroom 3 North Window","wall":"wall_u_north","x":7.5,"y":1.65,"width":2.0,"height":1.5},
+        {"id":"window_u_north_bath","name":"Bath North Window","wall":"wall_u_north","x":2.2,"y":2.0,"width":1.2,"height":1.0},
+        {"id":"window_u_west_master","name":"Master West Window","wall":"wall_u_west","x":7.3,"y":1.65,"width":1.8,"height":1.5},
+        {"id":"window_u_west_bed3","name":"Bedroom 3 West Window","wall":"wall_u_west","x":2.5,"y":1.65,"width":1.8,"height":1.5}
+      ]
+    }
+  ],
+  "roof": {
+    "id": "roof_house_200sqm",
+    "segment_id": "rseg_house_200sqm",
+    "roof_type": "gable",
+    "width": 10.0,
+    "depth": 10.0,
+    "roof_height": 2.0,
+    "wall_height": 0.2,
+    "overhang": 0.8
+  }
+}
