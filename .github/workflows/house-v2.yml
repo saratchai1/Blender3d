@@ -1,0 +1,63 @@
+name: house-v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "models/house_200sqm/**"
+      - ".github/workflows/house-v2.yml"
+  workflow_dispatch:
+
+jobs:
+  render-house-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Pascal semantic scene
+        run: |
+          mkdir -p .generated/house_200sqm models/house_200sqm/output
+          python3 models/house_200sqm/pascal/generate_scene.py \
+            --spec models/house_200sqm/house_spec.json \
+            --output .generated/house_200sqm/house_200sqm.pascal.json
+          python3 models/house_200sqm/pascal/validate_scene.py \
+            .generated/house_200sqm/house_200sqm.pascal.json
+
+      - name: Install Blender runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy
+          blender --version | head -n 1
+
+      - name: Build semantic base model
+        run: |
+          env -u PYTHONHOME -u PYTHONPATH blender --background \
+            --python models/house_200sqm/blender/build_house_from_pascal.py \
+            -- \
+            --input .generated/house_200sqm/house_200sqm.pascal.json \
+            --output models/house_200sqm/output/house_200sqm_base.blend
+
+      - name: Enhance and render Modern Tropical v2
+        run: |
+          env -u PYTHONHOME -u PYTHONPATH blender \
+            models/house_200sqm/output/house_200sqm_base.blend \
+            --background \
+            --python models/house_200sqm/blender/enhance_house_v2.py \
+            -- \
+            --output models/house_200sqm/output/house_200sqm_v2.blend \
+            --export-glb models/house_200sqm/output/house_200sqm_v2.glb \
+            --preview models/house_200sqm/output/house_200sqm_v2.png
+          test -s models/house_200sqm/output/house_200sqm_v2.blend
+          test -s models/house_200sqm/output/house_200sqm_v2.glb
+          test -s models/house_200sqm/output/house_200sqm_v2.png
+
+      - name: Upload v2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: house-200sqm-v2-modern-tropical
+          path: |
+            .generated/house_200sqm/house_200sqm.pascal.json
+            models/house_200sqm/output/house_200sqm_v2.blend
+            models/house_200sqm/output/house_200sqm_v2.glb
+            models/house_200sqm/output/house_200sqm_v2.png
+          if-no-files-found: error
