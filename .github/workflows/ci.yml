@@ -95,17 +95,19 @@ jobs:
           blender --version | head -n 1
           python3 -c "import numpy; print('system numpy', numpy.__version__)"
 
-      - name: Build house in isolated Blender Python
+      - name: Build and render visual v2 house in isolated Blender Python
         run: |
           mkdir -p models/house_200sqm/output
           env -u PYTHONHOME -u PYTHONPATH blender --background \
-            --python models/house_200sqm/blender/build_house_from_pascal.py \
+            --python models/house_200sqm/blender/build_house_v2.py \
             -- \
             --input .generated/house_200sqm/house_200sqm.pascal.json \
             --output models/house_200sqm/output/house_200sqm.blend \
-            --export-glb models/house_200sqm/output/house_200sqm.glb
+            --export-glb models/house_200sqm/output/house_200sqm.glb \
+            --preview models/house_200sqm/output/house_200sqm-preview.png
           test -s models/house_200sqm/output/house_200sqm.blend
           test -s models/house_200sqm/output/house_200sqm.glb
+          test -s models/house_200sqm/output/house_200sqm-preview.png
 
       - name: Upload house artifacts
         uses: actions/upload-artifact@v4
@@ -115,4 +117,5 @@ jobs:
             .generated/house_200sqm/house_200sqm.pascal.json
             models/house_200sqm/output/house_200sqm.blend
             models/house_200sqm/output/house_200sqm.glb
+            models/house_200sqm/output/house_200sqm-preview.png
           if-no-files-found: error
