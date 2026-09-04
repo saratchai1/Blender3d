@@ -146,7 +146,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin generated-assets || true
           git switch --orphan generated-assets
-          git rm -rf .
+          git rm -rf . 2>/dev/null || true
           cp -a "$publish/." .
           git add house_200sqm.glb house_200sqm-preview.png house_200sqm.pascal.json source-main-sha.txt
           git commit -m "generated: reviewed house assets for ${GITHUB_SHA}"
