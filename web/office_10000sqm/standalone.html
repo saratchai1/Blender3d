@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e7e7dd"><meta name="description" content="Solstice 14 — interactive 14-storey, 10,000 m² modern tropical office concept. Explore the real 3D model and export to Blender.">
+<title>SOLSTICE 14 · Interactive architecture</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23283229'/%3E%3Cpath d='M10 29V11h6v18m8 0V11h6v18' stroke='%23cfb68b' stroke-width='2'/%3E%3C/svg%3E">
+<style>:root{--ink:#2b362d;--muted:#7b8175;--paper:#f6f5ef;--line:#dcded1;--olive:#6c7754;--bronze:#9b7953;--serif:Georgia,'Times New Roman',serif;--sans:Inter,'Noto Sans Thai',Tahoma,system-ui,-apple-system,sans-serif}*{box-sizing:border-box}body{margin:0;font:13px/1.6 var(--sans);color:var(--ink);background:var(--paper);overscroll-behavior:none}button,input,select{font:inherit}button,a,input,select{-webkit-tap-highlight-color:transparent}button{cursor:pointer;border:0;background:transparent;color:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:2px solid #a17f43;outline-offset:4px}button:hover{filter:brightness(.91)}[hidden]{display:none!important}a{color:inherit;text-decoration:none}.topbar{height:84px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);position:relative;z-index:5;background:var(--paper)}.brand{display:flex;align-items:center;gap:13px;font-size:22px;letter-spacing:3px;line-height:1.2}.brand b{font-weight:400;color:#9b8763}.brand small{display:block;font-size:8px;letter-spacing:2.8px;margin-top:7px;color:var(--muted)}.brandmark{display:flex;gap:4px;align-items:center;height:36px}.brandmark i{display:block;width:5px;height:31px;background:var(--ink);transform:skewY(-24deg)}.brandmark i:nth-child(2){height:39px;background:#9b8763}.brandmark i:nth-child(3){height:25px}.project-caption{font-size:10px;letter-spacing:2.5px;color:#6f7668;line-height:1.9;text-align:center}.project-caption span{display:block;font-size:8px;color:#929787}.header-actions{display:flex;gap:28px;align-items:center}.live{font-size:9px;font-weight:600;letter-spacing:1.3px;white-space:nowrap}.live i{display:inline-block;width:6px;height:6px;background:#728552;border-radius:50%;margin-right:7px;box-shadow:0 0 0 4px #e6eadc}.primary{background:var(--ink);color:white;padding:12px 19px;font-size:11px;border-radius:3px;letter-spacing:.5px}.primary span{padding-left:14px;font-size:15px}.workspace{display:grid;grid-template-columns:310px 1fr;height:calc(100svh - 84px);min-height:600px}.sidebar{display:flex;flex-direction:column;background:var(--paper);border-right:1px solid var(--line);overflow:auto;scrollbar-width:thin;scrollbar-color:#d4d7c6 transparent}.intro{padding:29px 28px 19px}.eyebrow{font-size:8px;letter-spacing:1.7px;font-weight:600}.eyebrow span{color:var(--bronze);margin-right:9px}h1{font:normal 36px/1.08 var(--serif);letter-spacing:-1.6px;margin:20px 0 15px}h1 em{font-weight:normal;color:#7a825d}.intro p{color:var(--muted);font-size:11px;line-height:1.8;margin:0}.metrics{margin:0 28px 24px;display:grid;grid-template-columns:1.55fr .8fr 1fr;gap:10px}.metrics strong{font-size:23px;font-weight:400;letter-spacing:-1.2px;display:block}.metrics span{font-size:8px;color:var(--muted);white-space:nowrap}.tabs{display:flex;padding:0 23px;border-bottom:1px solid var(--line);gap:12px;position:sticky;top:0;z-index:2;background:var(--paper)}.tabs button{flex:1;font-size:11px;padding:11px 0;border-bottom:2px solid transparent;color:var(--muted)}.tabs button[aria-selected=true]{border-color:var(--olive);color:var(--ink);font-weight:bold}.panel{padding:22px 28px 26px;flex:1}.section-title{font-size:8px;letter-spacing:1.2px;font-weight:bold;color:#636e57;display:flex;justify-content:space-between}.section-title span{font-weight:normal;opacity:.7}.design-row{display:flex;gap:14px;margin-top:20px;align-items:flex-start}.swatch{height:33px;width:33px;flex-shrink:0;border-radius:50%;margin-top:2px;border:3px solid #e9e9df}.swatch.bronze{background:repeating-linear-gradient(95deg,#9d815b 0px,#9d815b 4px,#d8c49e 5px,#b49b76 6px)}.swatch.green{background:radial-gradient(at 30% 30%,#98a078,#5c704b)}.swatch.glass{background:linear-gradient(135deg,#7c9c98,#395f61)}h3{font-weight:500;font-size:11px;margin:0 0 3px}.design-row p,.energy-item p{font-size:10px;line-height:1.8;color:var(--muted);margin:0}.spaced{margin-top:29px;margin-bottom:13px}.switch-row{display:flex;align-items:center;position:relative;cursor:pointer;margin:11px 0;min-height:26px;font-size:10px;gap:8px;justify-content:space-between}.switch-row input{position:absolute;right:0;opacity:0;width:32px;height:22px;cursor:pointer}.switch-row i{width:29px;height:16px;border-radius:15px;background:#d1d4c7;display:block;pointer-events:none}.switch-row i:after{content:'';width:10px;height:10px;margin:3px;display:block;background:white;border-radius:50%;transition:transform .15s}.switch-row input:checked+i{background:#6d7b55}.switch-row input:checked+i:after{transform:translateX(13px)}.switch-row input:focus-visible+i{outline:2px solid var(--bronze);outline-offset:3px}.range-title{display:flex;justify-content:space-between;font-size:10px;margin:18px 0 4px}.range-title output{color:var(--bronze);font-variant-numeric:tabular-nums}input[type=range]{accent-color:var(--olive);height:16px;width:100%;cursor:pointer}.sidebar-footer{padding:18px 28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:7px;letter-spacing:1px;color:var(--muted);margin-top:auto}.sidebar-footer a{font-size:9px;letter-spacing:0}.hint,.note{font-size:10px;color:var(--muted)}.note{font-size:9px;line-height:1.8}.floor-list{margin:16px 0 10px;display:flex;flex-direction:column;gap:4px}.floor-item{display:grid;grid-template-columns:27px 1fr 50px;gap:7px;align-items:center;width:100%;text-align:left;border:1px solid transparent;padding:8px 7px;border-radius:3px;font-size:9px;background:#edeee5}.floor-item b{font-size:12px;font-weight:500;color:#768359}.floor-item small{font-size:8px;display:block;color:#859173}.floor-item strong{text-align:right;font-size:11px;font-weight:500}.floor-item.active{border-color:#9b9975;background:#e6e7d8}.area-total{font-size:9px;display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)}.energy-card{padding:15px;margin:16px 0 24px;background:#e8eadc;border:1px solid #dadfcb;border-radius:4px}.energy-card>span{font-size:8px;letter-spacing:1.5px;color:#6e7a59}.energy-card>strong{display:block;font-size:35px;font-weight:400;line-height:1.5}.energy-card strong small{font-size:13px}.energy-card p{font-size:10px;margin:4px 0;color:#7d856d}.energy-item{display:flex;gap:15px;margin:18px 0}.energy-item>b{font-family:var(--serif);color:var(--bronze);font-size:17px}.warning{border-left:2px solid #ad9673;background:#efeadf;padding:11px;font-size:9px;line-height:1.8;color:#8a7658;margin-top:24px}.viewport{position:relative;min-width:0;overflow:hidden;background:#dfe0d7}.viewport canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}.viewport canvas:active{cursor:grabbing}.viewport-heading{position:absolute;top:30px;left:35px;pointer-events:none}.viewport-heading .eyebrow{font-size:7px;letter-spacing:1.4px;color:#7b836d}.viewport-heading h2{font:normal 25px var(--serif);letter-spacing:-.5px;margin:8px 0}.viewport-heading p{font-size:9px;color:#7b836d;margin:0}.view-presets{position:absolute;top:32px;right:29px;display:flex;background:#f9f9f0d9;padding:4px;border:1px solid #ffffff88;border-radius:5px;box-shadow:0 4px 18px #4f594609;backdrop-filter:blur(8px)}.view-presets button{min-width:35px;height:31px;border-radius:3px;font-size:9px;letter-spacing:.7px}.view-presets button.active{background:#dce1cc;color:#53653f}.view-presets #reset{font-size:20px;border-left:1px solid #dfe2d4;margin-left:4px;padding-left:10px}.compass{position:absolute;top:99px;right:37px;width:49px;text-align:center;color:#727b67;pointer-events:none}.compass span{font-size:9px}.compass svg{display:block;width:48px;height:48px}.model-label{position:absolute;pointer-events:none;display:flex;align-items:center;gap:10px;transform:translate(5px,-10px);white-space:nowrap}.model-label>span{display:block;width:42px;height:1px;background:#65775199;position:relative}.model-label>span:before{content:'';width:6px;height:6px;border-radius:50%;background:#e0e4d5;border:1px solid #73845f;position:absolute;left:-3px;top:-3px}.model-label>div{padding:8px 12px;background:#f5f6eddb;backdrop-filter:blur(6px);border-radius:3px;font-size:8px;letter-spacing:1.1px;box-shadow:0 2px 10px #25351909}.model-label small{display:block;font-size:6px;letter-spacing:.7px;margin-top:2px;color:#8b927e}.selection{position:absolute;top:134px;left:35px;background:#f8f8eff0;padding:17px 22px;border:1px solid #fff9;border-radius:4px;max-width:240px;box-shadow:0 8px 25px #31452312;backdrop-filter:blur(8px)}.selection>button{float:right;font-size:20px;margin:-7px -9px 0 15px}.selection h3{font-size:13px;margin:8px 0}.selection strong{font-size:22px;font-weight:400}.selection p{font-size:9px;color:var(--muted);margin:5px 0 0}.sun-panel{position:absolute;right:29px;bottom:112px;width:191px;background:#f7f7eedc;padding:13px 16px;border:1px solid #ffffff80;border-radius:5px;backdrop-filter:blur(8px);box-shadow:0 4px 20px #404a330b}.sun-heading{display:flex;justify-content:space-between;align-items:center;font-size:16px}.sun-heading b{font-size:11px;font-weight:500;margin-left:3px}.sun-heading button{border-radius:50%;background:#e6e8dc;height:25px;width:25px;line-height:25px;font-size:17px;padding:0}.sun-heading button[aria-pressed=true]{background:#394536;color:#fff}.sun-controls{display:flex;align-items:center;gap:9px;margin-top:10px}.sun-controls output{font-size:11px;font-variant-numeric:tabular-nums;color:#7e805d}.sun-foot{display:flex;justify-content:space-between;font-size:8px;color:#868c78;margin-top:7px;align-items:center}.sun-foot select{border:0;color:#697652;background:transparent;font-size:8px;cursor:pointer;max-width:90px}.sun-panel>small{display:block;font-size:7px;color:#959a89;margin-top:9px}.bottom-dock{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;max-width:95%}.model-toolbar{display:flex;background:#f9f9f2eb;border:1px solid #fff;padding:6px;border-radius:6px;box-shadow:0 5px 20px #34432615;white-space:nowrap;backdrop-filter:blur(9px)}.model-toolbar button{font-size:10px;padding:8px 13px;border-right:1px solid #e0e3d6}.model-toolbar button:last-child{border:0}.model-toolbar button>span:first-child{font-size:17px;vertical-align:-1px;margin-right:5px;color:#829167}.model-toolbar button[aria-pressed=true]{background:#e3e8d5;border-radius:3px;color:#51653a}.gestures{font-size:8px;color:#818975;margin:9px 0 0;text-align:center;white-space:nowrap}.section-control{display:flex;align-items:center;gap:14px;font-size:10px;background:#f8f8efe8;padding:8px 15px;border-radius:0 0 5px 5px;min-width:280px}.section-control label,.section-control output{white-space:nowrap}.viewport-footer{position:absolute;bottom:13px;left:24px;right:24px;display:flex;justify-content:space-between;font-size:6px;letter-spacing:.9px;color:#7d8871;pointer-events:none}.loading{position:absolute;inset:0;background:#e0e1d7;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:10;transition:opacity .35s}.loading h3{font:25px var(--serif);margin:23px 0 8px}.loading p{font-size:11px;color:var(--muted)}.loading-icon{width:34px;height:34px;border:1px solid #6a7d5066;border-top-color:#6a7d50;animation:spin 1s linear infinite;border-radius:50%}@keyframes spin{to{transform:rotate(360deg)}}.loading.done{opacity:0;pointer-events:none}.error{position:absolute;inset:20%;background:var(--paper);padding:30px;display:flex;flex-direction:column;justify-content:center;z-index:20;border:1px solid var(--line);border-radius:6px}.error h3{font-size:17px}.error p{font-size:12px;overflow-wrap:anywhere}.error button{background:var(--ink);color:#fff;padding:12px;border-radius:3px}.toast{position:absolute;bottom:122px;left:50%;transform:translate(-50%,10px);background:#35432cee;color:white;padding:10px 19px;max-width:80%;font-size:11px;text-align:center;border-radius:5px;opacity:0;pointer-events:none;transition:all .2s}.toast.show{opacity:1;transform:translate(-50%,0)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.viewport.night .viewport-heading,.viewport.night .viewport-heading p,.viewport.night .viewport-heading .eyebrow,.viewport.night .compass,.viewport.night .viewport-footer,.viewport.night .gestures{color:#c4cbb7}@media(min-width:1500px){.workspace{grid-template-columns:335px 1fr}.intro{padding:37px 32px 24px}h1{font-size:41px}.panel{padding:26px 32px}.metrics{margin:0 32px 27px}.design-row{margin-top:25px}}@media(max-width:1100px){.project-caption{display:none}.workspace{grid-template-columns:275px 1fr}.intro,.panel{padding-left:22px;padding-right:22px}.metrics{margin-left:22px;margin-right:22px}.viewport-heading{left:24px}.viewport-heading h2{font-size:22px}.view-presets{top:113px;right:23px;flex-direction:column}.compass{top:303px;right:22px}.sun-panel{right:18px;bottom:118px;width:176px}.model-toolbar button{padding:7px 10px}.capture-text{display:none}.model-label{display:none}}@media(max-width:760px){.topbar{height:66px;padding:0 18px}.brand{font-size:18px;gap:9px;letter-spacing:2px}.brand small{font-size:6px;letter-spacing:2px}.brandmark{transform:scale(.8);margin-left:-4px;margin-right:-3px}.header-actions{gap:16px}.primary{font-size:10px;padding:9px 12px}.primary span{padding-left:5px}.live{font-size:7px}.workspace{display:flex;flex-direction:column;height:auto;min-height:0}.viewport{order:0;height:calc(72svh - 66px);min-height:410px;flex-shrink:0}.sidebar{order:1;display:block;border-right:0;border-top:1px solid #d3d7c6;overflow:visible}.intro{padding:24px 23px 14px;display:none}.metrics{padding:19px 25px;margin:0;grid-template-columns:1.4fr 1fr 1fr;gap:22px;max-width:450px}.metrics strong{font-size:26px}.metrics span{font-size:9px}.tabs{padding:0 22px;gap:24px}.tabs button{font-size:12px;padding:12px 0}.panel{padding:23px;max-width:660px}.design-row{margin-top:18px}.design-row p,.energy-item p{font-size:11px}.design-row p br{display:none}h3{font-size:12px}.switch-row{font-size:12px;margin:13px 0;min-height:30px}.range-title{font-size:12px}.section-title{font-size:9px}.sidebar-footer{font-size:8px}.viewport-heading{top:20px;left:20px;max-width:280px}.viewport-heading h2{font-size:21px;margin:6px 0}.viewport-heading .eyebrow{font-size:6px;letter-spacing:1px}.viewport-heading p{font-size:8px}.view-presets{top:104px;right:15px;padding:3px}.view-presets button{min-width:27px;height:27px;font-size:8px}.view-presets #reset{border:0;border-top:1px solid #dfe2d4;padding:0;margin:3px 0 0}.compass{top:270px;right:11px;transform:scale(.8)}.sun-panel{bottom:80px;left:15px;right:auto;width:160px;padding:9px 12px}.sun-heading{font-size:13px}.sun-heading b{font-size:9px}.sun-heading button{height:21px;width:21px;font-size:14px;line-height:21px}.sun-controls{margin-top:6px}.sun-foot{margin-top:3px}.sun-panel>small{font-size:6px;margin-top:4px}.bottom-dock{bottom:23px}.model-toolbar{padding:4px;border-radius:5px}.model-toolbar button{font-size:9px;padding:6px 9px}.model-toolbar button>span:first-child{font-size:14px;margin-right:3px}.gestures{font-size:6px;margin-top:5px;letter-spacing:0}.viewport-footer{bottom:6px;font-size:5px;left:15px;right:15px;letter-spacing:.3px}.selection{left:17px;top:99px;padding:12px 16px;max-width:206px}.selection h3{font-size:10px}.selection strong{font-size:19px}.selection .eyebrow{font-size:7px}.section-control{min-width:255px;padding:6px 12px;font-size:9px}.toast{bottom:83px;font-size:10px}.error{inset:10%;padding:25px}.energy-card p{font-size:11px}.warning{font-size:10px}.floor-item{padding:10px 12px;font-size:11px;grid-template-columns:40px 1fr 65px}.floor-item strong{font-size:13px}.floor-item b{font-size:14px}.floor-item small{font-size:9px}.area-total{font-size:11px}.note{font-size:10px}}@media(prefers-reduced-motion:reduce){.loading-icon{animation:none}*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="topbar">
+ <a class="brand" href="#" aria-label="Solstice 14 home"><span class="brandmark"><i></i><i></i><i></i></span><span>SOLSTICE <b>14</b><small>WORKPLACE, REIMAGINED.</small></span></a>
+ <div class="project-caption">MODERN TROPICAL OFFICE<span>CONCEPT DESIGN / 01</span></div>
+ <div class="header-actions"><span class="live"><i></i> LIVE 3D</span><button id="export" class="primary" title="ส่งออกโมเดล GLB เปิดใน Blender ได้">Export 3D <span>↗</span></button></div>
+</header>
+<div class="workspace">
+<aside class="sidebar" aria-label="Project information and controls">
+ <div class="intro"><div class="eyebrow"><span>01 /</span> ARCHITECTURAL CONCEPT</div><h1>A better place<br>to <em>work.</em></h1><p>ออฟฟิศที่ให้แสง พื้นที่สีเขียว<br>และสถาปัตยกรรมทำงานร่วมกัน</p></div>
+ <div class="metrics"><div><strong>10,000</strong><span>ตร.ม. พื้นที่รวม</span></div><div><strong>14</strong><span>ชั้นเหนือดิน</span></div><div><strong>55.1</strong><span>ม. ถึงพื้นหลังคา</span></div></div>
+ <nav class="tabs" role="tablist" aria-label="Project details"><button role="tab" id="tab-design" aria-controls="panel-design" aria-selected="true" data-tab="design">แนวคิด</button><button role="tab" id="tab-floors" aria-controls="panel-floors" aria-selected="false" data-tab="floors">ชั้นอาคาร</button><button role="tab" id="tab-energy" aria-controls="panel-energy" aria-selected="false" data-tab="energy">พลังงาน</button></nav>
+ <section id="panel-design" class="panel" role="tabpanel" aria-labelledby="tab-design">
+  <div class="section-title">DESIGN LANGUAGE <span>↘</span></div>
+  <div class="design-row"><span class="swatch bronze"></span><div><h3>ฟาซาดบรอนซ์สานจังหวะ</h3><p>ครีบแนวตั้งลึก ปรับมุมเป็นจังหวะ<br>คู่กับกันสาดแนวนอน</p></div></div>
+  <div class="design-row"><span class="swatch green"></span><div><h3>สวนกลางอาคาร 2 ระดับ</h3><p>พื้นที่พักชั้น 5 และ 10 เปิดรับวิว<br>แยกจากพื้นที่ปรับอากาศ</p></div></div>
+  <div class="design-row"><span class="swatch glass"></span><div><h3>เปลือกอาคารรับแสงพอดี</h3><p>แนวคิดกระจก Low-E และ spandrel<br>ต้องตรวจสเปกด้วย energy model</p></div></div>
+  <div class="section-title spaced">MODEL LAYERS</div>
+  <label class="switch-row"><span>ครีบฟาซาด / กันสาด</span><input id="facade" type="checkbox" checked><i></i></label>
+  <label class="switch-row"><span>ต้นไม้และพื้นที่สีเขียว</span><input id="landscape" type="checkbox" checked><i></i></label>
+  <label class="switch-row"><span>เปิดเปลือกอาคารดูภายใน</span><input id="interior" type="checkbox"><i></i></label>
+  <div class="range-title"><label for="finDepth">ความลึกครีบฟาซาด</label><output id="fin-value">0.95 m</output></div><input id="finDepth" type="range" min="0.4" max="1.5" step="0.05" value="0.95">
+ </section>
+ <section id="panel-floors" class="panel" role="tabpanel" aria-labelledby="tab-floors" hidden>
+  <div class="section-title">FLOOR SCHEDULE <span>14 LEVELS</span></div><p class="hint">เลือกชั้นจากรายการ หรือคลิกที่ตัวอาคาร</p><div id="floor-list" class="floor-list"></div>
+  <div class="area-total"><span>รวมพื้นที่ตามแบบแนวคิด</span><strong>10,000 m²</strong></div><p class="note">รวมสวนมีหลังคา 144 ตร.ม. ไม่ใช่พื้นที่เช่าสุทธิ และยังไม่ใช่ GFA ตามกฎหมาย</p>
+ </section>
+ <section id="panel-energy" class="panel" role="tabpanel" aria-labelledby="tab-energy" hidden>
+  <div class="section-title">PASSIVE FIRST <span>DESIGN INTENT</span></div>
+  <div class="energy-card"><span>ROOFTOP SOLAR</span><strong>43.2 <small>kWp</small></strong><p>96 แผง × 450 W/แผง เป็นสมมติฐานกำลังติดตั้ง ไม่ใช่ผลผลิตพลังงานจริง</p></div>
+  <div class="energy-item"><b>01</b><div><h3>ลดแดดก่อนลดอุณหภูมิ</h3><p>ครีบตะวันออก–ตะวันตก และกันสาดเหนือ–ใต้ เพื่อลดแดดตรงผ่านกระจก</p></div></div>
+  <div class="energy-item"><b>02</b><div><h3>Low-E + daylight controls</h3><p>เป้าหมาย SHGC 0.25–0.30 พร้อมระบบหรี่ไฟตามแสงธรรมชาติ ยังไม่ระบุผลิตภัณฑ์</p></div></div>
+  <div class="energy-item"><b>03</b><div><h3>ระบบอาคารที่ตอบสนองการใช้งาน</h3><p>แนวคิดแอร์ประสิทธิภาพสูง แยกโซน เซนเซอร์คน และมาตรวัดรายชั้น</p></div></div>
+  <div class="warning">ยังไม่ได้จำลอง EnergyPlus / OTTV / daylight จึงไม่แสดง % ประหยัดไฟ หรือรับรองมาตรฐานอาคารเขียว</div>
+ </section>
+ <footer class="sidebar-footer"><span>BLENDER3D / DESIGN LAB</span><a href="https://github.com/saratchai1/Blender3d" target="_blank" rel="noopener noreferrer">Source ↗</a></footer>
+</aside>
+<main class="viewport" id="viewport">
+ <canvas id="scene" tabindex="0" aria-label="โมเดลออฟฟิศสามมิติ ลากเพื่อหมุน ใช้สองนิ้วซูม หรือใช้ปุ่มลูกศร"></canvas>
+ <div class="viewport-heading"><span class="eyebrow">SOLSTICE / BANGKOK CLIMATE ASSUMPTION</span><h2>Architecture in balance.</h2><p>14-storey workplace · 10,000 m² · real-time model</p></div>
+ <div class="view-presets" role="group" aria-label="มุมมอง"><button data-view="hero" class="active" title="มุมภาพรวม">3D</button><button data-view="front" title="ด้านทิศใต้">S</button><button data-view="east" title="ด้านทิศตะวันออก">E</button><button data-view="top" title="มุมบน">TOP</button><button id="reset" title="คืนค่าเริ่มต้น">↺</button></div>
+ <div class="compass" aria-hidden="true"><span>N</span><svg id="compass-needle" viewBox="0 0 60 60"><path d="M30 6L23 37L30 33L37 37Z" fill="currentColor"/><circle cx="30" cy="30" r="24" fill="none" stroke="currentColor" stroke-opacity=".18"/></svg></div>
+ <div class="model-label" id="garden-label"><span></span><div>SKY GARDEN<small>L10 / OUTDOOR WORKSPACE</small></div></div>
+ <div class="selection" id="selection" hidden><button id="clear-selection" title="ยกเลิกเลือกชั้น">×</button><span class="eyebrow" id="selected-tag">LEVEL 01</span><h3 id="selected-use"></h3><strong id="selected-area"></strong><p id="selected-note"></p></div>
+ <div class="sun-panel"><div class="sun-heading"><span>☀ <b>Sun study</b></span><button id="night" aria-pressed="false" title="สลับบรรยากาศกลางคืน">☾</button></div><div class="sun-controls"><label class="sr-only" for="sun-hour">เวลาแสงอาทิตย์</label><input type="range" id="sun-hour" min="7" max="18" step="0.25" value="9.5"><output id="sun-time">09:30</output></div><div class="sun-foot"><select id="sun-season" aria-label="วันที่จำลองดวงอาทิตย์"><option value="80">21 MAR</option><option value="172">21 JUN</option><option value="264" selected>21 SEP</option><option value="355">21 DEC</option></select><span id="sun-altitude"></span></div><small>ไซต์สมมติกรุงเทพฯ / แสดงเงาเชิงแนวคิด</small></div>
+ <div class="bottom-dock"><div class="model-toolbar" role="group" aria-label="Model tools"><button id="orbit" aria-pressed="false"><span>◌</span> หมุนอัตโนมัติ</button><button id="explode" aria-pressed="false"><span>☷</span> แยกชั้น</button><button id="section" aria-pressed="false"><span>▱</span> ตัดชั้น</button><button id="capture" title="บันทึกภาพจากโมเดล"><span>⌗</span><span class="capture-text"> บันทึกภาพ</span></button></div><div id="section-control" class="section-control" hidden><label for="cutoff">แสดงถึงชั้น</label><input id="cutoff" type="range" min="1" max="14" step="1" value="14"><output id="cutoff-value">14 / 14</output></div><p class="gestures">ลากเพื่อหมุน · เลื่อนเพื่อซูม · Shift + ลากเพื่อเลื่อนมุมมอง</p></div>
+ <div class="viewport-footer"><span id="render-status">INITIALIZING 3D</span><span>CONCEPT ONLY · NOT FOR CONSTRUCTION</span></div>
+ <div id="loading" class="loading"><div class="loading-icon"></div><h3>Building your perspective.</h3><p>กำลังสร้างโมเดลสามมิติ</p></div>
+ <div id="error" class="error" role="alert" hidden><h3>เปิดโมเดล 3D ไม่สำเร็จ</h3><p id="error-message"></p><button onclick="location.reload()">ลองโหลดใหม่</button></div>
+ <div id="toast" role="status" class="toast"></div>
+</main>
+</div>
+<noscript>เว็บนี้ต้องเปิด JavaScript เพื่อแสดงโมเดลสามมิติ</noscript>
+<script type="module">
+/** Solstice 14. One metre per unit; X east, Y up, Z south. No dependencies. */
+const SPEC = Object.freeze({
+  name: 'SOLSTICE 14', version: '1.0.0', units: 'metres', storeys: 14,
+  grossArea: 10000, typicalWidth: 34, typicalDepth: 20,
+  latitude: 13.7563, longitude: 100.5018, timezone: 7,
+  site: { width: 68, depth: 58, assumed: true },
+  pv: { panels: 96, wattsPerPanel: 450, width: 1.13, length: 1.9 },
+  disclaimer: 'Concept only. Areas include covered terraces; not statutory GFA, usable office area or a permit design. Energy performance is not simulated.'
+});
+const FLOORS = Array.from({ length: 14 }, (_, i) => {
+  const level = i + 1, width = level <= 2 ? 40 : level <= 12 ? 34 : 30;
+  const depth = level <= 2 ? 25 : 20, height = level === 1 ? 5 : level === 2 ? 4.5 : 3.8;
+  const y = level === 1 ? 0 : level === 2 ? 5 : 9.5 + (level - 3) * 3.8;
+  const terrace = [5, 10].includes(level) ? 72 : 0;
+  const use = level === 1 ? 'Lobby · café · arrival' : level === 2 ? 'Conference · co-working' : terrace ? 'Office · sky garden' : level >= 13 ? 'Executive · meeting suites' : 'Flexible office';
+  return { level, width, depth, height, y, area: width * depth, terrace, enclosed: width * depth - terrace, use };
+});
+const HEIGHT = FLOORS.at(-1).y + FLOORS.at(-1).height;
+const MATERIALS = {
+  stone: { color: [0.79, 0.77, 0.71], kind: 0 },
+  ivory: { color: [0.91, 0.9, 0.85], kind: 0 },
+  glass: { color: [0.22, 0.43, 0.45], kind: 1 },
+  glassLight: { color: [0.32, 0.51, 0.52], kind: 1 },
+  bronze: { color: [0.67, 0.50, 0.30], kind: 2 },
+  dark: { color: [0.16, 0.21, 0.22], kind: 2 },
+  wood: { color: [0.55, 0.36, 0.21], kind: 0 },
+  leaf: { color: [0.23, 0.39, 0.24], kind: 3 },
+  leafLight: { color: [0.37, 0.49, 0.27], kind: 3 },
+  lawn: { color: [0.48, 0.55, 0.38], kind: 0 },
+  water: { color: [0.28, 0.47, 0.48], kind: 1 },
+  road: { color: [0.43, 0.45, 0.43], kind: 0 },
+  solar: { color: [0.09, 0.18, 0.26], kind: 2 },
+  light: { color: [1.0, 0.79, 0.43], kind: 4 },
+  interior: { color: [0.76, 0.62, 0.43], kind: 0 }
+};
+// Layer IDs: 0 site, 1 structure, 2 glazing, 3 solar fins, 4 landscape, 5 furniture, 6 core, 7 roof/PV.
+function matrix(position, size, ry = 0, rx = 0) {
+  const c = Math.cos(ry), s = Math.sin(ry), a = Math.cos(rx), b = Math.sin(rx);
+  return [c*size[0],0,-s*size[0],0,s*b*size[1],a*size[1],c*b*size[1],0,s*a*size[2],-b*size[2],c*a*size[2],0,...position,1];
+}
+function makeScene({ finDepth = 0.95 } = {}) {
+  if (!Number.isFinite(finDepth) || finDepth < 0.3 || finDepth > 1.8) throw new Error('Fin depth must be 0.3–1.8 m');
+  const objects = [];
+  let seed = 231;
+  const random = () => ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
+  function add(shape, name, p, s, material, floor = 0, layer = 1, ry = 0, rx = 0) {
+    objects.push({ shape, name, matrix: matrix(p, s, ry, rx), material, floor, layer });
+  }
+  const box = (name,p,s,m,f=0,l=1,ry=0,rx=0) => add('box',name,p,s,m,f,l,ry,rx);
+  const ball = (name,p,s,m,f=0,l=4) => add('sphere',name,p,s,m,f,l);
+  const cyl = (name,p,s,m,f=0,l=4) => add('cylinder',name,p,s,m,f,l);
+  function tree(x,y,z,scale=1,f=0) {
+    const h = (2.6 + random() * 0.7) * scale;
+    cyl('Tree trunk',[x,y+h*0.45,z],[0.18*scale,h*0.9,0.18*scale],'wood',f);
+    ball('Tree canopy',[x,y+h,z],[1.65*scale,1.9*scale,1.65*scale],'leaf',f);
+    ball('Tree canopy light',[x+0.6*scale,y+h+0.35*scale,z+0.25*scale],[1.2*scale,1.35*scale,1.3*scale],'leafLight',f);
+  }
+  function planter(x,y,z,w,d,f=0) {
+    box('Stone planter',[x,y+0.32,z],[w,0.64,d],'stone',f,4);
+    box('Planting bed',[x,y+0.67,z],[w-0.16,0.08,d-0.16],'lawn',f,4);
+    for(let t=-w/2+0.6;t<w/2;t+=0.75) ball('Shrub',[x+t,y+0.98,z],[0.58,0.48,d*0.55],'leaf',f);
+  }
+  function desk(x,y,z,f,ry=0) {
+    box('Desk top',[x,y+0.78,z],[1.6,0.09,0.75],'ivory',f,5,ry);
+    box('Desk base',[x,y+0.39,z],[0.65,0.76,0.42],'dark',f,5,ry);
+    box('Task chair',[x,y+0.49,z+0.72],[0.55,0.12,0.53],'interior',f,5,ry);
+    box('Chair back',[x,y+0.8,z+0.95],[0.55,0.6,0.1],'interior',f,5,ry);
+  }
+  box('Site plinth',[0,-0.65,0],[68,1,58],'stone',0,0);
+  box('Paved plaza',[0,-0.11,0],[66,0.12,56],'ivory',0,0);
+  box('Street',[0,-0.16,34],[125,0.12,10],'road',0,0);
+  for(let x=-60;x<61;x+=7)box('Road marking',[x,-0.086,34],[3,0.015,0.14],'ivory',0,0);
+  for(let x=-28;x<=28;x+=4) box('Plaza joint',[x,-0.035,0],[0.025,0.01,56],'stone',0,0);
+  for(let z=-24;z<=24;z+=4) box('Plaza joint',[0,-0.034,z],[66,0.01,0.025],'stone',0,0);
+  box('Reflecting pool surround',[-25,0.04,5],[7,0.2,21],'stone',0,0);
+  box('Reflecting pool',[-25,0.155,5],[6.5,0.03,20.5],'water',0,0);
+  box('West garden',[-26,0.02,-19],[11,0.16,12],'lawn',0,4);
+  box('East garden',[26,0.02,-5],[9,0.16,37],'lawn',0,4);
+  box('North garden',[0,0.02,-23],[44,0.16,8],'lawn',0,4);
+  [[-28,-20],[-22,-21],[-29,-13],[25,-20],[29,-12],[25,-3],[29,6],[25,13],[-16,-23],[-5,-24],[7,-23],[18,-23],[-28,20],[28,22]].forEach(([x,z],i)=>tree(x,0.1,z,1.1+(i%3)*0.2));
+  for(const x of [-13,13]) { planter(x,0,22,9,2.5); box('Plaza bench',[x,0.5,19.5],[5,0.25,0.85],'wood',0,0); }
+  for(let i=0;i<9;i++) {
+    const x=-17+i*4.2,z=17.8+(i%3)*1.3;
+    cyl('Visitor',[x,0.84,z],[0.29,1.16,0.29],i%2?'dark':'stone',0,0);
+    ball('Visitor head',[x,1.58,z],[0.17,0.19,0.17],'wood',0,0);
+  }
+  for(const x of [-12,12,24]) {
+    box('Electric car body',[x,0.65,27],[4.6,0.9,1.9],x<0?'dark':'stone',0,0);
+    box('Electric car cabin',[x,1.23,27],[2.6,0.6,1.68],'glass',0,0);
+    for(const a of [-1.4,1.4])for(const b of [-0.86,0.86])ball('Car wheel',[x+a,0.36,27+b],[0.36,0.36,0.18],'dark',0,0);
+  }
+  // Fourteen individually selectable slabs. Terraces remain within the stated rectangular floor plates.
+  for(const f of FLOORS) {
+    const {level:n,width:w,depth:d,height:h,y}=f, garden = f.terrace>0;
+    box(`L${n} floor plate`,[0,y+0.16,0],[w,0.32,d],'ivory',n,1);
+    box(`L${n} soffit edge south`,[0,y+0.10,d/2+0.08],[w+0.28,0.13,0.32],'stone',n,1);
+    box(`L${n} soffit edge north`,[0,y+0.10,-d/2-0.08],[w+0.28,0.13,0.32],'stone',n,1);
+    box(`L${n} west edge`,[-w/2-0.08,y+0.10,0],[0.32,0.13,d+0.28],'stone',n,1);
+    box(`L${n} east edge`,[w/2+0.08,y+0.10,0],[0.32,0.13,d+0.28],'stone',n,1);
+    // Concept core: two stairs and a lift bank; dimensions do not constitute a code check.
+    box(`L${n} lift bank`,[0,y+h/2,-2.5],[5.2,h-0.32,4.8],'stone',n,6);
+    for(const x of [-6,6]) {
+      box(`L${n} stair enclosure`,[x,y+h/2,-4.8],[3.3,h-0.32,5],'ivory',n,6);
+      for(let j=0;j<10;j++)box(`L${n} stair tread`,[x,y+0.35+j*0.16,-6.5+j*0.3],[2.2,0.16,0.32],'stone',n,5);
+    }
+    for(const x of [-w/2+1.1,w/2-1.1])for(const z of [-d/2+1.1,0,d/2-1.1])
+      box(`L${n} perimeter column`,[x,y+h/2,z],[0.42,h-0.32,0.42],'stone',n,1);
+    const step= n<=2 ? 2 : 1.7;
+    for(const sign of [-1,1]) {
+      const segments = garden && sign===1 ? [[-w/2,-9],[9,w/2]] : [[-w/2,w/2]];
+      for(const [start,end] of segments) {
+        const count=Math.ceil((end-start)/step),bay=(end-start)/count;
+        for(let i=0;i<count;i++) {
+          const x=start+bay*(i+0.5),z=sign*d/2;
+          box(`L${n} curtain glazing`,[x,y+0.37+(h-0.62)/2,z],[bay-0.075,h-0.62,0.13],i%4===0?'glassLight':'glass',n,2);
+          box(`L${n} curtain mullion`,[x-bay/2,y+h/2,z+sign*0.11],[0.065,h-0.32,0.12],'dark',n,2);
+          if(n>2) {
+            box(`L${n} insulated spandrel`,[x,y+h-0.57,z+sign*0.10],[bay-0.05,0.85,0.18],'dark',n,2);
+            const angle=(0.13*Math.sin(i*0.52+n*0.43)+0.12)*sign;
+            box(`L${n} bronze solar fin`,[x-bay/2,y+h/2,z+sign*(finDepth/2+0.18)],[0.105,h-0.45,finDepth],'bronze',n,3,angle);
+          }
+        }
+      }
+    }
+    if(garden) {
+      for(let x=-8;x<=8;x+=2) {
+        box(`L${n} garden inner glazing`,[x,y+h/2,6],[1.94,h-0.5,0.13],'glass',n,2);
+        box(`L${n} garden inner mullion`,[x-1,y+h/2,6],[0.065,h-0.32,0.18],'dark',n,2);
+      }
+      for(const x of [-9,9])box(`L${n} garden glazing return`,[x,y+h/2,8],[0.13,h-0.5,4],'glass',n,2);
+    }
+    for(let j=0;j<Math.floor(d/1.35);j++) {
+      const bay=d/Math.floor(d/1.35),z=-d/2+bay*(j+0.5);
+      for(const sign of [-1,1]) {
+        box(`L${n} end glazing`,[sign*w/2,y+h/2,z],[0.13,h-0.5,bay-0.055],j%3?'glass':'glassLight',n,2);
+        if(n>2)box(`L${n} east west fin`,[sign*(w/2+finDepth/2+0.16),y+h/2,z],[finDepth,h-0.48,0.105],'bronze',n,3,-sign*0.35);
+      }
+    }
+    if(n>2) {
+      for(const x of [-12.5,12.5])box(`L${n} meeting room partition`,[x,y+1.7,-3],[.10,2.8,7],'glassLight',n,5);
+      for(const sign of [-1,1])box(`L${n} horizontal shade`,[0,y+h-0.1,sign*(d/2+0.34)],[w+1,0.14,0.88],'ivory',n,3);
+      for(const x of [-10,-5,5,10])for(const z of [-0.2,4.6])if(!(garden && z>4 && Math.abs(x)<9))desk(x,y+0.33,z,n);
+    } else {
+      for(const x of [-13,13])box(`L${n} reception table`,[x,y+0.8,3.5],[3.8,0.85,1.3],'wood',n,5);
+      for(const x of [-12,-6,6,12])desk(x,y+0.33,-6,n);
+    }
+    if(garden) {
+      box(`L${n} garden deck`,[0,y+0.37,8],[18,0.09,4],'wood',n,4);
+      planter(-4.8,y+0.4,9,7.2,1.6,n);planter(4.8,y+0.4,9,7.2,1.6,n);
+      for(const x of [-6,0,6])tree(x,y+0.5,8,0.65,n);
+      box(`L${n} terrace guardrail`,[0,y+1.0,10],[18,0.04,0.05],'bronze',n,4);
+      for(const x of [-8,-4,0,4,8])box('Guardrail upright',[x,y+0.68,10],[0.05,0.65,0.05],'bronze',n,4);
+    }
+  }
+  // Roof is attached to L14, not a fifteenth occupied storey.
+  box('Roof slab',[0,HEIGHT+0.16,0],[30,0.32,20],'ivory',14,7);
+  for(const sign of [-1,1])box('Roof parapet',[0,HEIGHT+0.72,sign*9.85],[30,1.1,0.22],'stone',14,7);
+  for(const sign of [-1,1])box('Roof parapet',[sign*14.85,HEIGHT+0.72,0],[0.22,1.1,20],'stone',14,7);
+  box('Screened roof plant',[-10,HEIGHT+1.7,0],[6.5,3,8],'dark',14,7);
+  for(let z=-4.4;z<4.5;z+=0.48)box('Plant screen louvre',[-13.4,HEIGHT+1.7,z],[0.18,3.2,0.09],'bronze',14,7);
+  for(let x=-13.4;x<-6.2;x+=0.48)box('Plant screen louvre',[x,HEIGHT+1.7,4.35],[0.10,3.2,0.20],'bronze',14,7);
+  for(let row=0;row<8;row++)for(let col=0;col<12;col++) {
+    const x=-3+col*1.28,z=-7.8+row*2.04;
+    box('PV module 450 W target',[x,HEIGHT+1.12,z],[1.13,0.075,1.9],'solar',14,7,0,0.17);
+    box('PV mounting rail',[x,HEIGHT+0.76,z],[0.055,0.65,1.7],'dark',14,7);
+    for(const s of [-0.28,0,0.28])box('PV cell string',[x+s,HEIGHT+1.166,z],[0.009,0.008,1.86],'glassLight',14,7,0,0.17);
+  }
+  for(const x of [-18.5,18.5])box('Podium terrace roof',[x,9.5+0.16,0],[3,0.32,25],'ivory',3,1);
+  for(const z of [-11.25,11.25])box('Podium terrace roof',[0,9.5+0.16,z],[34,0.32,2.5],'ivory',3,1);
+  for(const x of [-16,16])box('Upper setback roof',[x,FLOORS[12].y+0.16,0],[2,0.32,20],'ivory',13,1);
+  // Podium roof terraces occupy uncounted exterior roof surfaces, not additional storeys.
+  for(const x of [-18.3,18.3]) {
+    planter(x,9.6,0,1.7,20,3);
+    for(const z of [-7,0,7])tree(x,10.25,z,0.66,3);
+  }
+  box('Entrance floating canopy',[0,4.0,15.3],[14,0.25,6.2],'ivory',1,1);
+  for(const x of [-6.5,6.5])cyl('Entrance canopy column',[x,2,17.3],[0.18,4,0.18],'bronze',1,1);
+  for(let x=-6;x<=6;x+=0.4)box('Canopy timber soffit',[x,3.84,15.3],[0.13,0.10,5.9],'wood',1,1);
+  box('Entry light line',[0,3.85,18.3],[13,0.05,0.06],'light',1,1);
+  return { spec: SPEC, floors: FLOORS, height: HEIGHT, materials: MATERIALS, objects };
+}
+/** Unit meshes used identically by the WebGL renderer and the GLB exporter. */
+function geometry(shape) {
+  const positions=[], normals=[], indices=[];
+  const vertex=(p,n)=>{positions.push(...p);normals.push(...n);return positions.length/3-1;};
+  if(shape==='box') {
+    const faces=[[[1,0,0],[0,1,0],[0,0,1]],[[-1,0,0],[0,1,0],[0,0,-1]],[[0,1,0],[0,0,1],[1,0,0]],[[0,-1,0],[0,0,-1],[1,0,0]],[[0,0,1],[1,0,0],[0,1,0]],[[0,0,-1],[-1,0,0],[0,1,0]]];
+    for(const [n,u,v] of faces){const b=positions.length/3;for(const [a,c] of [[-1,-1],[1,-1],[1,1],[-1,1]])vertex(n.map((t,k)=>(t+a*u[k]+c*v[k])/2),n);indices.push(b,b+1,b+2,b,b+2,b+3);}
+  } else if(shape==='sphere') {
+    const rows=10,cols=14;
+    for(let j=0;j<=rows;j++){const a=Math.PI*j/rows;for(let i=0;i<=cols;i++){const b=2*Math.PI*i/cols,n=[Math.sin(a)*Math.cos(b),Math.cos(a),Math.sin(a)*Math.sin(b)];vertex(n,n);}}
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=j*(cols+1)+i,b=a+cols+1;indices.push(a,a+1,b,b,a+1,b+1);}
+  } else if(shape==='cylinder') {
+    const seg=12;
+    for(let i=0;i<=seg;i++){const a=i*Math.PI*2/seg,n=[Math.cos(a),0,Math.sin(a)];vertex([n[0]*0.5,-0.5,n[2]*0.5],n);vertex([n[0]*0.5,0.5,n[2]*0.5],n);}
+    for(let i=0;i<seg;i++){let a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
+    for(const sign of [-1,1]){const mid=vertex([0,sign*0.5,0],[0,sign,0]);for(let i=0;i<=seg;i++){const a=i*Math.PI*2/seg;vertex([Math.cos(a)*0.5,sign*0.5,Math.sin(a)*0.5],[0,sign,0]);}for(let i=0;i<seg;i++){const a=mid+1+i;indices.push(mid,...(sign>0?[a+1,a]:[a,a+1]));}}
+  } else throw new Error(`Unknown shape: ${shape}`);
+  return {positions:new Float32Array(positions),normals:new Float32Array(normals),indices:new Uint16Array(indices)};
+}
+/** Approximate geometric sun position, not a daylight or annual energy simulation. */
+function sunPosition(hour, day=264) {
+  const rad=Math.PI/180,lat=SPEC.latitude*rad,b=2*Math.PI*(day-81)/364;
+  const eot=9.87*Math.sin(2*b)-7.53*Math.cos(b)-1.5*Math.sin(b);
+  const solarHour=hour+(4*(SPEC.longitude-15*SPEC.timezone)+eot)/60;
+  const decl=23.45*rad*Math.sin(2*Math.PI*(284+day)/365),ha=(solarHour-12)*15*rad;
+  const east=-Math.cos(decl)*Math.sin(ha),up=Math.sin(lat)*Math.sin(decl)+Math.cos(lat)*Math.cos(decl)*Math.cos(ha);
+  const south=Math.sin(lat)*Math.cos(decl)*Math.cos(ha)-Math.cos(lat)*Math.sin(decl);
+  return {direction:[east,up,south],altitude:Math.asin(up)/rad,solarHour};
+}
+
+
+const V={sub:(a,b)=>a.map((v,i)=>v-b[i]),dot:(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],norm:a=>{const n=Math.hypot(...a)||1;return a.map(v=>v/n);}};
+const M={
+  mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o;},
+  perspective(fov,aspect,n,f){const t=1/Math.tan(fov/2);return new Float32Array([t/aspect,0,0,0,0,t,0,0,0,0,(f+n)/(n-f),-1,0,0,2*f*n/(n-f),0]);},
+  ortho(l,r,b,t,n,f){return new Float32Array([2/(r-l),0,0,0,0,2/(t-b),0,0,0,0,-2/(f-n),0,-(r+l)/(r-l),-(t+b)/(t-b),-(f+n)/(f-n),1]);},
+  look(eye,target,up=[0,1,0]){const z=V.norm(V.sub(eye,target)),x=V.norm(V.cross(up,z)),y=V.cross(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-V.dot(x,eye),-V.dot(y,eye),-V.dot(z,eye),1]);}
+};
+const vertexShader=`#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPosition;layout(location=1) in vec3 aNormal;
+layout(location=2) in vec4 aM0;layout(location=3) in vec4 aM1;layout(location=4) in vec4 aM2;layout(location=5) in vec4 aM3;
+layout(location=6) in vec4 aColor;layout(location=7) in vec2 aMeta;
+uniform mat4 uVP;uniform mat4 uLightVP;uniform float uExplode;
+out vec3 vNormal;out vec3 vWorld;out vec4 vColor;out vec4 vShadow;flat out vec2 vMeta;
+void main(){mat4 model=mat4(aM0,aM1,aM2,aM3);vec4 p=model*vec4(aPosition,1.0);p.y+=max(0.0,aMeta.x-1.0)*uExplode*2.8;
+vWorld=p.xyz;vNormal=normalize(mat3(aM0.xyz/dot(aM0.xyz,aM0.xyz),aM1.xyz/dot(aM1.xyz,aM1.xyz),aM2.xyz/dot(aM2.xyz,aM2.xyz))*aNormal);
+vColor=aColor;vMeta=aMeta;vShadow=uLightVP*p;gl_Position=uVP*p;}`;
+const fragmentShader=`#version 300 es
+precision highp float;
+in vec3 vNormal;in vec3 vWorld;in vec4 vColor;in vec4 vShadow;flat in vec2 vMeta;
+uniform sampler2D uShadow;uniform vec3 uSun;uniform vec3 uEye;uniform float uNight;uniform float uSelected;uniform float uShadows;
+out vec4 outColor;
+float shadowFactor(vec3 n){vec3 p=vShadow.xyz/vShadow.w*0.5+0.5;if(p.z>1.0||p.z<0.0||p.x<0.0||p.x>1.0||p.y<0.0||p.y>1.0)return 1.0;
+float bias=max(0.0006*(1.0-dot(n,uSun)),0.00016),s=0.0;vec2 size=vec2(textureSize(uShadow,0));
+for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)s+=(p.z-bias>texture(uShadow,p.xy+vec2(x,y)/size).r)?0.0:1.0;return s/9.0;}
+void main(){vec3 n=normalize(vNormal);vec3 view=normalize(uEye-vWorld);float kind=vColor.a;vec3 base=pow(vColor.rgb,vec3(2.2));
+float diffuse=max(dot(n,uSun),0.0);float shadow=mix(1.0,shadowFactor(n),uShadows);vec3 hemi=mix(vec3(0.20,0.22,0.19),vec3(0.69,0.76,0.78),n.y*0.5+0.5);
+vec3 lit=base*(hemi*0.72+vec3(1.0,0.91,0.75)*diffuse*shadow*1.7);float fres=pow(1.0-max(dot(n,view),0.0),4.0);
+if(kind>0.5&&kind<1.5){vec3 ref=reflect(-view,n);vec3 env=mix(vec3(0.19,0.30,0.29),vec3(0.70,0.80,0.81),smoothstep(-0.25,0.65,ref.y));
+float streak=0.93+0.07*sin(ref.x*7.0+ref.z*4.0+ref.y*14.0);lit=mix(lit,env*streak,0.30+fres*0.40);lit*=0.85+shadow*0.15;
+float sparkle=pow(max(dot(ref,uSun),0.0),110.0);lit+=sparkle*shadow*0.7;
+float glow=step(0.43,fract(sin(dot(floor(vWorld.xz*0.7)+floor(vWorld.y*0.3),vec2(12.9,78.2)))*43758.5));
+lit=mix(lit*0.2,vec3(0.98,0.64,0.27)*(.25+glow*.55),uNight*.8);
+}else if(kind>1.5&&kind<2.5){vec3 halfV=normalize(uSun+view);lit+=vec3(0.30,0.25,0.17)*pow(max(dot(n,halfV),0.0),40.0)*shadow;}
+if(kind>2.5&&kind<3.5){lit*=0.90;lit+=base*max(dot(-n,uSun),0.0)*0.18;}
+if(kind>3.5)lit=base*(1.0+uNight*2.5);
+if(kind<0.5||kind>1.5)lit*=mix(1.0,0.35,uNight);
+if(uSelected>0.0&&abs(vMeta.x-uSelected)<0.1)lit=mix(lit,vec3(0.75,0.55,0.19),0.28);
+float fog=1.0-exp(-pow(length(uEye-vWorld)*0.0018,2.0));lit=mix(lit,mix(vec3(0.78,0.79,0.74),vec3(0.09,0.13,0.18),uNight),fog);
+lit=lit/(lit+vec3(0.55));outColor=vec4(pow(lit,vec3(1.0/2.2)),1.0);}`;
+const shadowFragment=`#version 300 es\nprecision highp float;void main(){}`;
+class OfficeRenderer {
+  constructor(canvas, scene) {
+    this.canvas=canvas;this.gl=canvas.getContext('webgl2',{antialias:true,alpha:false,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+    if(!this.gl)throw new Error('อุปกรณ์นี้ไม่รองรับ WebGL 2 กรุณาเปิดด้วย Safari, Chrome หรือ Edge รุ่นปัจจุบัน');
+    const gl=this.gl;this.scene=scene;this.state={cutoff:14,explode:0,facade:true,landscape:true,interior:false,night:false,selected:0,auto:false,hour:9.5,day:264,shadows:true};
+    this.camera={theta:0.66,phi:0.32,radius:140,target:[0,26,0]};this.goal={...this.camera,target:[...this.camera.target]};
+    this.program=this.programFor(vertexShader,fragmentShader);this.shadowProgram=this.programFor(vertexShader,shadowFragment);
+    this.locations=new Map();this.batches=[];this.pointerMap=new Map();this.shadowDirty=true;this.dirty=true;this.lastTime=0;
+    const makeDepth=()=>{const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.DEPTH_COMPONENT24,2048,2048,0,gl.DEPTH_COMPONENT,gl.UNSIGNED_INT,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return tex;};
+    this.depthTexture=makeDepth();this.fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fbo);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depthTexture,0);gl.drawBuffers([gl.NONE]);gl.readBuffer(gl.NONE);
+    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw new Error('Shadow framebuffer unavailable');gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);
+    this.rebuild();this.bindInput();this.resizeObserver=new ResizeObserver(()=>{this.resize();});this.resizeObserver.observe(canvas);this.resize();
+    canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();cancelAnimationFrame(this.raf);this.onError?.('WebGL context lost — กรุณาโหลดหน้าใหม่');});
+    this.tick=this.tick.bind(this);this.raf=requestAnimationFrame(this.tick);
+  }
+  programFor(vs,fs){const gl=this.gl,p=gl.createProgram();for(const [type,src] of [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));gl.attachShader(p,s);gl.deleteShader(s);}gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
+  loc(program,name){if(!this.locations.has(program))this.locations.set(program,{});const cache=this.locations.get(program);if(!(name in cache))cache[name]=this.gl.getUniformLocation(program,name);return cache[name];}
+  set(name,value){this.state[name]=value;if(['cutoff','facade','landscape','interior'].includes(name))this.rebuild();if(['explode','hour','day'].includes(name))this.shadowDirty=true;this.dirty=true;}
+  replaceScene(scene){this.scene=scene;this.rebuild();}
+  rebuild(){
+    const gl=this.gl;
+    for(const b of this.batches){gl.deleteVertexArray(b.vao);b.buffers.forEach(v=>gl.deleteBuffer(v));}
+    this.batches=[];const groups=new Map();
+    for(const o of this.scene.objects){if(o.floor>this.state.cutoff)continue;if(o.layer===7&&this.state.cutoff<14)continue;if(o.layer===3&&!this.state.facade)continue;if(o.layer===4&&!this.state.landscape)continue;if(o.layer===5&&!this.state.interior)continue;if(o.layer===2&&this.state.interior)continue;
+      if(!groups.has(o.shape))groups.set(o.shape,[]);groups.get(o.shape).push(o);}
+    for(const [shape,objects]of groups){const g=geometry(shape),vao=gl.createVertexArray(),buffers=[];gl.bindVertexArray(vao);
+      const buffer=(target,data)=>{const b=gl.createBuffer();buffers.push(b);gl.bindBuffer(target,b);gl.bufferData(target,data,gl.STATIC_DRAW);return b;};
+      buffer(gl.ARRAY_BUFFER,g.positions);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);
+      buffer(gl.ARRAY_BUFFER,g.normals);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,3,gl.FLOAT,false,0,0);
+      buffer(gl.ELEMENT_ARRAY_BUFFER,g.indices);const data=new Float32Array(objects.length*22);
+      objects.forEach((o,i)=>{const mat=this.scene.materials[o.material];data.set([...o.matrix,...mat.color,mat.kind,o.floor,o.layer],i*22);});
+      buffer(gl.ARRAY_BUFFER,data);for(let k=0;k<4;k++){gl.enableVertexAttribArray(2+k);gl.vertexAttribPointer(2+k,4,gl.FLOAT,false,88,k*16);gl.vertexAttribDivisor(2+k,1);}
+      gl.enableVertexAttribArray(6);gl.vertexAttribPointer(6,4,gl.FLOAT,false,88,64);gl.vertexAttribDivisor(6,1);gl.enableVertexAttribArray(7);gl.vertexAttribPointer(7,2,gl.FLOAT,false,88,80);gl.vertexAttribDivisor(7,1);
+      this.batches.push({vao,buffers,count:g.indices.length,instances:objects.length});
+    }
+    gl.bindVertexArray(null);this.shadowDirty=true;this.dirty=true;
+  }
+  resize(){const dpr=Math.min(window.devicePixelRatio||1,1.8),r=this.canvas.getBoundingClientRect();const w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);if(w&&h&&(this.canvas.width!==w||this.canvas.height!==h)){this.canvas.width=w;this.canvas.height=h;this.dirty=true;}}
+  bindInput(){
+    const c=this.canvas;
+    c.addEventListener('contextmenu',e=>e.preventDefault());
+    c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);this.pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});this.down={x:e.clientX,y:e.clientY,time:performance.now()};this.state.auto=false;this.onInteraction?.();});
+    c.addEventListener('pointermove',e=>{if(!this.pointerMap.has(e.pointerId))return;const prev=this.pointerMap.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;
+      if(this.pointerMap.size===2){const other=[...this.pointerMap.entries()].find(([id])=>id!==e.pointerId)[1];const old=Math.hypot(prev.x-other.x,prev.y-other.y),now=Math.hypot(e.clientX-other.x,e.clientY-other.y);this.goal.radius=Math.max(25,Math.min(240,this.goal.radius*old/Math.max(now,1)));this.pan(dx*0.35,dy*0.35);}
+      else if(e.buttons===2||e.shiftKey){this.pan(dx,dy);}else{this.goal.theta-=dx*0.006;this.goal.phi=Math.max(0.05,Math.min(1.50,this.goal.phi+dy*0.004));}
+      this.pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});this.dirty=true;
+    });
+    const end=e=>{const clicked=this.pointerMap.size===1&&this.down&&Math.hypot(e.clientX-this.down.x,e.clientY-this.down.y)<5&&performance.now()-this.down.time<400;this.pointerMap.delete(e.pointerId);if(clicked)this.onPick?.(this.pick(e.clientX,e.clientY));};
+    c.addEventListener('pointerup',end);c.addEventListener('pointercancel',e=>this.pointerMap.delete(e.pointerId));
+    c.addEventListener('wheel',e=>{e.preventDefault();this.goal.radius=Math.max(25,Math.min(240,this.goal.radius*Math.exp(e.deltaY*0.001)));this.dirty=true;},{passive:false});
+    c.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','=','Home'].includes(e.key)){e.preventDefault();if(e.key==='ArrowLeft')this.goal.theta+=.1;if(e.key==='ArrowRight')this.goal.theta-=.1;if(e.key==='ArrowUp')this.goal.phi=Math.min(1.5,this.goal.phi+.08);if(e.key==='ArrowDown')this.goal.phi=Math.max(.05,this.goal.phi-.08);if(e.key==='+'||e.key==='=')this.goal.radius*=.9;if(e.key==='-')this.goal.radius*=1.1;if(e.key==='Home')this.preset('hero');this.dirty=true;}});
+  }
+  pan(dx,dy){const k=this.goal.radius/750;this.goal.target[0]-=Math.cos(this.goal.theta)*dx*k;this.goal.target[2]+=Math.sin(this.goal.theta)*dx*k;this.goal.target[1]+=dy*k;}
+  preset(name){const ex=this.state.explode,shift=ex*18;const presets={hero:[.66,.32,140+shift*2,[0,26+shift,0]],front:[0,.16,105+shift*2,[0,26+shift,0]],east:[Math.PI/2,.21,102+shift*2,[0,26+shift,0]],top:[.0,1.48,108+shift,[0,18+shift,0]],garden:[.2,.13,55,[0,36.5+shift,3]]};
+    const p=presets[name]||presets.hero;this.goal={theta:p[0],phi:p[1],radius:p[2],target:[...p[3]]};this.state.auto=false;this.dirty=true;
+  }
+  eye(){const c=this.camera;return [c.target[0]+c.radius*Math.sin(c.theta)*Math.cos(c.phi),c.target[1]+c.radius*Math.sin(c.phi),c.target[2]+c.radius*Math.cos(c.theta)*Math.cos(c.phi)];}
+  project(point){if(!this.vp)return null;const m=this.vp,p=[...point,1],out=[0,0,0,0];for(let r=0;r<4;r++)for(let k=0;k<4;k++)out[r]+=m[k*4+r]*p[k];const rect=this.canvas.getBoundingClientRect();return {x:(out[0]/out[3]*.5+.5)*rect.width,y:(-out[1]/out[3]*.5+.5)*rect.height,visible:out[3]>0&&Math.abs(out[0]/out[3])<1&&Math.abs(out[1]/out[3])<1};}
+  pick(clientX,clientY){const r=this.canvas.getBoundingClientRect(),nx=(clientX-r.left)/r.width*2-1,ny=1-(clientY-r.top)/r.height*2;const eye=this.eye(),f=V.norm(V.sub(this.camera.target,eye)),right=V.norm(V.cross(f,[0,1,0])),up=V.cross(right,f),t=Math.tan(36*Math.PI/360);const dir=V.norm(f.map((v,i)=>v+right[i]*nx*t*r.width/r.height+up[i]*ny*t));let best=Infinity,level=0;
+    for(const floor of this.scene.floors){if(floor.level>this.state.cutoff)continue;const ey=(floor.level-1)*this.state.explode*2.8,min=[-floor.width/2,floor.y+ey,-floor.depth/2],max=[floor.width/2,floor.y+floor.height+ey,floor.depth/2];let near=0,far=Infinity;
+      for(let i=0;i<3;i++){if(Math.abs(dir[i])<1e-8){if(eye[i]<min[i]||eye[i]>max[i]){near=Infinity;break;}}else{let a=(min[i]-eye[i])/dir[i],b=(max[i]-eye[i])/dir[i];if(a>b)[a,b]=[b,a];near=Math.max(near,a);far=Math.min(far,b);}}if(near<=far&&near<best){best=near;level=floor.level;}}
+    return level;
+  }
+  draw(program,vp,lightVP){const gl=this.gl;gl.useProgram(program);gl.uniformMatrix4fv(this.loc(program,'uVP'),false,vp);gl.uniformMatrix4fv(this.loc(program,'uLightVP'),false,lightVP);gl.uniform1f(this.loc(program,'uExplode'),this.state.explode);for(const b of this.batches){gl.bindVertexArray(b.vao);gl.drawElementsInstanced(gl.TRIANGLES,b.count,gl.UNSIGNED_SHORT,0,b.instances);}gl.bindVertexArray(null);}
+  render(){const gl=this.gl,eye=this.eye(),sun=sunPosition(this.state.hour,this.state.day),dir=V.norm([sun.direction[0],Math.max(.06,sun.direction[1]),sun.direction[2]]),lightTarget=[0,28+this.state.explode*20,0],lightEye=lightTarget.map((v,i)=>v+dir[i]*150);
+    const ext=78+this.state.explode*15,lightVP=M.mul(M.ortho(-ext,ext,-ext,ext,10,310),M.look(lightEye,lightTarget,[0,0,-1]));
+    if(this.shadowDirty&&this.state.shadows){gl.bindFramebuffer(gl.FRAMEBUFFER,this.fbo);gl.viewport(0,0,2048,2048);gl.clear(gl.DEPTH_BUFFER_BIT);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1.2,2);this.draw(this.shadowProgram,lightVP,lightVP);gl.disable(gl.POLYGON_OFFSET_FILL);this.shadowDirty=false;}
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,this.canvas.width,this.canvas.height);const night=this.state.night?1:0;gl.clearColor(...(night?[.10,.14,.18,1]:[.875,.876,.845,1]));gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    this.vp=M.mul(M.perspective(36*Math.PI/180,this.canvas.width/this.canvas.height,.3,600),M.look(eye,this.camera.target));gl.useProgram(this.program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depthTexture);gl.uniform1i(this.loc(this.program,'uShadow'),0);gl.uniform3fv(this.loc(this.program,'uSun'),dir);gl.uniform3fv(this.loc(this.program,'uEye'),eye);gl.uniform1f(this.loc(this.program,'uNight'),night);gl.uniform1f(this.loc(this.program,'uSelected'),this.state.selected);gl.uniform1f(this.loc(this.program,'uShadows'),this.state.shadows?1:0);this.draw(this.program,this.vp,lightVP);this.onFrame?.();this.dirty=false;
+  }
+  tick(time){const dt=Math.min((time-this.lastTime)/1000,.05);this.lastTime=time;let moving=false;if(this.state.auto&&!document.hidden){this.goal.theta+=dt*.16;moving=true;}
+    for(const k of ['theta','phi','radius']){const d=this.goal[k]-this.camera[k];if(Math.abs(d)>.0001){this.camera[k]+=d*.14;moving=true;}}
+    this.camera.target=this.camera.target.map((v,i)=>{const d=this.goal.target[i]-v;if(Math.abs(d)>.0001)moving=true;return v+d*.14;});
+    if((this.dirty||moving)&&!document.hidden)this.render();this.raf=requestAnimationFrame(this.tick);
+  }
+  screenshot(){this.render();return this.canvas.toDataURL('image/png');}
+  destroy(){cancelAnimationFrame(this.raf);this.resizeObserver.disconnect();const gl=this.gl;for(const b of this.batches){gl.deleteVertexArray(b.vao);b.buffers.forEach(v=>gl.deleteBuffer(v));}gl.deleteProgram(this.program);gl.deleteProgram(this.shadowProgram);gl.deleteTexture(this.depthTexture);gl.deleteFramebuffer(this.fbo);}
+}
+
+
+/** Portable glTF 2.0 binary exporter; exports the complete design, not a clipped screen state. */
+function exportGLB(scene) {
+  const gltf={asset:{version:'2.0',generator:'Solstice 14 / Blender3d'},scene:0,scenes:[{name:scene.spec.name,nodes:[]}],nodes:[],meshes:[],materials:[],accessors:[],bufferViews:[],buffers:[],extras:{units:'metres',coordinateSystem:'X east, Y up, Z south',spec:scene.spec,floors:scene.floors}};
+  const chunks=[],materialIndices={},shapeData={},meshIndices={};let byteLength=0;
+  function view(array,target){const pad=(4-byteLength%4)%4;if(pad){chunks.push(new Uint8Array(pad));byteLength+=pad;}const index=gltf.bufferViews.length;gltf.bufferViews.push({buffer:0,byteOffset:byteLength,byteLength:array.byteLength,target});chunks.push(new Uint8Array(array.buffer,array.byteOffset,array.byteLength));byteLength+=array.byteLength;return index;}
+  function accessor(array,type,componentType,target,extrema=false){const item={bufferView:view(array,target),componentType,count:array.length/(type==='VEC3'?3:1),type};if(extrema){item.min=[Infinity,Infinity,Infinity];item.max=[-Infinity,-Infinity,-Infinity];for(let i=0;i<array.length;i++){let k=i%3;item.min[k]=Math.min(item.min[k],array[i]);item.max[k]=Math.max(item.max[k],array[i]);}}const id=gltf.accessors.length;gltf.accessors.push(item);return id;}
+  for(const [name,m]of Object.entries(scene.materials)){materialIndices[name]=gltf.materials.length;gltf.materials.push({name,pbrMetallicRoughness:{baseColorFactor:[...m.color.map(v=>Math.pow(v,2.2)),1],metallicFactor:m.kind===1?.3:m.kind===2?.5:0,roughnessFactor:m.kind===1?.22:m.kind===2?.38:.8},...(m.kind===4?{emissiveFactor:m.color}:{}),doubleSided:false});}
+  for(const shape of ['box','sphere','cylinder']){const g=geometry(shape);shapeData[shape]={POSITION:accessor(g.positions,'VEC3',5126,34962,true),NORMAL:accessor(g.normals,'VEC3',5126,34962),indices:accessor(g.indices,'SCALAR',5123,34963)};}
+  for(const o of scene.objects){const key=`${o.shape}:${o.material}`;if(!(key in meshIndices)){const g=shapeData[o.shape];meshIndices[key]=gltf.meshes.length;gltf.meshes.push({name:key,primitives:[{attributes:{POSITION:g.POSITION,NORMAL:g.NORMAL},indices:g.indices,material:materialIndices[o.material]}]});}gltf.scenes[0].nodes.push(gltf.nodes.length);gltf.nodes.push({name:o.name,mesh:meshIndices[key],matrix:o.matrix,extras:{floor:o.floor,layer:o.layer,material:o.material}});}
+  gltf.buffers=[{byteLength}];const text=new TextEncoder().encode(JSON.stringify(gltf)),jsonLength=(text.length+3)&~3,binLength=(byteLength+3)&~3,total=12+8+jsonLength+8+binLength;
+  const out=new Uint8Array(total),dv=new DataView(out.buffer);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,total,true);dv.setUint32(12,jsonLength,true);dv.setUint32(16,0x4e4f534a,true);out.fill(32,20,20+jsonLength);out.set(text,20);const binStart=20+jsonLength;dv.setUint32(binStart,binLength,true);dv.setUint32(binStart+4,0x004e4942,true);let offset=binStart+8;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out;
+}
+
+
+
+
+const $=id=>document.getElementById(id);
+let office,scene,sectionOpen=false,interiorBeforeSection=false,toastTimer;
+function toast(message){$('toast').textContent=message;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),3300);}
+function fail(error){console.error(error);$('loading').hidden=true;$('error').hidden=false;$('error-message').textContent=error.message||String(error);$('render-status').textContent='WEBGL UNAVAILABLE';}
+function download(data,name,type){const blob=data instanceof Blob?data:new Blob([data],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function chooseFloor(n){office.set('selected',n);$('selection').hidden=!n;document.querySelectorAll('.floor-item').forEach(b=>b.classList.toggle('active',Number(b.dataset.floor)===n));if(!n)return;const f=FLOORS[n-1];$('selected-tag').textContent=`LEVEL ${String(n).padStart(2,'0')} / ${f.y.toFixed(1)} m`;$('selected-use').textContent=f.use;$('selected-area').textContent=`${f.area.toLocaleString()} m²`;$('selected-note').textContent=f.terrace?`พื้นที่ในอาคาร ${f.enclosed} + สวนมีหลังคา ${f.terrace} ตร.ม.`:`ผัง ${f.width} × ${f.depth} ม. · สูงระหว่างชั้น ${f.height} ม.`;}
+function updateSun(){const h=Number($('sun-hour').value),d=Number($('sun-season').value),sun=sunPosition(h,d);office.set('hour',h);office.set('day',d);$('sun-time').value=`${String(Math.floor(h)).padStart(2,'0')}:${String(Math.round((h%1)*60)).padStart(2,'0')}`;$('sun-altitude').textContent=`ALT ${sun.altitude.toFixed(0)}°`;$('sun-hour').setAttribute('aria-valuetext',`${$('sun-time').value} นาฬิกา`);}
+function updatePresets(name){document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$('orbit').setAttribute('aria-pressed','false');}
+try{
+  scene=makeScene();office=new OfficeRenderer($('scene'),scene);
+  window.__office14__={renderer:office,get scene(){return scene;},exportGLB:()=>exportGLB(scene),summary:()=>({name:SPEC.name,floors:FLOORS.length,gfa:FLOORS.reduce((s,f)=>s+f.area,0),height:HEIGHT,objects:scene.objects.length,pvPanels:scene.objects.filter(o=>o.name==='PV module 450 W target').length,drawCalls:office.batches.length,webgl:!!office.gl})};
+  office.onError=message=>fail(new Error(message));
+  office.onPick=chooseFloor;
+  office.onInteraction=()=>$('orbit').setAttribute('aria-pressed','false');
+  office.onFrame=()=>{const p=office.project([8,FLOORS[9].y+2+9*office.state.explode*2.8,10.5]),label=$('garden-label');const visible=p?.visible&&office.state.cutoff>=10&&Math.cos(office.camera.theta)>.35&&office.state.explode<.1&&window.innerWidth>1100;label.hidden=!visible;if(visible){label.style.left=`${p.x}px`;label.style.top=`${p.y}px`;}$('compass-needle').style.transform=`rotate(${-office.camera.theta*180/Math.PI}deg)`;};
+  const list=$('floor-list');
+  for(const f of [...FLOORS].reverse()){const b=document.createElement('button');b.className='floor-item';b.dataset.floor=f.level;b.setAttribute('aria-label',`ชั้น ${f.level}, ${f.area} ตารางเมตร, ${f.use}`);b.innerHTML=`<b>${String(f.level).padStart(2,'0')}</b><span>${f.use}${f.terrace?'<small>72 m² covered garden</small>':''}</span><strong>${f.area.toLocaleString()}</strong>`;b.addEventListener('click',()=>{if(office.state.cutoff<f.level){$('cutoff').value=f.level;$('cutoff').dispatchEvent(new Event('input'));}chooseFloor(f.level);});list.append(b);}
+  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(t=>t.setAttribute('aria-selected',String(t===b)));document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!==`panel-${b.dataset.tab}`);}));
+  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{office.preset(b.dataset.view);updatePresets(b.dataset.view);}));
+  for(const name of ['facade','landscape','interior'])$(name).addEventListener('change',e=>office.set(name,e.target.checked));
+  $('finDepth').addEventListener('input',e=>{$('fin-value').value=`${Number(e.target.value).toFixed(2)} m`;});
+  $('finDepth').addEventListener('change',e=>{scene=makeScene({finDepth:Number(e.target.value)});office.replaceScene(scene);toast('อัปเดตครีบฟาซาดในโมเดลแล้ว');});
+  $('orbit').addEventListener('click',()=>{const on=!office.state.auto;office.set('auto',on);$('orbit').setAttribute('aria-pressed',String(on));});
+  $('explode').addEventListener('click',()=>{const on=office.state.explode===0;office.set('explode',on?1:0);$('explode').setAttribute('aria-pressed',String(on));office.preset('hero');updatePresets('hero');toast(on?'แยกชั้นเพื่อดูองค์ประกอบ · ไม่เปลี่ยนขนาดจริง':'กลับสู่ความสูงตามแบบ');});
+  $('section').addEventListener('click',()=>{sectionOpen=!sectionOpen;$('section').setAttribute('aria-pressed',String(sectionOpen));$('section-control').hidden=!sectionOpen;if(sectionOpen){interiorBeforeSection=office.state.interior;$('interior').checked=true;office.set('interior',true);$('cutoff').value='8';office.preset('top');updatePresets('top');}else{$('cutoff').value='14';$('interior').checked=interiorBeforeSection;office.set('interior',interiorBeforeSection);office.preset('hero');updatePresets('hero');}$('cutoff').dispatchEvent(new Event('input'));});
+  $('cutoff').addEventListener('input',e=>{const n=Number(e.target.value);office.set('cutoff',n);$('cutoff-value').value=`${n} / 14`;if(office.state.selected>n)chooseFloor(0);});
+  $('sun-hour').addEventListener('input',updateSun);$('sun-season').addEventListener('change',updateSun);updateSun();
+  $('night').addEventListener('click',()=>{const on=!office.state.night;office.set('night',on);$('night').setAttribute('aria-pressed',String(on));$('viewport').classList.toggle('night',on);toast(on?'บรรยากาศกลางคืน · การจัดแสงเพื่อการนำเสนอ':'บรรยากาศกลางวัน');});
+  $('clear-selection').addEventListener('click',()=>chooseFloor(0));
+  $('reset').addEventListener('click',()=>{sectionOpen=false;for(const [k,v]of Object.entries({cutoff:14,explode:0,facade:true,landscape:true,interior:false,night:false,selected:0,auto:false}))office.set(k,v);for(const n of ['facade','landscape'])$(n).checked=true;$('interior').checked=false;for(const n of ['orbit','explode','section','night'])$(n).setAttribute('aria-pressed','false');$('cutoff').value='14';$('cutoff-value').value='14 / 14';$('section-control').hidden=true;$('viewport').classList.remove('night');$('sun-hour').value='9.5';$('sun-season').value='264';updateSun();$('finDepth').value='.95';$('fin-value').value='0.95 m';scene=makeScene();office.replaceScene(scene);office.preset('hero');chooseFloor(0);updatePresets('hero');});
+  $('export').addEventListener('click',async()=>{const button=$('export');button.disabled=true;toast('กำลังสร้าง GLB ครบทั้งอาคาร สำหรับ Blender');try{await new Promise(r=>setTimeout(r,40));const result=exportGLB(scene);download(result,'solstice-14-office-10000sqm.glb','model/gltf-binary');toast('ส่งออกโมเดลครบ 14 ชั้นแล้ว · Blender: File → Import → glTF');}catch(e){toast(`ส่งออกไม่สำเร็จ: ${e.message}`);}finally{button.disabled=false;}});
+  $('capture').addEventListener('click',()=>{try{const data=office.screenshot(),a=document.createElement('a');a.href=data;a.download='solstice-14-view.png';a.click();toast('บันทึกภาพจากมุมมองปัจจุบัน');}catch(e){toast(`บันทึกภาพไม่สำเร็จ: ${e.message}`);}});
+  if(window.innerWidth<761)document.querySelector('.gestures').textContent='ลาก 1 นิ้วเพื่อหมุน · ใช้ 2 นิ้วเพื่อซูม / เลื่อน';
+  office.render();$('render-status').textContent=`WEBGL 2 / ${scene.objects.length.toLocaleString()} ELEMENTS / METRIC`;$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,400);
+}catch(error){fail(error);}
+
+</script>
+</body></html>
