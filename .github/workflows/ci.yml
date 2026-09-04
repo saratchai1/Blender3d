@@ -80,17 +80,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v6
-
-      - name: Install Python
-        run: uv python install 3.12
-
-      - name: Generate and validate Pascal scene
+      - name: Generate and validate Pascal scene with system Python
         run: |
-          uv run python models/house_200sqm/pascal/generate_scene.py \
+          python3 models/house_200sqm/pascal/generate_scene.py \
             --spec models/house_200sqm/house_spec.json \
             --output .generated/house_200sqm/house_200sqm.pascal.json
-          uv run python models/house_200sqm/pascal/validate_scene.py \
+          python3 models/house_200sqm/pascal/validate_scene.py \
             .generated/house_200sqm/house_200sqm.pascal.json
 
       - name: Install Blender
@@ -99,10 +94,10 @@ jobs:
           sudo apt-get install -y blender
           blender --version | head -n 1
 
-      - name: Build house in Blender headless
+      - name: Build house in isolated Blender Python
         run: |
           mkdir -p models/house_200sqm/output
-          blender --background \
+          env -u PYTHONHOME -u PYTHONPATH blender --background \
             --python models/house_200sqm/blender/build_house_from_pascal.py \
             -- \
             --input .generated/house_200sqm/house_200sqm.pascal.json \
