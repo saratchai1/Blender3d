@@ -1,11 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "blender3d-control"
 version = "0.1.0"
-description = "Control repository for Blender MCP and 3D Gaussian Splat workflows"
+description = "Control repository for Blender MCP and modern 3D Gaussian Splat workflows"
 requires-python = ">=3.12"
 dependencies = [
   "blender-mcp @ git+https://github.com/sandraschi/blender-mcp.git@6b51a6b302a149354d5c7820d077827f1129bb5c",
 ]
 
-[tool.uv]
-package = false
+[project.scripts]
+blender3d-control = "blender3d_control.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/blender3d_control"]
