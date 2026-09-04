@@ -74,3 +74,49 @@ jobs:
             }
           }
           if ($failed) { exit 1 }
+
+  house-blender-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Generate and validate Pascal scene
+        run: |
+          uv run python models/house_200sqm/pascal/generate_scene.py \
+            --spec models/house_200sqm/house_spec.json \
+            --output .generated/house_200sqm/house_200sqm.pascal.json
+          uv run python models/house_200sqm/pascal/validate_scene.py \
+            .generated/house_200sqm/house_200sqm.pascal.json
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender
+          blender --version | head -n 1
+
+      - name: Build house in Blender headless
+        run: |
+          mkdir -p models/house_200sqm/output
+          blender --background \
+            --python models/house_200sqm/blender/build_house_from_pascal.py \
+            -- \
+            --input .generated/house_200sqm/house_200sqm.pascal.json \
+            --output models/house_200sqm/output/house_200sqm.blend \
+            --export-glb models/house_200sqm/output/house_200sqm.glb
+          test -s models/house_200sqm/output/house_200sqm.blend
+          test -s models/house_200sqm/output/house_200sqm.glb
+
+      - name: Upload house artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: house-200sqm-blender-pascal
+          path: |
+            .generated/house_200sqm/house_200sqm.pascal.json
+            models/house_200sqm/output/house_200sqm.blend
+            models/house_200sqm/output/house_200sqm.glb
+          if-no-files-found: error
