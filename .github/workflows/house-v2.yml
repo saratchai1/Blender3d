@@ -37,27 +37,36 @@ jobs:
             --input .generated/house_200sqm/house_200sqm.pascal.json \
             --output models/house_200sqm/output/house_200sqm_base.blend
 
-      - name: Enhance and render Modern Tropical v2
+      - name: Enhance Modern Tropical geometry
         run: |
           xvfb-run -a env -u PYTHONHOME -u PYTHONPATH blender \
             models/house_200sqm/output/house_200sqm_base.blend \
             --background \
             --python models/house_200sqm/blender/enhance_house_v2.py \
             -- \
-            --output models/house_200sqm/output/house_200sqm_v2.blend \
-            --export-glb models/house_200sqm/output/house_200sqm_v2.glb \
-            --preview models/house_200sqm/output/house_200sqm_v2.png
-          test -s models/house_200sqm/output/house_200sqm_v2.blend
-          test -s models/house_200sqm/output/house_200sqm_v2.glb
-          test -s models/house_200sqm/output/house_200sqm_v2.png
+            --output models/house_200sqm/output/house_200sqm_v2.blend
 
-      - name: Upload v2 artifact
+      - name: Finish gables, export and render reviewed model
+        run: |
+          xvfb-run -a env -u PYTHONHOME -u PYTHONPATH blender \
+            models/house_200sqm/output/house_200sqm_v2.blend \
+            --background \
+            --python models/house_200sqm/blender/finalize_house_v3.py \
+            -- \
+            --output models/house_200sqm/output/house_200sqm_v3.blend \
+            --export-glb models/house_200sqm/output/house_200sqm_v3.glb \
+            --preview models/house_200sqm/output/house_200sqm_v3.png
+          test -s models/house_200sqm/output/house_200sqm_v3.blend
+          test -s models/house_200sqm/output/house_200sqm_v3.glb
+          test -s models/house_200sqm/output/house_200sqm_v3.png
+
+      - name: Upload reviewed house artifact
         uses: actions/upload-artifact@v4
         with:
-          name: house-200sqm-v2-modern-tropical
+          name: house-200sqm-v3-reviewed
           path: |
             .generated/house_200sqm/house_200sqm.pascal.json
-            models/house_200sqm/output/house_200sqm_v2.blend
-            models/house_200sqm/output/house_200sqm_v2.glb
-            models/house_200sqm/output/house_200sqm_v2.png
+            models/house_200sqm/output/house_200sqm_v3.blend
+            models/house_200sqm/output/house_200sqm_v3.glb
+            models/house_200sqm/output/house_200sqm_v3.png
           if-no-files-found: error
