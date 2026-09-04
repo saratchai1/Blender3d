@@ -1,0 +1,28 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local settings / generated MCP config
+.env
+.env.local
+.mcp.generated.json
+.generated/
+
+# Blender local files / large scene data
+*.blend1
+*.blend2
+*.blend@
+*.autosave
+*.ply
+*.spz
+*.las
+*.laz
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
