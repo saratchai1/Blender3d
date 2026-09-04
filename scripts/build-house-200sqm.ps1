@@ -10,7 +10,7 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Spec = Join-Path $RepoRoot "models\house_200sqm\house_spec.json"
 $PascalGenerator = Join-Path $RepoRoot "models\house_200sqm\pascal\generate_scene.py"
 $PascalValidator = Join-Path $RepoRoot "models\house_200sqm\pascal\validate_scene.py"
-$BlenderBuilder = Join-Path $RepoRoot "models\house_200sqm\blender\build_house_from_pascal.py"
+$BlenderBuilder = Join-Path $RepoRoot "models\house_200sqm\blender\build_house_v2.py"
 $GeneratedDir = Join-Path $RepoRoot ".generated\house_200sqm"
 $OutputDir = Join-Path $RepoRoot "models\house_200sqm\output"
 $SceneJson = Join-Path $GeneratedDir "house_200sqm.pascal.json"
@@ -58,7 +58,7 @@ Write-Host "2/3 Validate semantic graph and 200 sqm program"
 & $uv.Source run python $PascalValidator $SceneJson
 if ($LASTEXITCODE -ne 0) { throw "Pascal scene validation failed." }
 
-Write-Host "3/3 Build Blender model from the generated Pascal scene"
+Write-Host "3/3 Build Blender visual v2 model from the generated Pascal scene"
 $builderArgs = @(
     "--background",
     "--python", $BlenderBuilder,
@@ -73,7 +73,7 @@ if (-not $NoPreview) { $builderArgs += @("--preview", $PreviewFile) }
 if ($LASTEXITCODE -ne 0) { throw "Blender house build failed (exit $LASTEXITCODE)." }
 
 Write-Host ""
-Write-Host "HOUSE 200 SQM BUILD COMPLETE"
+Write-Host "HOUSE 200 SQM VISUAL V2 BUILD COMPLETE"
 Write-Host "Pascal scene: $SceneJson"
 Write-Host "Blender:      $BlendFile"
 if (-not $NoGlb) { Write-Host "GLB:          $GlbFile" }
