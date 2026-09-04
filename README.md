@@ -225,6 +225,26 @@ Candidate next tools:
 - show `standard`, `alternative`, and `not measured` states in the viewport;
 - export CSV/JSON/GeoJSON.
 
+## Pascal integration (parked for later)
+
+Pascal is recorded as an optional future integration, not a runtime dependency of the current Blender/3DGS stack.
+
+Pinned Pascal components and intended roles are documented in [`integrations/pascal/`](integrations/pascal/):
+
+- `pascalorg/editor` — semantic scene graph, plugin API, viewer, MCP and capture architecture;
+- `pascalorg/pascal-blender` — Pascal scene JSON -> editable Blender objects while retaining semantic metadata;
+- `pascalorg/plugin-trees` — reference for large tree sets, instancing and selection proxies.
+
+Exact upstream commits are stored in `integrations/pascal/pascal-lock.json`. To materialize those snapshots locally later:
+
+```powershell
+.\scripts\fetch-pascal.ps1
+```
+
+They are checked out under `.external/pascal/`, which is ignored by Git. This keeps this repository small while preserving a reproducible point-in-time Pascal integration baseline.
+
+The intended future semantic model uses a stable tree ID such as `TREE_0066` across Pascal, Blender, MCP, DBH results and exports.
+
 ## Updating upstream
 
 Change the exact commit in `pyproject.toml`, then:
