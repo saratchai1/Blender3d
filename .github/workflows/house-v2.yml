@@ -26,7 +26,7 @@ jobs:
       - name: Install Blender runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1
           blender --version | head -n 1
 
       - name: Build semantic base model
@@ -39,7 +39,7 @@ jobs:
 
       - name: Enhance and render Modern Tropical v2
         run: |
-          env -u PYTHONHOME -u PYTHONPATH blender \
+          xvfb-run -a env -u PYTHONHOME -u PYTHONPATH blender \
             models/house_200sqm/output/house_200sqm_base.blend \
             --background \
             --python models/house_200sqm/blender/enhance_house_v2.py \
