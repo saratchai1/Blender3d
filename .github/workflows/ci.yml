@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Sync pinned environment
+        run: uv sync
+
+      - name: Compile control package
+        run: uv run python -m compileall -q src
+
+      - name: Verify runtime patch registration
+        run: |
+          uv run python - <<'PY'
+          from blender3d_control.compat import KIRI_RELEASE_URL, apply_compatibility_patches
+          from blender_mcp.handlers import addon_handler
+
+          apply_compatibility_patches()
+          assert addon_handler.KNOWN_ADDONS["gaussian_splat"][0] == KIRI_RELEASE_URL
+          assert addon_handler.KNOWN_ADDONS["3dgs_blender"][0] == KIRI_RELEASE_URL
+          assert addon_handler.KNOWN_ADDONS["kiri_3dgs"][0] == KIRI_RELEASE_URL
+          print("compatibility patch registration: OK")
+          PY
+
+      - name: Check launcher help
+        run: uv run blender3d-control --help
