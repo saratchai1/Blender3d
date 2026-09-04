@@ -21,8 +21,8 @@ jobs:
       - name: Sync pinned environment
         run: uv sync
 
-      - name: Compile control package
-        run: uv run python -m compileall -q src
+      - name: Compile Python sources
+        run: uv run python -m compileall -q src blender
 
       - name: Verify runtime patch registration
         run: |
@@ -39,3 +39,29 @@ jobs:
 
       - name: Check launcher help
         run: uv run blender3d-control --help
+
+  powershell-static:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem scripts -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            )
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              Write-Error ("PowerShell parse errors in {0}:`n{1}" -f $_.Name, ($errors | Out-String))
+            } else {
+              Write-Host ("{0}: OK" -f $_.Name)
+            }
+          }
+          if ($failed) { exit 1 }
