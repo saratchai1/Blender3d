@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-05",
+  "components": [
+    {
+      "name": "editor",
+      "repository": "https://github.com/pascalorg/editor.git",
+      "commit": "ab0aa8286a53a063d65c434b0929538890c2b6c1",
+      "license": "MIT",
+      "purpose": "Reference implementation for Pascal semantic scene graph, plugin API, viewer, MCP and capture/point-cloud architecture"
+    },
+    {
+      "name": "pascal-blender",
+      "repository": "https://github.com/pascalorg/pascal-blender.git",
+      "commit": "feca6f28cec9378123240115d20c6cf3971588c9",
+      "license": "MIT",
+      "purpose": "Pascal scene JSON to editable Blender objects while preserving semantic node metadata"
+    },
+    {
+      "name": "plugin-trees",
+      "repository": "https://github.com/pascalorg/plugin-trees.git",
+      "commit": "56c847fe329722a76af5fcf4e823aae9fa911d34",
+      "license": "MIT",
+      "purpose": "Reference for high-volume tree rendering, instancing, selection proxies and plant node behavior"
+    }
+  ]
+}
