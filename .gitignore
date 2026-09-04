@@ -23,6 +23,7 @@ __pycache__/
 *.spz
 *.las
 *.laz
+models/house_200sqm/output/
 
 # OS/editor
 .DS_Store
