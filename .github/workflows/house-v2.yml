@@ -8,6 +8,9 @@ on:
       - ".github/workflows/house-v2.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   render-house-v2:
     runs-on: ubuntu-latest
@@ -70,3 +73,19 @@ jobs:
             models/house_200sqm/output/house_200sqm_v3.glb
             models/house_200sqm/output/house_200sqm_v3.png
           if-no-files-found: error
+
+      - name: Publish reviewed web assets to repository
+        run: |
+          mkdir -p web/house_200sqm/assets
+          cp .generated/house_200sqm/house_200sqm.pascal.json web/house_200sqm/assets/house_200sqm.pascal.json
+          cp models/house_200sqm/output/house_200sqm_v3.glb web/house_200sqm/assets/house_200sqm_v3.glb
+          cp models/house_200sqm/output/house_200sqm_v3.png web/house_200sqm/assets/house_200sqm_v3_preview.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f web/house_200sqm/assets
+          if git diff --cached --quiet; then
+            echo "Reviewed web assets already current."
+            exit 0
+          fi
+          git commit -m "build: publish reviewed house v3 web assets"
+          git push origin HEAD:main
