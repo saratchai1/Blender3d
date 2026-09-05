@@ -33,11 +33,12 @@ def main() -> None:
     if out in (ROOT, upstream, web) or out == ROOT/'web':
         raise SystemExit('Refusing to use a source directory as the build output.')
     src=ROOT/'web/opentakeoff-poc'
-    # Namespace both workspaces, preventing demo seeding from touching user PDFs.
+    # Namespace browser workspaces, preventing demo seeding from touching user PDFs.
+    # Node has no location; keep the native DB name for upstream migration fixtures.
     store=web/'src/lib/store.js'
     text=store.read_text()
     original='const DB_NAME = "opentakeoff";'
-    replacement='const DB_NAME = "blender3d-opentakeoff-poc-v1-" + ((typeof location !== "undefined" && new URLSearchParams(location.search).get("workspace") === "demo") ? "demo" : "user");'
+    replacement='const DB_NAME = typeof location === "undefined" ? "opentakeoff" : "blender3d-opentakeoff-poc-v1-" + (new URLSearchParams(location.search).get("workspace") === "demo" ? "demo" : "user");'
     if original in text: text=text.replace(original,replacement,1)
     elif replacement not in text: raise SystemExit('Store patch anchor drifted; inspect upstream before rebuilding.')
     store.write_text(text)
