@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141d1d"><meta name="description" content="SOLSTICE 14 — a real-time architectural film. Six moving 3D camera sequences, physically based materials, animated landscape and light.">
+<title>SOLSTICE 14 — The architectural film</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23172020'/%3E%3Cpath d='M8 24V10l8-3v17M20 24V5l5 2v17' fill='none' stroke='%23d6be98' stroke-width='1.8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./cinematic.css">
+<script type="importmap">{"imports":{"three":"./vendor/build/three.module.min.js","three/addons/":"./vendor/examples/jsm/"}}</script>
+</head>
+<body>
+<main id="stage" aria-label="ภาพเคลื่อนไหวอาคารสามมิติ"><canvas id="canvas" tabindex="0" aria-label="อาคาร 3D: กดสำรวจเพื่อหมุนและซูม"></canvas></main>
+<div class="screen-shade" aria-hidden="true"></div><div id="cut" aria-hidden="true"></div>
+<header>
+ <a class="brand" href="../office_10000sqm/presentation.html" title="กลับหน้าข้อมูลโครงการ"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M3 36V10l10-4v30M19 36V2l10 4v30"/></svg><span>SOLSTICE <b>14</b><small>ARCHITECTURE IN MOTION</small></span></a>
+ <nav aria-label="โหมดการชม"><button id="film" class="nav-item active" aria-pressed="true">ชมภาพยนตร์ <span>FILM</span></button><button id="explore" class="nav-item" aria-pressed="false">สำรวจเอง <span>3D</span></button></nav>
+ <button id="info" class="icon-btn" title="ข้อมูลโครงการและวิธีใช้งาน" aria-label="ข้อมูลโครงการ">i</button>
+</header>
+<aside class="look-panel" aria-label="บรรยากาศและคุณภาพ"><span class="look-label">ATMOSPHERE</span><div class="looks" role="group" aria-label="แสง"><button data-look="day" title="กลางวัน" aria-label="กลางวัน" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4L19 5"/></svg></button><button data-look="golden" class="active" title="แสงเย็น" aria-label="แสงเย็น" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M4 16h16M2 20h20M6 16a6 6 0 0 1 12 0M12 2v3M3 7l2 2m14-2-2 2"/></svg></button><button data-look="blue" title="ช่วงโพล้เพล้" aria-label="ช่วงโพล้เพล้" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M20 15.7A8.3 8.3 0 0 1 8.3 4 8.5 8.5 0 1 0 20 15.7Z"/></svg></button></div><button id="quality" title="สลับคุณภาพการแสดงผล">HIGH <span>↗</span></button></aside>
+<section class="shot-copy" id="shot-copy" aria-live="polite"><div class="eyebrow"><span class="rule"></span><span id="shot-number">01 / THE WHOLE PICTURE</span></div><h1 id="shot-title">Space for<br><em>what’s next.</em></h1><p id="shot-subtitle">แสง เงา และพื้นที่สีเขียว<br>ในมุมมองใหม่ของการทำงาน</p><div class="spec-line"><span>14 STOREYS</span><i></i><span>10,000 M²</span><i></i><span>TROPICAL OFFICE</span></div></section>
+<div id="explore-hint" hidden>ลากเพื่อหมุน · สองนิ้ว / ล้อเมาส์เพื่อซูม · กด Film เพื่อกลับไปชม</div>
+<footer class="player">
+ <div class="player-top"><div class="transport"><button id="play" class="play-button" aria-label="หยุดชั่วคราว" aria-pressed="true"><svg id="pause-icon" viewBox="0 0 20 20"><path d="M6 4v12M14 4v12"/></svg><svg id="play-icon" viewBox="0 0 20 20" hidden><path d="m6 3 11 7-11 7Z"/></svg></button><button id="restart" class="small-button" aria-label="เริ่มชมใหม่" title="เริ่มชมใหม่">↺</button><span class="time"><b id="current-time">00:00</b><span> / 01:12</span></span></div><div class="film-status"><span class="live-dot"></span><span id="status">LIVE 3D FILM</span></div><div class="player-actions"><button id="hide-ui" class="small-button" aria-label="ซ่อนหรือแสดงเมนู" title="ซ่อนเมนู (H)"><svg viewBox="0 0 22 22"><path d="M2 7V3h4m10 0h4v4M2 15v4h4m10 0h4v-4M7 11h8"/></svg></button><button id="fullscreen" class="small-button" aria-label="เต็มหน้าจอ" title="เต็มหน้าจอ"><svg viewBox="0 0 22 22"><path d="M2 8V2h6m6 0h6v6M2 14v6h6m6 0h6v-6"/></svg></button></div></div>
+ <label class="sr-only" for="timeline">เวลาในภาพยนตร์ 0 ถึง 72 วินาที</label><input id="timeline" type="range" min="0" max="71.99" step="0.01" value="0" aria-valuetext="0 วินาที" />
+ <div class="chapters" role="group" aria-label="เลือกฉาก"><button data-shot="0" class="active"><span>01</span> ภาพรวม <small>OVERVIEW</small></button><button data-shot="1"><span>02</span> ทางเข้า <small>ARRIVAL</small></button><button data-shot="2"><span>03</span> ฟาซาด <small>FACADE</small></button><button data-shot="3"><span>04</span> สวนลอยฟ้า <small>SKY GARDEN</small></button><button data-shot="4"><span>05</span> หลังคา <small>ROOFTOP</small></button><button data-shot="5"><span>06</span> ยามเย็น <small>BLUE HOUR</small></button></div>
+ <div class="footnote"><span>REAL-TIME ARCHITECTURAL VISUALISATION</span><span>CONCEPT DESIGN · NOT FOR CONSTRUCTION</span></div>
+</footer>
+<button id="restore-ui" hidden>แสดงเมนู</button>
+<div class="loading" id="loading" role="status"><div class="load-mark">S<span>14</span></div><h2>A new perspective.</h2><p id="load-text">กำลังจัดแสงและเตรียมฉาก 3D</p><span class="loader-line"></span><small>REAL GEOMETRY. REAL MOVEMENT.</small></div>
+<div id="toast" role="status"></div>
+<dialog id="details"><button id="close-info" class="close-dialog" aria-label="ปิดข้อมูล">×</button><div class="eyebrow">THE PROJECT</div><h2>SOLSTICE 14</h2><p>อาคารสำนักงานโมเดิร์น 14 ชั้น พื้นที่แนวคิดรวม 10,000 ตร.ม. พร้อมสวนลอยฟ้าชั้น 5 และ 10</p><dl><div><dt>รูปแบบ</dt><dd>Real-time 3D · Three.js / WebGL 2</dd></div><div><dt>ภาพยนตร์</dt><dd>6 ฉาก · 72 วินาที · กล้องเคลื่อนในโมเดลจริง</dd></div><div><dt>การแสดงผล</dt><dd>PBR · reflection capture · soft shadows · bloom · animated water / leaves</dd></div></dl><p class="disclaimer">งานภาพนี้ใช้รูปทรงอาคารจากโมเดลต้นฉบับ ปรับวัสดุและเพิ่มรายละเอียดต้นไม้ ฉากแวดล้อม และไฟเพื่อการนำเสนอ ไม่เปลี่ยนโมเดล IFC/BOQ และไม่ใช่ผลเรนเดอร์จาก Twinmotion หรือ 3ds Max</p><div class="dialog-links"><a href="../office_10000sqm/assets/solstice-14-office.ifc" download>ดาวน์โหลด IFC</a><a href="../office_10000sqm/index.html">เปิดโมเดลข้อมูลเดิม ↗</a><a href="https://github.com/saratchai1/Blender3d/tree/main/web/office_10000sqm/cinematic" target="_blank" rel="noopener">Source ↗</a></div><p class="keys">SPACE เล่น/หยุด · ← → เปลี่ยนฉาก · H ซ่อนเมนู · F เต็มจอ</p></dialog>
+<noscript>เปิด JavaScript เพื่อชมอนิเมชัน 3D</noscript>
+<script type="module" src="./main.mjs"></script>
+</body>
+</html>

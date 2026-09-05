@@ -6,6 +6,9 @@ on:
     paths: ['web/office_10000sqm/cinematic/**', '.github/workflows/cinematic-qa.yml']
 permissions:
   contents: read
+concurrency:
+  group: cinematic-qa-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   cinematic:
     runs-on: ubuntu-latest
@@ -15,18 +18,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Prepare pinned render runtime for offline review
+      - name: Build same-origin film and preserve original model
         run: |
-          mkdir -p /tmp/cinematic-qa/runtime
-          cd /tmp/cinematic-qa/runtime
-          npm pack --ignore-scripts three@0.180.0
-          tar -xzf three-0.180.0.tgz
-          rm three-0.180.0.tgz
-          cd "$GITHUB_WORKSPACE"
-          git archive HEAD | tar -x -C /tmp/cinematic-qa
-      - uses: actions/upload-artifact@v4
+          node --test web/office_10000sqm/tools/model.test.mjs
+          node web/office_10000sqm/tools/build-pages.mjs
+          node web/office_10000sqm/cinematic/build.mjs
+      - uses: actions/setup-python@v5
         with:
-          name: cinematic-review-toolkit
-          path: /tmp/cinematic-qa/
+          python-version: '3.12'
+      - name: Install browser review runtime
+        run: |
+          pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Verify real animated cameras, lighting, six shots and mobile WebGL
+        run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cinematic-3d-review
+          path: |
+            .generated/cinematic-qa/
+            .generated/pages/cinematic/
           include-hidden-files: true
-          retention-days: 7
+          retention-days: 14
