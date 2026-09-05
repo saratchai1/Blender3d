@@ -60,8 +60,17 @@ def main():
             evidence['checks'].append('Reload preserves measurements without duplicate seeding')
             page.locator('#workspace').select_option('user');page.locator('#status[data-state="ready"]').wait_for(timeout=60000)
             engine=page.frames[1]
-            own=engine.evaluate(READ_DB,'user');assert len(own['pdfs'])==0;assert len(own['annotations']['shapes'])==0
-            evidence['checks'].append('User workspace starts empty and is isolated from the demo')
+            own=engine.evaluate(READ_DB,'user')
+            assert len(own['pdfs'])==0
+            # loadAnnotations returns emptyAnnotations in memory on a pristine DB.
+            # Until the first save, there is correctly no raw 'annotations' record.
+            assert own.get('annotations') is None or own['annotations']['shapes']==[]
+            page.locator('[data-tab="boq"]').click()
+            assert page.locator('#csv').is_disabled()
+            assert float(page.locator('#floor-total').inner_text().replace(',',''))==0
+            page.locator('[data-tab="plan"]').click()
+            evidence['checks'].append('Pristine user workspace has no PDFs, no inherited annotations and an empty BOQ')
+            engine.locator('input[type="file"]').first.wait_for(state='attached',timeout=30000)
             inputs=engine.locator('input[type="file"]')
             accepted=inputs.evaluate_all('(els)=>els.map(x=>x.accept)')
             print('NATIVE_UPLOAD_ACCEPTS',json.dumps(accepted),flush=True)
