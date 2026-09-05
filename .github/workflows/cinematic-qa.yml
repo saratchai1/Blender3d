@@ -1,0 +1,32 @@
+name: Cinematic 3D QA
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['web/office_10000sqm/cinematic/**', '.github/workflows/cinematic-qa.yml']
+permissions:
+  contents: read
+jobs:
+  cinematic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare pinned render runtime for offline review
+        run: |
+          mkdir -p /tmp/cinematic-qa/runtime
+          cd /tmp/cinematic-qa/runtime
+          npm pack --ignore-scripts three@0.180.0
+          tar -xzf three-0.180.0.tgz
+          rm three-0.180.0.tgz
+          cd "$GITHUB_WORKSPACE"
+          git archive HEAD | tar -x -C /tmp/cinematic-qa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cinematic-review-toolkit
+          path: /tmp/cinematic-qa/
+          include-hidden-files: true
+          retention-days: 7
