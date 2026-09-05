@@ -1,6 +1,6 @@
 """Verify the actual completed MP4 and player locally or over public HTTPS."""
 from __future__ import annotations
-import argparse, functools, hashlib, json, threading
+import argparse, functools, hashlib, json, re, threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import urlopen
@@ -13,6 +13,30 @@ if a.root:
   print('No finished offline film in this build; MP4 player checks not applicable.');raise SystemExit(0)
  class Handler(SimpleHTTPRequestHandler):
   def log_message(self,*args):pass
+  def do_GET(self):
+   target=Path(self.translate_path(self.path))
+   if target.is_file() and target.suffix=='.mp4':
+    size=target.stat().st_size;start=0;end=size-1;status=200
+    requested=self.headers.get('Range')
+    if requested:
+     match=re.fullmatch(r'bytes=(\d*)-(\d*)',requested)
+     if match and any(match.groups()):
+      x,y=match.groups();start=int(x) if x else max(0,size-int(y));end=min(int(y),size-1) if x and y else size-1;status=206
+      if start>end or start>=size:
+       self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.end_headers();return
+    self.send_response(status);self.send_header('Content-Type','video/mp4');self.send_header('Accept-Ranges','bytes');self.send_header('Content-Length',str(end-start+1))
+    if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
+    self.end_headers()
+    try:
+     with target.open('rb') as stream:
+      stream.seek(start);remaining=end-start+1
+      while remaining:
+       data=stream.read(min(65536,remaining))
+       if not data:break
+       self.wfile.write(data);remaining-=len(data)
+    except (BrokenPipeError,ConnectionResetError):pass
+    return
+   super().do_GET()
  server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Handler,directory=str(a.root.resolve())))
  threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/office_10000sqm/film/'
 else:url=a.url.rstrip('/')+'/'
