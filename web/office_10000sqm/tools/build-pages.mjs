@@ -12,10 +12,20 @@ const office = path.join(dest, 'office_10000sqm');
 fs.mkdirSync(path.join(office, 'assets'), { recursive: true });
 const source = path.join(root, 'web/office_10000sqm');
 const files = ['index.html','style.css','model.mjs','renderer.mjs','export.mjs','app.mjs','presentation.html','presentation.css','presentation.mjs','assets/solstice-14.glb','assets/solstice-14-office.ifc'];
+const filmPath = path.join(source, 'film/SOLSTICE-14-Architectural-Film.mp4');
+if (fs.existsSync(filmPath)) {
+  const audit = JSON.parse(fs.readFileSync(path.join(source, 'film/render-report.json'), 'utf8'));
+  const digest = createHash('sha256').update(fs.readFileSync(filmPath)).digest('hex');
+  if (audit.status !== 'PASS' || audit.sha256 !== digest || audit.actual_rendered_frames !== 576) {
+    throw new Error('Offline film has no matching passed 576-frame render audit');
+  }
+  files.push('film/index.html', 'film/SOLSTICE-14-Architectural-Film.mp4', 'film/render-report.json');
+}
 const hashes = {};
 for (const file of files) {
   const data = fs.readFileSync(path.join(source, file));
   if (!data.length) throw new Error(`Missing/empty website asset: ${file}`);
+  fs.mkdirSync(path.dirname(path.join(office, file)), { recursive: true });
   fs.copyFileSync(path.join(source, file), path.join(office, file));
   hashes[file] = createHash('sha256').update(data).digest('hex');
 }
