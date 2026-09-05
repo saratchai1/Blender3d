@@ -1,0 +1,142 @@
+name: Render SOLSTICE architectural film MP4
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/offline-film-render.yml'
+      - 'models/office_10000sqm/film/finish_scene.py'
+      - 'models/office_10000sqm/film/render_chunk.py'
+      - 'models/office_10000sqm/film/assemble_chunks.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: solstice-offline-final-film
+  cancel-in-progress: true
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: solstice-cycles-native-scenes
+          run-id: 33965340420
+          github-token: ${{ github.token }}
+          path: .generated/film-original
+      - name: Install pinned Blender
+        run: |
+          curl --fail --retry 3 -sSL https://download.blender.org/release/Blender4.5/blender-4.5.3-linux-x64.tar.xz -o /tmp/blender.tar.xz
+          mkdir -p /tmp/blender
+          tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /tmp/blender
+      - name: Finalize native scenes and render guided-denoised review frames
+        env:
+          OMP_NUM_THREADS: '4'
+        run: |
+          /tmp/blender/blender -b -t 4 --python-exit-code 1 --python models/office_10000sqm/film/finish_scene.py -- --input .generated/film-original --output .generated/film-final --proof > /tmp/finish.log 2>&1 &
+          pid=$!
+          while kill -0 "$pid" 2>/dev/null; do tail -2 /tmp/finish.log; sleep 20; done
+          wait "$pid" || { tail -100 /tmp/finish.log; exit 1; }
+          tail -5 /tmp/finish.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: film-final-lookdev
+          path: |
+            .generated/film-final/*.png
+            .generated/film-final/*.json
+            /tmp/finish.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: film-final-native
+          path: .generated/film-final/*.blend
+          retention-days: 30
+  render:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        shot: [01_hero, 02_arrival, 03_facade, 04_garden, 05_roof, 06_dusk]
+        part: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: film-final-native
+          path: .generated/native
+      - name: Install Blender and video encoder
+        run: |
+          curl --fail --retry 3 -sSL https://download.blender.org/release/Blender4.5/blender-4.5.3-linux-x64.tar.xz -o /tmp/blender.tar.xz
+          mkdir -p /tmp/blender
+          tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /tmp/blender
+          if ! command -v ffmpeg; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+      - name: Ray trace every native frame in the assigned camera segment
+        env:
+          OMP_NUM_THREADS: '4'
+        run: |
+          /tmp/blender/blender -b .generated/native/${{ matrix.shot }}.blend -t 4 --python-exit-code 1 --python models/office_10000sqm/film/render_chunk.py -- --output .generated/chunk --part ${{ matrix.part }} --samples 24 > /tmp/render.log 2>&1 &
+          pid=$!
+          while kill -0 "$pid" 2>/dev/null; do tail -2 /tmp/render.log; sleep 30; done
+          wait "$pid" || { tail -100 /tmp/render.log; exit 1; }
+          tail -3 /tmp/render.log
+      - name: Encode only the rendered PNG frames at native 24 fps
+        run: |
+          start=$(( ${{ matrix.part }} * 32 + 1 ))
+          ffmpeg -y -v warning -framerate 24 -start_number "$start" -i .generated/chunk/frame_%04d.png -frames:v 32 -c:v libx264 -crf 16 -preset medium -pix_fmt yuv420p -movflags +faststart .generated/chunk/chunk.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: film-chunk-${{ matrix.shot }}-${{ matrix.part }}
+          path: |
+            .generated/chunk/chunk.mp4
+            .generated/chunk/chunk-report.json
+          retention-days: 14
+      - name: Preserve native first-frame evidence for visual verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: film-evidence-${{ matrix.shot }}-${{ matrix.part }}
+          path: |
+            .generated/chunk/*.json
+            /tmp/render.log
+          if-no-files-found: warn
+  assemble:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: film-chunk-*
+          path: .generated/chunks
+      - name: Assemble and fully decode the verified 576-frame video
+        run: |
+          if ! command -v ffmpeg; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+          python models/office_10000sqm/film/assemble_chunks.py --input .generated/chunks --output .generated/film-delivery
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SOLSTICE-14-Cycles-Film-MP4
+          path: |
+            .generated/film-delivery/*.mp4
+            .generated/film-delivery/render-report.json
+          retention-days: 30
+      - name: Retain the finished film and audit in the canonical repository
+        run: |
+          mkdir -p web/office_10000sqm/film
+          cp .generated/film-delivery/SOLSTICE-14-Architectural-Film.mp4 web/office_10000sqm/film/
+          cp .generated/film-delivery/render-report.json web/office_10000sqm/film/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f web/office_10000sqm/film/SOLSTICE-14-Architectural-Film.mp4 web/office_10000sqm/film/render-report.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'render: publish verified 24-second native Cycles architectural film'
+          git pull --rebase origin main
+          git push origin HEAD:main
