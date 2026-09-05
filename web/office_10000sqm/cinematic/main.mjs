@@ -25,7 +25,7 @@ try {
   const ao=new SSAOPass(scene,camera,innerWidth,innerHeight);ao.kernelRadius=1.8;ao.minDistance=.001;ao.maxDistance=.07;ao.enabled=!mobile;composer.addPass(ao);
   const bloom=new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.16,.38,1.25);composer.addPass(bloom);
   composer.addPass(new OutputPass());composer.addPass(new FXAAPass());
-  const state={ready:false,time:0,playing:!reduced,exploring:false,look:'golden',baseLook:'golden',quality:mobile?'balanced':'high',shot:-1,frames:0,version:'cinematic-1.0.0',error:null};
+  const state={ready:false,time:0,playing:!reduced,exploring:false,look:'golden',baseLook:'golden',quality:mobile?'balanced':'high',shot:-1,frames:0,version:'cinematic-1.0.1',error:null};
   let last=performance.now(),dirty=true,uiHidden=false,resizeQueued=false,fpsElapsed=0,fpsFrames=0;
   function configureSize(){
     const w=innerWidth,h=innerHeight,cap=state.quality==='high'?1.6:1.0;
@@ -43,7 +43,7 @@ try {
     if(narrow){camera.position.sub(target).multiplyScalar(shot.name==='overview'||shot.name==='bluehour'?1.35:1.3).add(target);camera.fov=shot.fov+9;camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.15,innerWidth,innerHeight);}else{camera.fov=shot.fov;camera.setViewOffset(innerWidth,innerHeight,-innerWidth*.13,innerHeight*.015,innerWidth,innerHeight);}
     camera.lookAt(target);camera.updateProjectionMatrix();
   }
-  function setPlaying(on){state.playing=on;$('play').setAttribute('aria-pressed',String(on));$('play').setAttribute('aria-label',on?'หยุดชั่วคราว':'เล่นภาพยนตร์');$('pause-icon').hidden=!on;$('play-icon').hidden=on;dirty=true;}
+  function setPlaying(on){state.playing=on;$('play').setAttribute('aria-pressed',String(on));$('play').setAttribute('aria-label',on?'หยุดชั่วคราว':'เล่นภาพยนตร์');$('pause-icon').toggleAttribute('hidden',!on);$('play-icon').toggleAttribute('hidden',on);last=performance.now();dirty=true;}
   function explore(on){
     state.exploring=on;controls.enabled=on;document.body.classList.toggle('exploring',on);$('explore-hint').hidden=!on;$('explore').setAttribute('aria-pressed',String(on));$('film').setAttribute('aria-pressed',String(!on));$('explore').classList.toggle('active',on);$('film').classList.toggle('active',!on);$('status').textContent=on?'FREE EXPLORATION':'LIVE 3D FILM';
     if(on){setPlaying(false);camera.clearViewOffset();controls.target.set(...SHOTS[state.shot].target);controls.update();}else{cameraRail();setPlaying(true);}dirty=true;
@@ -66,14 +66,15 @@ try {
   window.__cinematic={state,seek,getState:()=>({...state,camera:camera.position.toArray(),quaternion:camera.quaternion.toArray(),renderer:renderer.info.render,stats:world.statistics,canvas:[canvas.width,canvas.height],windTime:world.wind.value,threeRevision:T.REVISION,glError:renderer.getContext().getError()}),setLook:look};
   updateShot();configureSize();setPlaying(state.playing);$('quality').innerHTML=`${state.quality.toUpperCase()} <span>↗</span>`;
   renderer.compile(scene,camera);renderer.shadowMap.needsUpdate=true;composer.render();
-  state.ready=true;$('loading').hidden=true;
+  state.ready=true;last=performance.now();$('loading').hidden=true;
   if(reduced)toast('ตั้งค่าลดการเคลื่อนไหวอยู่ กด ▶ เพื่อเริ่มภาพยนตร์');
-  function tick(now){requestAnimationFrame(tick);if(!state.ready||state.error||document.hidden)return;const dt=Math.min((now-last)/1000,.12);last=now;
-    if(state.playing&&!state.exploring){state.time=(state.time+dt)%DURATION;updateShot();cameraRail();}else if(state.exploring)controls.update();
-    world.wind.value+=dt;
+  function tick(now){requestAnimationFrame(tick);if(!state.ready||state.error||document.hidden)return;const elapsed=Math.max(0,(now-last)/1000),dt=Math.min(elapsed,.15);last=now;
+    if(state.playing&&!state.exploring){state.time=(state.time+elapsed)%DURATION;updateShot();cameraRail();}else if(state.exploring)controls.update();
+    if(!state.playing&&!dirty)return;
+    if(state.playing)world.wind.value+=dt;
     const local=state.time%SHOT_SECONDS,fade=state.exploring?0:Math.max(0,(.35-local)/.35,(local-(SHOT_SECONDS-.35))/.35)*.92;$('cut').style.opacity=String(fade);
     $('timeline').value=state.time;$('timeline').style.setProperty('--progress',`${state.time/DURATION*100}%`);$('timeline').setAttribute('aria-valuetext',`${Math.floor(state.time)} วินาที`);$('current-time').textContent=`${String(Math.floor(state.time/60)).padStart(2,'0')}:${String(Math.floor(state.time%60)).padStart(2,'0')}`;
-    composer.render();state.frames++;dirty=false;fpsFrames++;fpsElapsed+=dt;if(fpsElapsed>2){state.fps=Math.round(fpsFrames/fpsElapsed);fpsElapsed=0;fpsFrames=0;}
+    composer.render();state.frames++;state.renderedTime=state.time;dirty=false;fpsFrames++;fpsElapsed+=elapsed;if(fpsElapsed>2){state.fps=Math.round(fpsFrames/fpsElapsed);fpsElapsed=0;fpsFrames=0;}
   }
   requestAnimationFrame(tick);
 } catch(error){fatal(error);}
