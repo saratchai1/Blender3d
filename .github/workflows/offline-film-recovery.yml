@@ -1,0 +1,111 @@
+name: Complete SOLSTICE Cycles film recovery
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/offline-film-recovery.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: solstice-native-film-recovery
+  cancel-in-progress: true
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        slice: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: film-final-native
+          run-id: 33965799767
+          github-token: ${{ github.token }}
+          path: .generated/native
+      - name: Install pinned Blender and H.264 encoder
+        run: |
+          curl --fail --retry 3 -sSL https://download.blender.org/release/Blender4.5/blender-4.5.3-linux-x64.tar.xz -o /tmp/blender.tar.xz
+          mkdir -p /tmp/blender
+          tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /tmp/blender
+          if ! command -v ffmpeg; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+      - name: Render four actual Cycles frames with unchanged quality settings
+        env:
+          OMP_NUM_THREADS: '4'
+        run: |
+          /tmp/blender/blender -b .generated/native/04_garden.blend -t 4 --python-exit-code 1 --python models/office_10000sqm/film/render_recovery_slice.py -- --output .generated/slice --part 2 --slice ${{ matrix.slice }} > /tmp/recovery.log 2>&1 &
+          pid=$!
+          while kill -0 "$pid" 2>/dev/null; do tail -2 /tmp/recovery.log; sleep 20; done
+          wait "$pid" || { tail -100 /tmp/recovery.log; exit 1; }
+          tail -3 /tmp/recovery.log
+      - name: Encode only the native rendered PNG sequence
+        run: |
+          start=$((65 + ${{ matrix.slice }} * 4))
+          ffmpeg -y -v warning -framerate 24 -start_number "$start" -i .generated/slice/frame_%04d.png -frames:v 4 -c:v libx264 -crf 16 -preset medium -pix_fmt yuv420p -movflags +faststart .generated/slice/slice.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: film-recovery-slice-${{ matrix.slice }}
+          path: |
+            .generated/slice/slice.mp4
+            .generated/slice/slice-report.json
+          retention-days: 14
+      - name: Retain native recovery frames even if encoding is interrupted
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-native-evidence-${{ matrix.slice }}
+          path: |
+            .generated/slice/*.png
+            .generated/slice/*.json
+            /tmp/recovery.log
+          retention-days: 14
+          if-no-files-found: warn
+  assemble:
+    needs: recover
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve the 544 completed original frames as passed chunks
+        uses: actions/download-artifact@v4
+        with:
+          pattern: film-chunk-*
+          run-id: 33965799767
+          github-token: ${{ github.token }}
+          path: .generated/chunks
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: film-recovery-slice-*
+          path: .generated/slices
+      - name: Validate native recovery coverage and assemble the complete film
+        run: |
+          if ! command -v ffmpeg; then sudo apt-get update -qq && sudo apt-get install -y ffmpeg; fi
+          python models/office_10000sqm/film/join_recovery_slices.py --slices .generated/slices --chunks .generated/chunks
+          python models/office_10000sqm/film/assemble_chunks.py --input .generated/chunks --output .generated/film-delivery
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SOLSTICE-14-Cycles-Film-MP4
+          path: |
+            .generated/film-delivery/*.mp4
+            .generated/film-delivery/render-report.json
+          retention-days: 30
+      - name: Save the completed movie and audit into the canonical repository
+        run: |
+          mkdir -p web/office_10000sqm/film
+          cp .generated/film-delivery/SOLSTICE-14-Architectural-Film.mp4 web/office_10000sqm/film/
+          cp .generated/film-delivery/render-report.json web/office_10000sqm/film/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f web/office_10000sqm/film/SOLSTICE-14-Architectural-Film.mp4 web/office_10000sqm/film/render-report.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'render: publish completed verified 576-frame Cycles architectural film'
+          git pull --rebase origin main
+          git push origin HEAD:main
