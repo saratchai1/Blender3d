@@ -1,4 +1,4 @@
-name: Deploy Blender3d and OpenTakeoff POC to GitHub Pages
+name: Deploy Blender3d, cinematic film and OpenTakeoff to GitHub Pages
 on:
   push:
     branches: [main]
@@ -16,16 +16,17 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Validate original model and preserve original public website
+      - name: Validate original model and build original website plus cinematic film
         run: |
           node --test web/office_10000sqm/tools/model.test.mjs
           node web/office_10000sqm/tools/build-pages.mjs
+          node web/office_10000sqm/cinematic/build.mjs
       - uses: actions/checkout@v4
         with:
           repository: Kentucky-ai/opentakeoff
@@ -45,6 +46,8 @@ jobs:
         run: python web/office_10000sqm/tools/pages_smoke.py --root .generated/pages
       - name: Check actual takeoff canvas, PDF upload, metric BOQ, persistence and exports
         run: python web/opentakeoff-poc/smoke.py --root .generated/pages
+      - name: Check actual moving cinematic cameras, six scenes, controls and mobile WebGL
+        run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,6 +56,7 @@ jobs:
           path: |
             .generated/pages-qa/
             .generated/takeoff-qa/
+            .generated/cinematic-qa/
           if-no-files-found: warn
       - name: Retain portable POC build
         uses: actions/upload-artifact@v4
@@ -66,6 +70,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       pages: write
       id-token: write
@@ -86,3 +92,28 @@ jobs:
       - name: Publish website
         id: deployment
         uses: actions/deploy-pages@v4
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install live browser test runtime
+        run: |
+          pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Verify public HTTPS HTML and actual animated WebGL after deployment
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          python web/office_10000sqm/cinematic/smoke.py --url "${PAGE_URL%/}/cinematic/" --output .generated/cinematic-live-qa
+      - name: Retain live site validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cinematic-live-qa
+          path: .generated/cinematic-live-qa/
+          if-no-files-found: warn
