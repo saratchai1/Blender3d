@@ -9,7 +9,7 @@ on:
       - '.github/workflows/pages.yml'
   workflow_dispatch:
   workflow_run:
-    workflows: ['Render SOLSTICE architectural film MP4']
+    workflows: ['Render SOLSTICE architectural film MP4', 'Complete SOLSTICE Cycles film recovery']
     types: [completed]
 permissions:
   contents: read
