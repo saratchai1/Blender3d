@@ -2,9 +2,9 @@ name: office14
 on:
   push:
     branches: [main]
-    paths: ['web/office_10000sqm/**', 'models/office_10000sqm/**', '.github/workflows/office14.yml']
+    paths: ['web/office_10000sqm/**', 'models/office_10000sqm/**', 'docs/SOLSTICE_14*.md', '.github/workflows/office14.yml']
   pull_request:
-    paths: ['web/office_10000sqm/**', 'models/office_10000sqm/**', '.github/workflows/office14.yml']
+    paths: ['web/office_10000sqm/**', 'models/office_10000sqm/**', 'docs/SOLSTICE_14*.md', '.github/workflows/office14.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,7 +14,7 @@ concurrency:
 jobs:
   validate-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,20 +22,27 @@ jobs:
           node-version: '22'
       - name: Validate areas, model geometry and GLB
         run: node --test web/office_10000sqm/tools/model.test.mjs
-      - name: Build dependency-free offline app and model
+      - name: Build dependency-free offline app, GLB and semantic scene
         run: node web/office_10000sqm/tools/build.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install browser test runtime
+      - name: Install IFC and browser validation runtimes
         run: |
-          pip install playwright==1.57.0
+          python -m pip install --disable-pip-version-check ifcopenshell==0.8.3 playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Check real WebGL desktop/mobile interactions and export
+      - name: Export semantic IFC4 and validate geometry
         run: |
-          python -m py_compile models/office_10000sqm/import_office.py
-          xvfb-run -a python web/office_10000sqm/tools/smoke.py --html .generated/office_10000sqm/index.html
-      - name: Upload web app, GLB, semantic scene and test evidence
+          python -m py_compile models/office_10000sqm/export_ifc.py models/office_10000sqm/validate_ifc.py models/office_10000sqm/import_office.py
+          python models/office_10000sqm/export_ifc.py \
+            --scene .generated/office_10000sqm/office.scene.json \
+            --output .generated/office_10000sqm/solstice-14-office.ifc
+          python models/office_10000sqm/validate_ifc.py \
+            .generated/office_10000sqm/solstice-14-office.ifc | tee .generated/office_10000sqm/ifc-validation.json
+          test -s .generated/office_10000sqm/solstice-14-office.ifc
+      - name: Check real WebGL desktop/mobile interactions and GLB export
+        run: xvfb-run -a python web/office_10000sqm/tools/smoke.py --html .generated/office_10000sqm/index.html
+      - name: Upload web app, GLB, IFC, semantic scene and test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -45,16 +52,18 @@ jobs:
             .generated/office-tests/
           include-hidden-files: true
           if-no-files-found: error
-      - name: Publish tested standalone app and GLB to repository
+      - name: Publish tested standalone app, GLB and IFC to repository
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p web/office_10000sqm/assets
           cp .generated/office_10000sqm/index.html web/office_10000sqm/standalone.html
           cp .generated/office_10000sqm/solstice-14.glb web/office_10000sqm/assets/solstice-14.glb
+          cp .generated/office_10000sqm/solstice-14-office.ifc web/office_10000sqm/assets/solstice-14-office.ifc
+          cp .generated/office_10000sqm/ifc-validation.json web/office_10000sqm/assets/solstice-14-office.ifc.validation.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f web/office_10000sqm/standalone.html web/office_10000sqm/assets/solstice-14.glb
+          git add -f web/office_10000sqm/standalone.html web/office_10000sqm/assets/solstice-14.glb web/office_10000sqm/assets/solstice-14-office.ifc web/office_10000sqm/assets/solstice-14-office.ifc.validation.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'build: publish tested Solstice 14 app and GLB'
+          git commit -m 'build: publish tested Solstice 14 GLB and IFC4 assets'
           git pull --rebase origin main
           git push origin HEAD:main
