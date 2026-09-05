@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/Kentucky-ai/opentakeoff",
+  "commit": "7a3c8eb44252d0d9083157ad9677866f92f711bb",
+  "verified_date": "2026-09-05",
+  "node_major": 24,
+  "license": "Apache-2.0",
+  "one_click": false,
+  "command_box_voice": false,
+  "mode": "client-only; no MCP server or AI backend deployed"
+}
