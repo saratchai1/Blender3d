@@ -23,8 +23,8 @@ import numpy as np
 STATUS = "Concept design only; not for construction, permitting or procurement"
 
 
-def api(name: str, model, **kwargs):
-    return ifcopenshell.api.run(name, model, **kwargs)
+def api(operation: str, model, **kwargs):
+    return ifcopenshell.api.run(operation, model, **kwargs)
 
 
 def unit_geometry(shape: str):
@@ -77,7 +77,6 @@ def transform_vertex(vertex, matrix, storey_elevation: float):
     wx=m[0]*x+m[4]*y+m[8]*z+m[12]
     wy=m[1]*x+m[5]*y+m[9]*z+m[13]
     wz=m[2]*x+m[6]*y+m[10]*z+m[14]
-    # Web: +Z south / +Y up. IFC: +Y north / +Z up.
     return (wx,-wz,wy-storey_elevation)
 
 
@@ -113,8 +112,7 @@ def classify(obj):
 
 
 def combined_mesh(objects: Iterable[dict], elevation: float):
-    vertices=[]; faces=[]
-    cache={}
+    vertices=[]; faces=[]; cache={}
     for obj in objects:
         if obj["shape"] not in cache: cache[obj["shape"]]=unit_geometry(obj["shape"])
         base_vertices, base_faces=cache[obj["shape"]]; offset=len(vertices)
@@ -139,7 +137,7 @@ def main():
     parser.add_argument("--output",type=Path,required=True)
     args=parser.parse_args()
     scene=json.loads(args.scene.read_text(encoding="utf-8"))
-    floors=scene["floors"]; spec=scene["spec"]
+    floors=scene["floors"]
     if len(floors)!=14 or sum(float(f["area"]) for f in floors)!=10000:
         raise ValueError("Refusing IFC export: source scene is not the validated 14-storey / 10,000 m² design")
 
@@ -161,13 +159,9 @@ def main():
     api("aggregate.assign_object",model,products=[building],relating_object=site)
     place(model,site); place(model,building)
     add_pset(model,project,"Pset_SolsticeProject",{
-        "GrossConceptFloorArea":10000.0,
-        "OccupiedStoreys":14,
-        "CoveredSkyGardenArea":144.0,
-        "RoofDatum":55.1,
-        "CoordinateBasis":"IFC X east, Y north, Z up; converted from web X east, Y up, Z south",
-        "EnergySimulated":False,
-        "ModelStatus":STATUS,
+        "GrossConceptFloorArea":10000.0,"OccupiedStoreys":14,"CoveredSkyGardenArea":144.0,
+        "RoofDatum":55.1,"CoordinateBasis":"IFC X east, Y north, Z up; converted from web X east, Y up, Z south",
+        "EnergySimulated":False,"ModelStatus":STATUS,
     })
 
     storeys={}
@@ -224,13 +218,9 @@ def main():
 
     args.output.parent.mkdir(parents=True,exist_ok=True)
     model.write(str(args.output))
-    print(json.dumps({
-        "schema":model.schema,"output":str(args.output),"storeys":len(storeys),
-        "spaces":len(model.by_type("IfcSpace")),"groupedElements":len(created),
-        "sourceObjects":len(scene["objects"]),"ifcEntities":len(list(model)),
-        "grossConceptArea":sum(float(f["area"]) for f in floors),
-    },indent=2))
+    print(json.dumps({"schema":model.schema,"output":str(args.output),"storeys":len(storeys),
+        "spaces":len(model.by_type("IfcSpace")),"groupedElements":len(created),"sourceObjects":len(scene["objects"]),
+        "ifcEntities":len(list(model)),"grossConceptArea":sum(float(f["area"]) for f in floors)},indent=2))
 
 
-if __name__=="__main__":
-    main()
+if __name__=="__main__": main()
