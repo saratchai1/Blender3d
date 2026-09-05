@@ -8,6 +8,9 @@ on:
       - 'integrations/opentakeoff/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Render SOLSTICE architectural film MP4']
+    types: [completed]
 permissions:
   contents: read
 concurrency:
@@ -15,6 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -48,6 +52,8 @@ jobs:
         run: python web/opentakeoff-poc/smoke.py --root .generated/pages
       - name: Check actual moving cinematic cameras, six scenes, controls and mobile WebGL
         run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
+      - name: Check the completed offline MP4 player when present
+        run: python models/office_10000sqm/film/smoke_player.py --root .generated/pages
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -57,6 +63,7 @@ jobs:
             .generated/pages-qa/
             .generated/takeoff-qa/
             .generated/cinematic-qa/
+            .generated/film-player-qa/
           if-no-files-found: warn
       - name: Retain portable POC build
         uses: actions/upload-artifact@v4
@@ -110,10 +117,19 @@ jobs:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: |
           python web/office_10000sqm/cinematic/smoke.py --url "${PAGE_URL%/}/cinematic/" --output .generated/cinematic-live-qa
+      - name: Verify live offline MP4 playback when the finished movie exists
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          if [ -f web/office_10000sqm/film/SOLSTICE-14-Architectural-Film.mp4 ]; then
+            python models/office_10000sqm/film/smoke_player.py --url "${PAGE_URL%/}/office_10000sqm/film/" --output .generated/film-live-qa
+          fi
       - name: Retain live site validation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cinematic-live-qa
-          path: .generated/cinematic-live-qa/
+          path: |
+            .generated/cinematic-live-qa/
+            .generated/film-live-qa/
           if-no-files-found: warn
