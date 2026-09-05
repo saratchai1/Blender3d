@@ -1,0 +1,55 @@
+name: Offline Blender film look development
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'models/office_10000sqm/film/build_film.py'
+      - '.github/workflows/offline-film-lookdev.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: offline-film-lookdev
+  cancel-in-progress: true
+jobs:
+  lookdev:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the existing semantic model without modifying IFC
+        run: node web/office_10000sqm/tools/build.mjs
+      - name: Install pinned Blender 4.5.3
+        run: |
+          curl --fail --retry 3 -L https://download.blender.org/release/Blender4.5/blender-4.5.3-linux-x64.tar.xz -o /tmp/blender.tar.xz
+          mkdir -p /tmp/blender
+          tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /tmp/blender
+          /tmp/blender/blender --version
+      - name: Render six actual Cycles camera proof frames and native animated scenes
+        env:
+          OMP_NUM_THREADS: '4'
+        run: |
+          /tmp/blender/blender --background -t 4 --python-exit-code 1 --python models/office_10000sqm/film/build_film.py -- --scene .generated/office_10000sqm/office.scene.json --output .generated/film-lookdev --proof > /tmp/lookdev.log 2>&1 &
+          pid=$!
+          while kill -0 "$pid" 2>/dev/null; do tail -3 /tmp/lookdev.log; sleep 20; done
+          wait "$pid" || { tail -100 /tmp/lookdev.log; exit 1; }
+          tail -10 /tmp/lookdev.log
+      - name: Retain review images and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: solstice-cycles-lookdev
+          path: |
+            .generated/film-lookdev/*.png
+            .generated/film-lookdev/*.json
+            /tmp/lookdev.log
+          retention-days: 14
+      - name: Retain native animated Blender scenes
+        uses: actions/upload-artifact@v4
+        with:
+          name: solstice-cycles-native-scenes
+          path: .generated/film-lookdev/*.blend
+          retention-days: 14
