@@ -44,13 +44,13 @@ def main()->None:
     demo_dir=out/'demo'; demo_dir.mkdir(parents=True,exist_ok=True); shutil.copy2(demo,demo_dir/'family4.pdf')
 
     # AUTOMATIC BOQ: generation completes before the reference scorer reads any
-    # official BOQ quantity. v8.18 publishes pipe rows only after explicit valve
-    # leaders resolve substantive CW branches and the conservative horizontal,
-    # vertical, roof, non-additive and final release gates all pass.
-    auto=ROOT/'integrations/opentakeoff/auto_boq_v8_18.py'; profile=ROOT/'integrations/opentakeoff/profiles/family4.json'; roof_evidence=ROOT/'integrations/opentakeoff/profiles/family4_roof_level_evidence.json'; reference=ROOT/'integrations/opentakeoff/benchmark_reference.json'; generated=out/'auto-boq.json'; benchmark=out/'auto-boq-benchmark.json'
-    for test in ('test_vertical_valve_leader_reconcile_v8.py','test_pipe_publish_v8.py','test_pipe_release_reconcile_v8.py','test_roof_terminal_reconcile_v8.py','test_vertical_direct_branch_v8.py','test_vertical_level_bounds_v8.py','test_vertical_schematic_v8.py','test_cross_view_system_consensus_v8.py','test_strict_pipe_tags_v8.py','test_auto_boq_v8.py'):
+    # official BOQ quantity. v8.19 publishes pipe rows only after the tank-side
+    # CW valve branch is independently corroborated across SN-04 and SN-05, then
+    # the horizontal, vertical, roof, non-additive and final release gates pass.
+    auto=ROOT/'integrations/opentakeoff/auto_boq_v8_19.py'; profile=ROOT/'integrations/opentakeoff/profiles/family4.json'; roof_evidence=ROOT/'integrations/opentakeoff/profiles/family4_roof_level_evidence.json'; equipment_evidence=ROOT/'integrations/opentakeoff/profiles/family4_equipment_vertical_evidence.json'; reference=ROOT/'integrations/opentakeoff/benchmark_reference.json'; generated=out/'auto-boq.json'; benchmark=out/'auto-boq-benchmark.json'
+    for test in ('test_equipment_valve_corroboration_v8.py','test_vertical_valve_leader_reconcile_v8.py','test_pipe_publish_v8.py','test_pipe_release_reconcile_v8.py','test_roof_terminal_reconcile_v8.py','test_vertical_direct_branch_v8.py','test_vertical_level_bounds_v8.py','test_vertical_schematic_v8.py','test_cross_view_system_consensus_v8.py','test_strict_pipe_tags_v8.py','test_auto_boq_v8.py'):
         run(sys.executable,str(ROOT/'integrations/opentakeoff'/test),cwd=ROOT/'integrations/opentakeoff')
-    run(sys.executable,str(auto),'--pdf',str(demo),'--profile',str(profile),'--roof-evidence',str(roof_evidence),'--output',str(generated),cwd=ROOT)
+    run(sys.executable,str(auto),'--pdf',str(demo),'--profile',str(profile),'--roof-evidence',str(roof_evidence),'--equipment-evidence',str(equipment_evidence),'--output',str(generated),cwd=ROOT)
     run(sys.executable,str(ROOT/'integrations/opentakeoff/test_auto_boq.py'),'--pdf',str(demo),'--profile',str(profile),'--reference',str(reference),cwd=ROOT)
     run(sys.executable,str(ROOT/'integrations/opentakeoff/score_auto_boq.py'),'--generated',str(generated),'--reference',str(reference),'--output',str(benchmark),cwd=ROOT)
 
@@ -64,8 +64,9 @@ def main()->None:
     score=json.loads(benchmark.read_text())
     generated_data=json.loads(generated.read_text())
     fd_diag=next((d for d in generated_data.get('diagnostics',[]) if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2'),None)
-    pipe_diag=next((d for d in generated_data.get('diagnostics',[]) if d.get('detector')=='sanitary_pipe_network_v8_18'),None)
+    pipe_diag=next((d for d in generated_data.get('diagnostics',[]) if d.get('detector')=='sanitary_pipe_network_v8_19'),None)
     published_pipe_rows=[r for r in generated_data.get('rows',[]) if str(r.get('id','')).startswith('SAN-PIPE-')]
+    corroboration=(pipe_diag or {}).get('equipment_valve_corroboration') or {}
     pipe_summary={
         'status':pipe_diag.get('status') if pipe_diag else None,
         'publication_status':((pipe_diag or {}).get('reconciliation') or {}).get('full_pipe_boq_publication_status'),
@@ -75,7 +76,10 @@ def main()->None:
         'release_blockers':(((pipe_diag or {}).get('pipe_release_candidate') or {}).get('release_blocker_count')),
         'excluded_non_quantity_runs':(((pipe_diag or {}).get('pipe_release_candidate') or {}).get('excluded_non_quantity_run_count')),
         'valve_leader_promoted':(((pipe_diag or {}).get('vertical_level_bounded_reconciliation') or {}).get('valve_leader_promoted_count')),
+        'equipment_valve_corroboration_status':corroboration.get('status'),
+        'equipment_valve_source_pages':corroboration.get('source_pages'),
+        'nearby_main_role':corroboration.get('nearby_main_role'),
     }
-    (out/'build-info.json').write_text(json.dumps({**PIN,'built_at':datetime.now(timezone.utc).isoformat(),'source_commit':os.environ.get('GITHUB_SHA','local'),'upstream_tests':'passed','adapter_tests':'passed','automatic_boq':{'status':'passed','published_rows':len(generated_data.get('rows',[])),'audit_subset_detected_rows':score['detected_reference_rows'],'audit_subset_coverage_pct':score['coverage_pct'],'audit_subset_detected_accuracy_pct':score['detected_rows_accuracy_pct'],'audit_subset_mae_pct':score['mean_absolute_error_pct'],'known_withheld':{'SAN-FLOOR-DRAIN-2':fd_diag.get('detections') if fd_diag else None},'pipe_network':pipe_summary},'demo_pdf':{'name':'family4.pdf','bytes':DEMO_SIZE,'sha256':DEMO_SHA256,'source_page':'https://townsquare.dpt.go.th/arch/plan/399'},'limitations':['automatic coverage remains a validated subset of the overall building BOQ','floor drain is withheld: four explicit drawing tags found versus five BOQ reference; schedule row is not counted as a physical drain','Family4 sanitary pipe takeoff publishes eight validated system/diameter rows totaling 92.500 m after horizontal, vertical, roof, valve-leader and non-additive gates pass','new user PDFs do not yet run the Python detector in GitHub Pages','no cloud persistence','preliminary quantities require review']},indent=2))
+    (out/'build-info.json').write_text(json.dumps({**PIN,'built_at':datetime.now(timezone.utc).isoformat(),'source_commit':os.environ.get('GITHUB_SHA','local'),'upstream_tests':'passed','adapter_tests':'passed','automatic_boq':{'status':'passed','published_rows':len(generated_data.get('rows',[])),'audit_subset_detected_rows':score['detected_reference_rows'],'audit_subset_coverage_pct':score['coverage_pct'],'audit_subset_detected_accuracy_pct':score['detected_rows_accuracy_pct'],'audit_subset_mae_pct':score['mean_absolute_error_pct'],'known_withheld':{'SAN-FLOOR-DRAIN-2':fd_diag.get('detections') if fd_diag else None},'pipe_network':pipe_summary},'demo_pdf':{'name':'family4.pdf','bytes':DEMO_SIZE,'sha256':DEMO_SHA256,'source_page':'https://townsquare.dpt.go.th/arch/plan/399'},'limitations':['automatic coverage remains a validated subset of the overall building BOQ','floor drain is withheld: four explicit drawing tags found versus five BOQ reference; schedule row is not counted as a physical drain','Family4 sanitary pipe takeoff publishes eight validated system/diameter rows totaling 92.500 m after horizontal, vertical, roof, cross-sheet tank-valve and non-additive gates pass','new user PDFs do not yet run the Python detector in GitHub Pages','no cloud persistence','preliminary quantities require review']},indent=2))
     print('POC_BUILD_OK',out)
 if __name__=='__main__': main()
