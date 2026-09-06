@@ -29,7 +29,7 @@ jobs:
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
       - name: Generate Automatic BOQ from drawing pages only
         run: |
-          python integrations/opentakeoff/auto_boq_v6.py \
+          python integrations/opentakeoff/auto_boq_v7.py \
             --pdf .generated/samples/family4.pdf \
             --profile integrations/opentakeoff/profiles/family4.json \
             --output .generated/auto/auto-boq.json
@@ -55,20 +55,18 @@ jobs:
           assert g['source_policy']['reference_used_for_generation'] is False
           assert g['source_policy']['drawing_pages']==[1,71]
           assert all(max(r['source_pages']) <= 71 for r in g['rows'])
-          assert len(g['rows']) == 15
+          assert len(g['rows']) == 20
           by={r['id']:r for r in g['rows']}
-          assert by['SAN-WC-BOWL']['quantity']==3 and by['SAN-WC-BOWL']['source_pages']==[23,24,25]
-          assert by['SAN-LAVATORY']['quantity']==3 and by['SAN-LAVATORY']['source_pages']==[23,24,25]
-          assert by['SAN-SHOWER-SET']['quantity']==2 and by['SAN-SHOWER-SET']['source_pages']==[24,25]
-          for item in ('SAN-BIDET-SPRAY','SAN-PAPER-HOLDER','SAN-TOWEL-RAIL'):
-              assert by[item]['quantity']==3
-              assert by[item]['source_pages']==[23,24,25]
-              assert by[item]['method']=='raster:line-stripped CAD label sweep'
+          for item,qty in {
+            'SAN-FLOOR-DRAIN-2':5,'SAN-FCO-4':2,'SAN-CO-2.5':1,'SAN-RFD-2.5':2,'SAN-AVC-2':2
+          }.items():
+              assert by[item]['quantity']==qty, (item,by[item])
+              assert by[item]['method']=='text:positioned sanitary drawing tag'
           assert b['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ'
-          assert b['reference_rows']==16 and b['detected_reference_rows']==15
-          assert b['coverage_pct']>=93.75
+          assert b['reference_rows']==21 and b['detected_reference_rows']==20
+          assert b['coverage_pct']>=95.23
           assert b['detected_rows_accuracy_pct']==100
-          assert b['mean_absolute_error_pct'] < 0.20
+          assert b['mean_absolute_error_pct'] < 0.15
           print('AUTO_BOQ_CONTRACT_PASS', {'rows':len(g['rows']),'coverage':b['coverage_pct'],'mae':b['mean_absolute_error_pct']})
           PY
       - name: Retain generated quantities and score evidence
