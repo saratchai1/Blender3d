@@ -1,0 +1,115 @@
+name: Automatic BOQ v8.17 publish CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/auto_boq_v8_17.py'
+      - 'integrations/opentakeoff/pipe_publish_v8.py'
+      - 'integrations/opentakeoff/test_pipe_publish_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_16.py'
+      - 'integrations/opentakeoff/pipe_release_reconcile_v8.py'
+      - 'integrations/opentakeoff/test_pipe_release_reconcile_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_15.py'
+      - 'integrations/opentakeoff/profiles/family4_roof_level_evidence.json'
+      - 'integrations/opentakeoff/profiles/family4.json'
+      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-v8-17-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-v8-17:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Run publisher and release regressions
+        working-directory: integrations/opentakeoff
+        run: |
+          python test_pipe_publish_v8.py
+          python test_pipe_release_reconcile_v8.py
+          python test_roof_terminal_reconcile_v8.py
+          python test_vertical_direct_branch_v8.py
+          python test_vertical_level_bounds_v8.py
+          python test_cross_view_system_consensus_v8.py
+          python test_strict_pipe_tags_v8.py
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Generate v8.16 control
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_16.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
+          --output .generated/v8-16-control.json
+      - name: Generate v8.17 published BOQ
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_17.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
+          --output .generated/v8-17.json
+      - name: Assert exactly eight validated pipe rows are added
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('.generated/v8-16-control.json').read_text())
+          n=json.loads(Path('.generated/v8-17.json').read_text())
+          assert c['source_policy']['reference_used_for_generation'] is False
+          assert n['source_policy']['reference_used_for_generation'] is False
+          assert len(c['rows'])==19,len(c['rows'])
+          assert len(n['rows'])==27,len(n['rows'])
+          # All 19 pre-existing BOQ rows are preserved exactly.
+          before={r['id']:r for r in c['rows']}
+          after={r['id']:r for r in n['rows']}
+          for row_id,row in before.items():
+              assert after[row_id]==row,(row_id,row,after[row_id])
+          pipes=[r for r in n['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')]
+          assert len(pipes)==8,pipes
+          expected={
+              'SAN-PIPE-CW-DN15':7.296,
+              'SAN-PIPE-CW-DN20':26.112,
+              'SAN-PIPE-RL-DN65':3.57,
+              'SAN-PIPE-S-DN100':2.27,
+              'SAN-PIPE-SW-DN100':19.455,
+              'SAN-PIPE-V-DN50':14.665,
+              'SAN-PIPE-W-DN50':10.746,
+              'SAN-PIPE-W-DN65':7.158,
+          }
+          assert {r['id'] for r in pipes}==set(expected),pipes
+          for row in pipes:
+              assert row['unit']=='m' and row['category']=='Sanitary',row
+              assert abs(row['quantity']-expected[row['id']])<1e-6,(row,expected[row['id']])
+              assert row['evidence']['release_gate_status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',row
+          assert abs(sum(r['quantity'] for r in pipes)-91.272)<1e-6,sum(r['quantity'] for r in pipes)
+          assert not any(x.get('name')=='sanitary piping' for x in n['coverage']['withheld_detectors']),n['coverage']
+          assert 'validated sanitary pipe takeoff' in n['coverage']['supported_detectors'],n['coverage']
+          d=next(x for x in n['diagnostics'] if x.get('detector')=='sanitary_pipe_network_v8_17')
+          assert d['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',d['reconciliation']
+          pub=next(x for x in n['diagnostics'] if x.get('detector')=='sanitary_pipe_publication_v8')
+          assert pub['published_pipe_row_count']==8,pub
+          assert pub['release_blocker_count']==0,pub
+          print('AUTO_BOQ_V8_17_PUBLISH_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':91.272,'old_rows_preserved':19})
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-17-evidence
+          path: |
+            .generated/v8-16-control.json
+            .generated/v8-17.json
+          if-no-files-found: warn
+          retention-days: 30
