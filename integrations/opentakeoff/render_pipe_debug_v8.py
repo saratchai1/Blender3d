@@ -75,13 +75,14 @@ def main() -> None:
         if sheet == "SN-07":
             for block in blocks:
                 x0, y0, x1, y1 = map(float, block[:4])
-                if x0 >= 360 and y0 >= 400 and y1 <= 590:
+                if x0 >= 360 and y0 >= 280 and y1 <= 590:
                     schedule_blocks.append(_block_json(block))
-            # The table is located from vector content, not raster OCR. This broad
-            # crop intentionally captures headers, fixture codes, fractions and '-'.
+            # SN-07's schedule text is encoded rotated in PDF coordinates. X follows
+            # fixture rows while Y follows CW/S/V/W columns, so retain the whole
+            # vector grid and let the parser cluster both axes instead of using OCR.
             for word in words:
                 x0, y0, x1, y1 = map(float, word[:4])
-                if x0 >= 440 and x1 <= 705 and y0 >= 400 and y1 <= 570:
+                if x0 >= 440 and x1 <= 705 and y0 >= 280 and y1 <= 570:
                     schedule_words.append(_word_json(word))
 
         token_words = []
