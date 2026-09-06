@@ -28,6 +28,10 @@ def _endpoint_gap(
                 sj = segments[j]
                 aj = _angle_deg(sj["a"], sj["b"])
                 angle_diff = _angle_diff_deg(ai, aj)
+                if angle_diff > 15.0:
+                    # Cheap early rejection: caller's policy is <=5 deg, so there
+                    # is no need to evaluate all endpoint distances here.
+                    continue
                 for q in (sj["a"], sj["b"]):
                     gap = math.hypot(float(p[0]) - float(q[0]), float(p[1]) - float(q[1]))
                     key = (gap, angle_diff, int(i), int(j), p, q)
@@ -80,6 +84,7 @@ def bridge_diameter_tags(
     """Create diameter-only seeds across tiny collinear same-layer CAD gaps.
 
     Safety rules:
+    - only layers that already contain at least one diameter seed are searched;
     - same semantic layer only;
     - endpoint-to-endpoint gap only (never endpoint-to-interior T-junction bridge);
     - local segments must be collinear within max_angle_diff_deg;
@@ -94,8 +99,13 @@ def bridge_diameter_tags(
         for i in c["segment_indexes"]:
             component_by_segment[int(i)] = int(c["id"])
     seeds_by_component, class_meta = _seed_class_map(tags, component_by_segment)
+    seeded_layers = {
+        str(component_by_id[cid].get("layer") or "")
+        for cid in seeds_by_component
+        if cid in component_by_id and str(component_by_id[cid].get("layer") or "")
+    }
 
-    parent = {int(c["id"]): int(c["id"]) for c in components}
+    parent = {int(c["id"]): int(c["id"]) for c in components if str(c.get("layer") or "") in seeded_layers}
     def find(x: int) -> int:
         while parent[x] != x:
             parent[x] = parent[parent[x]]
@@ -106,29 +116,31 @@ def bridge_diameter_tags(
         if ra != rb:
             parent[rb] = ra
 
+    by_layer: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for component in components:
+        layer = str(component.get("layer") or "")
+        if layer in seeded_layers:
+            by_layer[layer].append(component)
+
     edges: list[dict[str, Any]] = []
-    for pos, ca in enumerate(components):
-        layer_a = str(ca.get("layer") or "")
-        if not layer_a:
-            continue
-        for cb in components[pos + 1:]:
-            if str(cb.get("layer") or "") != layer_a:
-                continue
-            evidence = _endpoint_gap(ca, cb, segments)
-            if not evidence:
-                continue
-            if evidence["gap_pt"] > float(max_gap_pt):
-                continue
-            if evidence["angle_diff_deg"] > float(max_angle_diff_deg):
-                continue
-            a = int(ca["id"]); b = int(cb["id"])
-            union(a, b)
-            edges.append({
-                "component_a": a,
-                "component_b": b,
-                "layer": layer_a,
-                **evidence,
-            })
+    for layer, layer_components in by_layer.items():
+        for pos, ca in enumerate(layer_components):
+            for cb in layer_components[pos + 1:]:
+                evidence = _endpoint_gap(ca, cb, segments)
+                if not evidence:
+                    continue
+                if evidence["gap_pt"] > float(max_gap_pt):
+                    continue
+                if evidence["angle_diff_deg"] > float(max_angle_diff_deg):
+                    continue
+                a = int(ca["id"]); b = int(cb["id"])
+                union(a, b)
+                edges.append({
+                    "component_a": a,
+                    "component_b": b,
+                    "layer": layer,
+                    **evidence,
+                })
 
     groups: dict[int, list[int]] = defaultdict(list)
     for cid in parent:
@@ -166,17 +178,12 @@ def bridge_diameter_tags(
             if seeds_by_component.get(cid):
                 continue
             component = component_by_id[cid]
-            # Pick the segment participating in the shortest accepted bridge edge
-            # touching this component so evidence is auditable and deterministic.
             touching = [e for e in edges_by_group.get(root, []) if cid in (int(e["component_a"]), int(e["component_b"]))]
             touching.sort(key=lambda e: (float(e["gap_pt"]), float(e["angle_diff_deg"]), int(e["segment_a"]), int(e["segment_b"])))
             if not touching:
                 continue
             edge = touching[0]
-            if cid == int(edge["component_a"]):
-                seed_segment = int(edge["segment_a"])
-            else:
-                seed_segment = int(edge["segment_b"])
+            seed_segment = int(edge["segment_a"] if cid == int(edge["component_a"]) else edge["segment_b"])
             synthetic = {
                 "text": "COLLINEAR_GAP_BRIDGE",
                 **meta,
