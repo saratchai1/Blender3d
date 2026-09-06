@@ -49,18 +49,23 @@ def main():
             for item,qty in PIPE_EXPECTED.items():
                 assert abs(by[item]['quantity']-qty)<1e-6 and by[item]['unit']=='m',by[item]
                 assert by[item]['evidence']['release_gate_status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',by[item]
+            assert set(by['SAN-PIPE-CW-DN15']['source_pages'])=={57,58},by['SAN-PIPE-CW-DN15']
             assert 13 in by['SAN-PIPE-V-DN50']['source_pages'],by['SAN-PIPE-V-DN50']
             assert abs(sum(by[k]['quantity'] for k in PIPE_EXPECTED)-92.5)<1e-6
             fd=next(d for d in auto['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
             assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY' and fd['detections']==4
-            pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_18')
+            pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_19')
             assert pipe['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',pipe
             assert pipe['pipe_release_candidate']['release_blocker_count']==0,pipe
             assert pipe['vertical_level_bounded_reconciliation']['valve_leader_promoted_count']==1,pipe
+            corroboration=pipe['equipment_valve_corroboration']
+            assert corroboration['status']=='CORROBORATED_EQUIPMENT_VALVE_CLASS',corroboration
+            assert corroboration['source_pages']==[57,58] and corroboration['diameter_key']=='DN15',corroboration
+            assert corroboration['nearby_main_role']=='AUDIT_ONLY_NOT_BRANCH_SIZING_EVIDENCE',corroboration
             assert bench['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ' and bench['reference_rows']==20 and bench['detected_reference_rows']==19 and bench['coverage_pct']>=95.0
             page.screenshot(path=str(a.output/'automatic-boq-live.png'),full_page=True)
             report['checks'].append('Public HTTPS Automatic BOQ rendered 27 rows including eight validated sanitary pipe rows totaling 92.500 m; scored audit subset remains 95% coverage and 100% detected-row accuracy')
-            report['checks'].append('Public generated JSON proves reference isolation, release blockers zero, A-06 roof provenance and SN-04 valve-leader provenance retained, and all published evidence pages <= 71')
+            report['checks'].append('Public generated JSON proves reference isolation, release blockers zero, A-06 roof provenance retained, and tank DN15 independently corroborated by SN-04 BALL VALVE plus SN-05 FLOAT VALVE half-inch evidence; all published evidence pages <= 71')
             page.set_viewport_size({'width':390,'height':844}); page.screenshot(path=str(a.output/'automatic-boq-live-mobile.png'),full_page=True)
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
             assert not report['page_errors'],report['page_errors']; report['status']='PASS'
