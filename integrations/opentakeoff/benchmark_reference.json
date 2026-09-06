@@ -16,6 +16,8 @@
     {"id":"SAN-BOOSTER-PUMP","quantity":1,"unit":"ea"},
     {"id":"SAN-WATER-METER","quantity":1,"unit":"ea"},
     {"id":"SAN-FLOAT-VALVE","quantity":1,"unit":"ea"},
-    {"id":"SAN-WC-BOWL","quantity":3,"unit":"ea"}
+    {"id":"SAN-WC-BOWL","quantity":3,"unit":"ea"},
+    {"id":"SAN-LAVATORY","quantity":3,"unit":"ea"},
+    {"id":"SAN-SHOWER-SET","quantity":2,"unit":"ea"}
   ]
 }
