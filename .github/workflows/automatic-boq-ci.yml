@@ -32,6 +32,12 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
       - name: Fetch verified Family4 benchmark PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Render source pipe pages for reconciliation QA
+        run: >-
+          python integrations/opentakeoff/render_pipe_debug_v8.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output-dir .generated/pipe-pages
       - name: Run v8 topology and parser unit tests
         working-directory: integrations/opentakeoff
         run: |
@@ -147,5 +153,6 @@ jobs:
             .generated/auto-boq-v8-1.json
             .generated/pipe-gap-probe-v8.json
             .generated/auto-boq-benchmark.json
+            .generated/pipe-pages/
           if-no-files-found: warn
           retention-days: 30
