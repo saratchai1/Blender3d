@@ -85,24 +85,35 @@ def layer_components(
                 component_by_segment[i] = component_id
             xs: list[float] = []
             ys: list[float] = []
-            style_hist: dict[str, int] = defaultdict(int)
+            variants: dict[tuple[Any, ...], int] = defaultdict(int)
             for i in members:
                 segment = segments[i]
                 for point in (segment['a'], segment['b']):
                     xs.append(float(point[0])); ys.append(float(point[1]))
-                style_key = repr((
+                variants[(
                     round(float(segment.get('width_pt') or 0.0), 3),
                     segment.get('color'),
                     str(segment.get('dash') or 'solid'),
-                ))
-                style_hist[style_key] += 1
+                )] += 1
+            if len(variants) == 1:
+                only = next(iter(variants))
+                width_pt: Any = only[0]
+                color: Any = only[1]
+                dash: Any = only[2]
+            else:
+                width_pt = 'mixed'
+                color = 'mixed'
+                dash = 'mixed'
             components.append({
                 'id': component_id,
                 'layer': layer,
                 'style': {
                     'layer': layer,
+                    'width_pt': width_pt,
+                    'color': color,
+                    'dash': dash,
                     'topology_basis': 'SEMANTIC_LAYER_GEOMETRY_ONLY',
-                    'style_variant_count': len(style_hist),
+                    'style_variant_count': len(variants),
                 },
                 'segment_indexes': sorted(members),
                 'segment_count': len(members),
