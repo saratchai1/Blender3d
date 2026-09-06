@@ -1,6 +1,6 @@
 {
-  "id": "dpt-family4-vector-v4",
-  "version": 4,
+  "id": "dpt-family4-vector-v5",
+  "version": 5,
   "source_page_max": 71,
   "roof": {
     "page": 13,
@@ -24,6 +24,28 @@
         "target_pages": [23, 24, 25],
         "target_roi_pt": [90, 170, 520, 590],
         "threshold": 0.70,
+        "rotate_90": false
+      },
+      {
+        "id": "SAN-LAVATORY",
+        "description": "อ่างล้างหน้า",
+        "category": "Sanitary",
+        "template_page": 23,
+        "template_rect_pt": [250, 320, 282, 345],
+        "target_pages": [23, 24, 25],
+        "target_roi_pt": [90, 170, 520, 590],
+        "threshold": 0.55,
+        "rotate_90": true
+      },
+      {
+        "id": "SAN-SHOWER-SET",
+        "description": "ฝักบัวอาบน้ำสายอ่อน",
+        "category": "Sanitary",
+        "template_page": 24,
+        "template_rect_pt": [180, 245, 224, 285],
+        "target_pages": [24, 25],
+        "target_roi_pt": [120, 200, 450, 520],
+        "threshold": 0.50,
         "rotate_90": false
       }
     ]
