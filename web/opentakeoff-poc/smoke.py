@@ -13,6 +13,20 @@ READ_DB='''async (kind) => {
  try {return await new Promise((yes,no)=>{const t=db.transaction(['meta','pdfs'],'readonly');const a=t.objectStore('meta').get('annotations');const p=t.objectStore('pdfs').getAll();t.oncomplete=()=>yes({annotations:a.result,pdfs:p.result.map(x=>({name:x.name,size:x.bytes.byteLength,head:Array.from(new Uint8Array(x.bytes.slice(0,5)))}))});t.onerror=()=>no(t.error);});}finally{db.close();}
 }'''
 
+def has_large_canvas(frame):
+    """Verify the upstream measurement surface actually mounted and has usable size.
+
+    Do not depend on a filename being rendered as UI text: OpenTakeoff can derive
+    the visible sheet label from title-block text while still loading the exact PDF.
+    The IndexedDB byte/name checks above are the authoritative document identity.
+    """
+    canvases=frame.locator('canvas')
+    for i in range(canvases.count()):
+        box=canvases.nth(i).bounding_box()
+        if box and box['width'] >= 500 and box['height'] >= 300:
+            return True
+    return False
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--root',type=Path,required=True);ap.add_argument('--out',type=Path,default=Path('.generated/takeoff-qa'));args=ap.parse_args()
     args.out.mkdir(parents=True,exist_ok=True)
@@ -33,9 +47,9 @@ def main():
         ann=saved['annotations'];assert ann and ann['project_name'].startswith('บ้านครอบครัวไทยร่วมสมัย 4')
         assert ann['shapes']==[],'Reference BOQ must never be pre-seeded as generated takeoff'
         assert ann['sheet_tabs']==['family4.pdf#11']
-        assert 'family4.pdf' in engine.locator('body').inner_text()
+        assert has_large_canvas(engine),'OpenTakeoff mounted but no usable measurement canvas was rendered'
         page.screenshot(path=str(args.out/'01-family4-canvas-desktop.png'),full_page=True)
-        evidence['checks'].append('Verified exact 13,058,241-byte Family4 PDF loaded into isolated demo DB; starts on page 11; zero fake takeoff shapes')
+        evidence['checks'].append('Verified exact 13,058,241-byte Family4 PDF loaded into isolated demo DB; starts on page 11; zero fake takeoff shapes; measurement canvas rendered')
         page.locator('[data-tab="boq"]').click();page.wait_for_timeout(400)
         assert page.locator('#csv').is_disabled();assert page.locator('#rows').inner_text().startswith('ยังไม่มี Generated Takeoff')
         assert float(page.locator('#floor-total').inner_text().replace(',',''))==0
@@ -52,6 +66,7 @@ def main():
         if target.count()==0: target=engine.locator('input[type="file"][multiple]').first
         assert target.count()>0;target.set_input_files(str(sample.resolve()));engine.locator('canvas').first.wait_for(timeout=120000);page.wait_for_timeout(3000)
         own=engine.evaluate(READ_DB,'user');assert any(x['name']=='family4.pdf' and x['size']==EXPECTED_SIZE for x in own['pdfs']);assert own['annotations']['shapes']==[]
+        assert has_large_canvas(engine),'Native upload completed but no usable measurement canvas was rendered'
         evidence['checks'].append('Native upload accepts the same 99-page Thai PDF in the user workspace with no inherited demo quantities')
         page.locator('#workspace').select_option('demo');page.locator('#status[data-state="ready"]').wait_for(timeout=120000);page.locator('[data-tab="guide"]').click()
         assert page.get_by_text('สิ่งที่ไฟล์นี้ช่วยทดสอบจริง',exact=True).is_visible()
