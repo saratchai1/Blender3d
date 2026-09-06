@@ -1,0 +1,86 @@
+name: Automatic BOQ v8.2 evidence CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/auto_boq_v8_2.py'
+      - 'integrations/opentakeoff/leader_association_v8.py'
+      - 'integrations/opentakeoff/test_leader_association_v8.py'
+      - '.github/workflows/automatic-boq-v8-2-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-v8-2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Run leader regression
+        working-directory: integrations/opentakeoff
+        run: python test_leader_association_v8.py
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Generate v8.1 control
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_1.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/auto-boq-v8-1-control.json
+      - name: Generate v8.2 leader-reconciled diagnostic
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_2.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/auto-boq-v8-2.json
+      - name: Assert source fence, no pipe publication, and compare coverage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          control=json.loads(Path('.generated/auto-boq-v8-1-control.json').read_text())
+          result=json.loads(Path('.generated/auto-boq-v8-2.json').read_text())
+          assert result['source_policy']['reference_used_for_generation'] is False
+          assert len(result['rows']) == 19
+          assert not any(str(r.get('id','')).startswith('SAN-PIPE-') for r in result['rows'])
+          d1=next(d for d in control['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_1')
+          d2=next(d for d in result['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_2')
+          assert d2['status']=='DIAGNOSTIC_LEADER_RECONCILED_NO_PUBLISHED_PIPE_ROWS'
+          assert d2['fixture_branch_schedule']['connection_count']==18
+          assert d2['reconciliation']['cross_view_policy_status']=='PASS_NON_ADDITIVE_BY_VIEW_ROLE'
+          assert d2['reconciliation']['full_pipe_boq_publication_status']=='WITHHELD_VERTICAL_AND_DETAIL_RECONCILIATION'
+          p1={p['sheet']:p for p in d1['pages'] if p.get('contribution_policy')=='PRIMARY_PLAN_HORIZONTAL'}
+          p2={p['sheet']:p for p in d2['pages'] if p.get('contribution_policy')=='PRIMARY_PLAN_HORIZONTAL'}
+          comparison={}
+          for sheet in ('SN-05','SN-06'):
+              before=p1[sheet]['diameter_coverage']['assigned_fraction']
+              after=p2[sheet]['diameter_coverage']['assigned_fraction']
+              comparison[sheet]={'v8_1':before,'v8_2':after,'delta':round(after-before,4)}
+              assert after >= 0
+          print('V8_2_FAMILY4_PASS', {
+              'coverage':comparison,
+              'leader_summary':d2['leader_association_summary'],
+              'horizontal_gate':d2['reconciliation']['horizontal_diameter_gate'],
+              'published_pipe_rows':0,
+          })
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-2-evidence
+          path: |
+            .generated/auto-boq-v8-1-control.json
+            .generated/auto-boq-v8-2.json
+          if-no-files-found: warn
+          retention-days: 30
