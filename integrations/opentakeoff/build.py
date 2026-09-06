@@ -44,8 +44,8 @@ def main()->None:
     demo_dir=out/'demo'; demo_dir.mkdir(parents=True,exist_ok=True); shutil.copy2(demo,demo_dir/'family4.pdf')
 
     # AUTOMATIC BOQ: generation is completed before the reference scorer reads
-    # any official BOQ quantity. auto_boq.py itself has no reference dependency.
-    auto=ROOT/'integrations/opentakeoff/auto_boq.py'; profile=ROOT/'integrations/opentakeoff/profiles/family4.json'; reference=ROOT/'integrations/opentakeoff/benchmark_reference.json'; generated=out/'auto-boq.json'; benchmark=out/'auto-boq-benchmark.json'
+    # any official BOQ quantity. The v6 generator itself has no reference dependency.
+    auto=ROOT/'integrations/opentakeoff/auto_boq_v6.py'; profile=ROOT/'integrations/opentakeoff/profiles/family4.json'; reference=ROOT/'integrations/opentakeoff/benchmark_reference.json'; generated=out/'auto-boq.json'; benchmark=out/'auto-boq-benchmark.json'
     run(sys.executable,str(auto),'--pdf',str(demo),'--profile',str(profile),'--output',str(generated),cwd=ROOT)
     run(sys.executable,str(ROOT/'integrations/opentakeoff/test_auto_boq.py'),'--pdf',str(demo),'--profile',str(profile),'--reference',str(reference),cwd=ROOT)
     run(sys.executable,str(ROOT/'integrations/opentakeoff/score_auto_boq.py'),'--generated',str(generated),'--reference',str(reference),'--output',str(benchmark),cwd=ROOT)
