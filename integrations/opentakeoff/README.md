@@ -2,54 +2,58 @@
 
 This POC combines the real pinned `Kentucky-ai/opentakeoff` review canvas with a geometry-first Automatic BOQ benchmark for the real 99-page Thai drawing set `family4.pdf`.
 
-## What is automatic now
+## Source isolation
 
-The v6 generator reads **drawing pages 1–71 only**. It has no import, path or quantity dependency on `benchmark_reference.json`. The official BOQ range (pages 72–95) is read only by the separate `score_auto_boq.py` after generation has finished.
+The v7 generator reads **drawing pages 1–71 only**. It never imports or opens `benchmark_reference.json`. The official BOQ range (pages 72–95) is read only by `score_auto_boq.py` after generation has finished.
 
-Validated automatic detectors in the current Family4 profile:
+## Validated automatic rows
 
 | ID | Automatic method | Current benchmark output |
 |---|---|---:|
 | `ARCH-ROOF-METAL` | vector hatch band + 6° roof slope | 128.349 m² |
 | `ARCH-FASCIA` | vector roof outline perimeter | 45.199 m |
-| `ARCH-DOOR-D2` | door-swing radius, 0.80 m | 7 ea |
-| `ARCH-DOOR-D3` | door-swing radius, 0.70 m | 4 ea |
-| `SAN-WC-BOWL` | bathroom-detail template sweep | 3 ea |
-| `SAN-LAVATORY` | bathroom-detail template sweep | 3 ea |
-| `SAN-SHOWER-SET` | bathroom-detail template sweep | 2 ea |
-| `SAN-BIDET-SPRAY` | line-stripped CAD label sweep | 3 ea |
-| `SAN-PAPER-HOLDER` | line-stripped CAD label sweep | 3 ea |
-| `SAN-TOWEL-RAIL` | line-stripped CAD label sweep | 3 ea |
-| `SAN-BOOSTER-PUMP` | exact positioned plan label `BP` | 1 ea |
-| `SAN-WATER-METER` | exact positioned plan label `M` | 1 ea |
-| `SAN-FLOAT-VALVE` | exact positioned plan label `FLOAT` | 1 ea |
-| `ELEC-DOWNLIGHT` | electrical legend template sweep | 37 ea |
-| `ELEC-T8-LONG` | electrical legend template sweep | 1 ea |
+| `ARCH-DOOR-D2` | door-swing radius | 7 ea |
+| `ARCH-DOOR-D3` | door-swing radius | 4 ea |
+| `SAN-WC-BOWL` | bathroom-detail template | 3 ea |
+| `SAN-LAVATORY` | bathroom-detail template | 3 ea |
+| `SAN-SHOWER-SET` | bathroom-detail template | 2 ea |
+| `SAN-BIDET-SPRAY` | line-stripped CAD label | 3 ea |
+| `SAN-PAPER-HOLDER` | line-stripped CAD label | 3 ea |
+| `SAN-TOWEL-RAIL` | line-stripped CAD label | 3 ea |
+| `SAN-BOOSTER-PUMP` | exact positioned `BP` tag | 1 ea |
+| `SAN-WATER-METER` | exact positioned `M` tag | 1 ea |
+| `SAN-FLOAT-VALVE` | exact positioned `FLOAT` tag | 1 ea |
+| `SAN-FCO-4` | positioned sanitary drawing tag | 2 ea |
+| `SAN-CO-2.5` | positioned sanitary drawing tag | 1 ea |
+| `SAN-RFD-2.5` | positioned sanitary drawing tag | 2 ea |
+| `SAN-AVC-2` | positioned sanitary drawing tag | 2 ea |
+| `ELEC-DOWNLIGHT` | electrical legend template | 37 ea |
+| `ELEC-T8-LONG` | electrical legend template | 1 ea |
 
-The isolated audit subset contains **16 rows**. Fifteen are detected, giving **93.75% coverage of that audit subset**. All fifteen detected rows are within ±5%; the current mean absolute percentage error is about **0.063%**. These numbers are **not full-project BOQ accuracy**.
+The scored audit subset contains **20 rows**. Nineteen are detected: **95% coverage**. All 19 detected rows are within ±5%; current mean absolute percentage error is **0.05%**. This is an audit subset, **not full-project BOQ accuracy**.
 
-The three v6 accessory rows use visible labels on bathroom detail pages 23–25. The detector first suppresses long orthogonal CAD wall/grid lines, then matches the remaining label glyph pattern. This is specifically for drawings where legacy CAD fonts make normal text extraction unreliable. The short T8 row and broader categories remain withheld until their detectors are reliable.
+## Floor drain is intentionally withheld
+
+`SAN-FLOOR-DRAIN-2` is not published in v7. The SN-07 bathroom drawing exposes four physical `Ø2"FD` tags while the official BOQ reference is five. The same sheet also contains an `FD.` row in the fixture connection schedule, but a schedule row is not a physical installed instance. v7 therefore records the four explicit hits as `WITHHELD_DIAGNOSTIC_ONLY` rather than counting the schedule row to force a match.
+
+## Pipe-length preparation
+
+v7 inventories diameter/system tags on drawing pages 57–60, including tags such as `Ø2"W`, `Ø4"SW`, `Ø2"V`, `Ø2½"RFD`, `Ø2"AVC`, and CW tags. This inventory is diagnostic only. Pipe lengths remain withheld until vector-line tracing, system classification and plan/riser/detail de-duplication are validated.
 
 ## Accuracy policy
 
-- Missing is safer than fabricated. Unsupported/ambiguous items return no quantity.
-- Every published automatic row carries `source_pages`, `method`, `confidence`, `review` and evidence.
-- Source-page guard rejects any generation attempt after page 71.
+- Missing is safer than fabricated.
+- Every published row carries `source_pages`, `method`, `confidence`, `review` and evidence.
+- The source-page guard rejects any generation evidence after page 71.
 - Reference quantities live in a different file and scorer.
-- CI regenerates quantities from the exact PDF before reading the reference and retains generated JSON as evidence.
-- CI asserts known benchmark tolerances and that all generated evidence pages are <= 71.
+- CI regenerates from the exact PDF before scoring and retains generated JSON as evidence.
 - Automatic output is preliminary and requires estimator review before procurement.
 
 ## Web UI
 
-GitHub Pages publishes `/Blender3d/takeoff/` with four surfaces:
+GitHub Pages publishes `/Blender3d/takeoff/` with Automatic BOQ, the real OpenTakeoff/PDF.js review canvas, a separate Manual BOQ workspace, and an Accuracy/limitations page. Automatic and manual quantities remain separate to prevent double counting.
 
-1. **Automatic BOQ** — generated rows, quantity/unit, confidence, drawing-page evidence, method and error against the isolated audit reference.
-2. **แบบ / ตรวจ** — the actual OpenTakeoff/PDF.js measurement canvas.
-3. **Manual BOQ** — only user-created/review takeoff; kept separate to prevent automatic/manual double counting.
-4. **วิธี / Accuracy** — source fence, method and limitations.
-
-The demo uses the verified Family4 PDF. User-uploaded PDFs still open in the manual/review workspace. GitHub Pages is static, so the Python Automatic BOQ detector does **not yet run on arbitrary new uploads in-browser**.
+The verified Family4 demo is automatic. Arbitrary PDFs uploaded by users still open only in the Manual/Review workspace because GitHub Pages is static; runtime automatic extraction for new uploads is not implemented yet.
 
 ## Reproduce
 
@@ -58,7 +62,7 @@ Requires Python 3.12+, Node 24, PyMuPDF, NumPy and OpenCV.
 ```sh
 python -m pip install -r integrations/opentakeoff/requirements-auto-boq.txt
 python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
-python integrations/opentakeoff/auto_boq_v6.py \
+python integrations/opentakeoff/auto_boq_v7.py \
   --pdf .generated/samples/family4.pdf \
   --profile integrations/opentakeoff/profiles/family4.json \
   --output .generated/auto-boq.json
@@ -72,16 +76,14 @@ python integrations/opentakeoff/score_auto_boq.py \
   --output .generated/auto-boq-benchmark.json
 ```
 
-`auto_boq.py` remains the v5 base extractor; `auto_boq_v6.py` extends it with the line-stripped label detector without giving either generator access to the reference file. `build.py` uses the v6 entry point.
+`auto_boq.py` is the base extractor, `auto_boq_v6.py` adds line-stripped CAD label matching, and `auto_boq_v7.py` adds conservative positioned sanitary tag counts plus diagnostic pipe-tag inventory. `build.py` uses the v7 entry point.
 
 ## Current withheld scope
 
-Windows, floor drains/soap accessories/floor faucets/valves that do not yet have stable fingerprints, switch/socket, floor finishes, wall area, sanitary pipe lengths and structural quantities remain `WITHHELD`. Sanitary piping is the next geometry target because the source drawings expose pipe system/diameter labels, but network-line classification must be validated before a length is published.
+Floor drain, soap/floor faucet/valve items without stable evidence, windows, switch/socket, floor finishes, wall area, sanitary pipe lengths and structural quantities remain `WITHHELD`.
 
-## Data and security
+## Data and attribution
 
-The OpenTakeoff canvas remains client-side and persists PDFs/annotations in browser IndexedDB. The automatic benchmark is generated in CI from the verified public sample and ships as JSON. No public AI key, cloud sync or public MCP endpoint is configured. Never publish private/customer PDFs as CI fixtures.
+The OpenTakeoff canvas remains client-side and persists PDFs/annotations in browser IndexedDB. No public AI key, cloud sync or public MCP endpoint is configured. Never publish private/customer PDFs as CI fixtures.
 
-## Attribution
-
-OpenTakeoff is retained under Apache-2.0 with its LICENSE, NOTICE and third-party notices. The downstream Automatic BOQ extractor/profile/scorer are project-specific additions in this repository.
+OpenTakeoff remains under Apache-2.0 with LICENSE/NOTICE/third-party notices preserved. The downstream Automatic BOQ extractor/profile/scorer are project-specific additions in this repository.
