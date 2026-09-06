@@ -8,17 +8,20 @@ def build_pipe_release_candidate(
     vertical: dict[str, Any],
     *,
     roof_source_page: int | None = None,
+    max_excludable_cw_offset_m: float = 0.5,
 ) -> dict[str, Any]:
     """Combine validated horizontal + vertical pipe evidence without publishing.
 
-    Remaining SN-04 geometry is not silently dropped. It is classified as either:
-    - vent terminal drawing pieces already represented by the roof-corroborated main
-      riser length, or
-    - local schematic service-branch geometry whose drawn vertical offset does not
-      correspond to an explicit physical level interval and therefore must not be
-      converted to metres from the riser diagram.
+    Remaining SN-04 geometry is never silently dropped. A withheld run may be
+    excluded from physical vertical quantity only when it is either:
+      * a vent terminal drawing piece already represented by a roof-corroborated
+        main vent riser; or
+      * a *short* CW schematic offset (< ``max_excludable_cw_offset_m``) with no
+        terminal extension and therefore no defensible explicit physical height.
 
-    Any other withheld class is a release blocker.
+    A substantive unresolved CW run at or above the threshold is a blocker. This
+    prevents a real tank/service branch from being blanket-classified as drawing
+    offset merely because it sits inside the explicit level band.
     """
     horizontal_gate = reconciliation.get('horizontal_diameter_gate')
     roof_status = vertical.get('roof_terminal_status')
@@ -35,6 +38,7 @@ def build_pipe_release_candidate(
         diameter_key = str(run.get('diameter_key') or '')
         terminal_above = float(run.get('terminal_extension_above_m') or 0.0)
         terminal_below = float(run.get('terminal_extension_below_m') or 0.0)
+        span = float(run.get('vertical_span_m') or 0.0)
         if system == 'V' and terminal_above > 0 and (system, diameter_key) in roof_v_classes:
             excluded.append({
                 **run,
@@ -42,11 +46,17 @@ def build_pipe_release_candidate(
                 'quantity_added_m': 0.0,
             })
             continue
-        if system == 'CW' and terminal_above <= 0 and terminal_below <= 0:
+        if (
+            system == 'CW'
+            and terminal_above <= 0
+            and terminal_below <= 0
+            and span < float(max_excludable_cw_offset_m)
+        ):
             excluded.append({
                 **run,
-                'release_exclusion_status': 'EXCLUDED_SCHEMATIC_SERVICE_OFFSET_NO_EXPLICIT_PHYSICAL_HEIGHT',
+                'release_exclusion_status': 'EXCLUDED_SHORT_SCHEMATIC_SERVICE_OFFSET_NO_EXPLICIT_PHYSICAL_HEIGHT',
                 'quantity_added_m': 0.0,
+                'exclusion_threshold_m': float(max_excludable_cw_offset_m),
             })
             continue
         blockers.append({
@@ -126,6 +136,7 @@ def build_pipe_release_candidate(
         'excluded_non_quantity_run_count': len(excluded),
         'release_blockers': blockers,
         'release_blocker_count': len(blockers),
+        'max_excludable_cw_offset_m': float(max_excludable_cw_offset_m),
         'publication_policy': 'READY_FOR_PIPE_ROW_PUBLICATION' if ready else 'WITHHELD_NO_PIPE_PUBLICATION',
         'non_additive_contract': 'SN-05/SN-06 contribute horizontal length; SN-04 contributes only validated physical vertical length; SN-07 contributes sizing/matching evidence only; no view lengths are summed wholesale.',
     }
