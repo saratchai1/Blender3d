@@ -1,6 +1,6 @@
 {
-  "id": "dpt-family4-vector-v6",
-  "version": 6,
+  "id": "dpt-family4-vector-v7",
+  "version": 7,
   "source_page_max": 71,
   "roof": {"page": 13, "scale_ratio": 100, "slope_deg": 6},
   "doors": {
@@ -23,6 +23,34 @@
       {"id":"SAN-BIDET-SPRAY","description":"ฝักบัวชำระพร้อมสาย","category":"Sanitary","template_page":23,"template_rect_pt":[270,484,310,501],"target_pages":[23,24,25],"target_roi_pt":[140,230,470,540],"threshold":0.60},
       {"id":"SAN-PAPER-HOLDER","description":"ที่ใส่กระดาษชำระ","category":"Sanitary","template_page":23,"template_rect_pt":[292,505,330,525],"target_pages":[23,24,25],"target_roi_pt":[140,230,470,540],"threshold":0.60},
       {"id":"SAN-TOWEL-RAIL","description":"ราวแขวนผ้า 0.60 ม.","category":"Sanitary","template_page":24,"template_rect_pt":[294,408,326,424],"target_pages":[23,24,25],"target_roi_pt":[140,230,470,540],"threshold":0.45,"line_len":12}
+    ]
+  },
+  "drawing_tag_counts": {
+    "pipe_tag_inventory_pages": [57, 58, 59, 60],
+    "items": [
+      {
+        "id":"SAN-FLOOR-DRAIN-2","description":"Floor Drain (FD) Dia. 2 นิ้ว","category":"Sanitary","token":"FD","confidence":0.97,
+        "page_specs":[
+          {"page":58,"bounds_pt":[60,60,1120,760]},
+          {"page":60,"bounds_pt":[40,40,650,790]}
+        ]
+      },
+      {
+        "id":"SAN-FCO-4","description":"Floor Cleanout (FCO) Dia. 4 นิ้ว","category":"Sanitary","token":"FCO","confidence":0.98,
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,790]}]
+      },
+      {
+        "id":"SAN-CO-2.5","description":"Cleanout (CO) Dia. 2 1/2 นิ้ว","category":"Sanitary","token":"CO","confidence":0.97,
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,790]}]
+      },
+      {
+        "id":"SAN-RFD-2.5","description":"Roof Floor Drain (RFD) Dia. 2 1/2 นิ้ว","category":"Sanitary","token":"RFD","confidence":0.98,
+        "page_specs":[{"page":59,"bounds_pt":[40,40,1120,760]}]
+      },
+      {
+        "id":"SAN-AVC-2","description":"Air Vent Cap (AVC) Dia. 2 นิ้ว","category":"Sanitary","token":"AVC","confidence":0.98,
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,790]}]
+      }
     ]
   },
   "electrical": {
