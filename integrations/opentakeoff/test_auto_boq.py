@@ -20,11 +20,12 @@ def main():
       'SAN-BOOSTER-PUMP','SAN-WATER-METER','SAN-FLOAT-VALVE',
       'SAN-WC-BOWL','SAN-LAVATORY','SAN-SHOWER-SET',
       'SAN-BIDET-SPRAY','SAN-PAPER-HOLDER','SAN-TOWEL-RAIL',
-      'SAN-FLOOR-DRAIN-2','SAN-FCO-4','SAN-CO-2.5','SAN-RFD-2.5','SAN-AVC-2',
+      'SAN-FCO-4','SAN-CO-2.5','SAN-RFD-2.5','SAN-AVC-2',
       'ELEC-DOWNLIGHT','ELEC-T8-LONG'
     }
     assert required <= set(by), sorted(by)
-    assert len(generated['rows'])==20, [(k,by[k]['quantity']) for k in sorted(by)]
+    assert 'SAN-FLOOR-DRAIN-2' not in by
+    assert len(generated['rows'])==19, [(k,by[k]['quantity']) for k in sorted(by)]
     assert by['ARCH-DOOR-D2']['quantity']==7
     assert by['ARCH-DOOR-D3']['quantity']==4
     assert by['ELEC-DOWNLIGHT']['quantity']==37
@@ -40,30 +41,29 @@ def main():
         assert by[item]['quantity']==3
         assert by[item]['source_pages']==[23,24,25]
         assert by[item]['method']=='raster:line-stripped CAD label sweep'
-    fitting_expected={
-      'SAN-FLOOR-DRAIN-2':5,
-      'SAN-FCO-4':2,
-      'SAN-CO-2.5':1,
-      'SAN-RFD-2.5':2,
-      'SAN-AVC-2':2,
-    }
+    fitting_expected={'SAN-FCO-4':2,'SAN-CO-2.5':1,'SAN-RFD-2.5':2,'SAN-AVC-2':2}
     for item,qty in fitting_expected.items():
         assert by[item]['quantity']==qty, (item, by[item])
         assert by[item]['method']=='text:positioned sanitary drawing tag'
         assert max(by[item]['source_pages'])<=60
+    fd=next(d for d in generated['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
+    assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY'
+    assert fd['detections']==4, fd
+    assert all(h['page']==60 for h in fd['hits'])
     assert 124 <= by['ARCH-ROOF-METAL']['quantity'] <= 132
     assert 43 <= by['ARCH-FASCIA']['quantity'] <= 47
     inventory=next(d for d in generated['diagnostics'] if d.get('detector')=='pipe_tag_inventory_only')
     assert inventory['status']=='DIAGNOSTIC_ONLY_NO_QUANTITY'
     assert inventory['pages']==[57,58,59,60]
     reference=json.loads(a.reference.read_text(encoding='utf-8'))
+    assert reference['known_withheld_outside_scored_subset'][0]['id']=='SAN-FLOOR-DRAIN-2'
     result=score(generated,reference)
-    assert result['reference_rows']==21
-    assert result['detected_reference_rows']==20
-    assert result['coverage_pct']>=95.23
+    assert result['reference_rows']==20
+    assert result['detected_reference_rows']==19
+    assert result['coverage_pct']>=95.0
     assert result['detected_rows_accuracy_pct']==100
     assert result['mean_absolute_error_pct']<0.15
     short=next(x for x in result['comparisons'] if x['id']=='ELEC-T8-SHORT')
     assert short['detected'] is False
-    print('AUTO_BOQ_TEST_PASS',json.dumps({'rows':len(generated['rows']),'coverage_pct':result['coverage_pct'],'mae_pct':result['mean_absolute_error_pct']}))
+    print('AUTO_BOQ_TEST_PASS',json.dumps({'rows':len(generated['rows']),'coverage_pct':result['coverage_pct'],'mae_pct':result['mean_absolute_error_pct'],'fd_diagnostic_hits':fd['detections']}))
 if __name__=='__main__': main()
