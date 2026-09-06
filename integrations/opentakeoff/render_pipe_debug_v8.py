@@ -27,6 +27,13 @@ def _block_json(block: tuple) -> dict:
     }
 
 
+def _word_json(word: tuple) -> dict:
+    return {
+        "text": str(word[4]),
+        "bbox_pt": [round(float(word[i]), 2) for i in range(4)],
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pdf", type=Path, required=True)
@@ -51,6 +58,7 @@ def main() -> None:
         outputs.append(str(path))
 
         blocks = page.get_text("blocks") or []
+        words = page.get_text("words") or []
         text = page.get_text("text") or ""
         interesting_lines = [
             line.strip() for line in text.splitlines()
@@ -63,21 +71,25 @@ def main() -> None:
             if matches or "ห้อง" in block_text:
                 room_blocks.append({**_block_json(block), "room_numbers": matches})
         schedule_blocks = []
+        schedule_words = []
         if sheet == "SN-07":
             for block in blocks:
                 x0, y0, x1, y1 = map(float, block[:4])
-                if x0 >= 360 and y0 >= 620:
+                if x0 >= 360 and y0 >= 400 and y1 <= 590:
                     schedule_blocks.append(_block_json(block))
+            # The table is located from vector content, not raster OCR. This broad
+            # crop intentionally captures headers, fixture codes, fractions and '-'.
+            for word in words:
+                x0, y0, x1, y1 = map(float, word[:4])
+                if x0 >= 440 and x1 <= 705 and y0 >= 400 and y1 <= 570:
+                    schedule_words.append(_word_json(word))
 
         token_words = []
-        for word in page.get_text("words") or []:
+        for word in words:
             token = str(word[4])
             upper = token.upper()
             if any(key in upper for key in ("WC", "LAV", "UR", "SINK", "FD", "CW", "SW", "RL", "AVC")) or "Ø" in token or "∅" in token:
-                token_words.append({
-                    "text": token,
-                    "bbox_pt": [round(float(word[i]), 2) for i in range(4)],
-                })
+                token_words.append(_word_json(word))
         text_probe.append({
             "page": page_no,
             "sheet": sheet,
@@ -86,6 +98,7 @@ def main() -> None:
             "room_blocks": room_blocks,
             "interesting_lines": interesting_lines,
             "schedule_blocks": schedule_blocks,
+            "schedule_words": schedule_words,
             "token_words": token_words,
         })
     doc.close()
@@ -95,6 +108,7 @@ def main() -> None:
         "pages": outputs,
         "text_probe": str(text_path),
         "room_blocks": {row["sheet"]: len(row["room_blocks"]) for row in text_probe},
+        "schedule_words": next((len(row["schedule_words"]) for row in text_probe if row["sheet"] == "SN-07"), 0),
         "source_page_max": profile["source_page_max"],
     })
 
