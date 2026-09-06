@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Any
 
 
 def build_pipe_release_candidate(
     reconciliation: dict[str, Any],
     vertical: dict[str, Any],
+    *,
+    roof_source_page: int | None = None,
 ) -> dict[str, Any]:
     """Combine validated horizontal + vertical pipe evidence without publishing.
 
@@ -92,7 +93,11 @@ def build_pipe_release_candidate(
         entry['vertical_length_m'] += float(row.get('vertical_length_m_candidate') or 0.0)
         if 57 not in entry['source_pages']:
             entry['source_pages'].append(57)
-        for source in row.get('sources') or []:
+        sources = list(row.get('sources') or [])
+        if roof_source_page is not None and any('A-06_ROOF_LEVEL' in str(source) for source in sources):
+            if int(roof_source_page) not in entry['source_pages']:
+                entry['source_pages'].append(int(roof_source_page))
+        for source in sources:
             if source not in entry['evidence_roles']:
                 entry['evidence_roles'].append(source)
 
