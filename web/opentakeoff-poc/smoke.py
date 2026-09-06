@@ -43,14 +43,21 @@ def main():
     for k,q in PIPE_EXPECTED.items():
         assert abs(by[k]['quantity']-q)<1e-6 and by[k]['unit']=='m' and by[k]['category']=='Sanitary',by[k]
         assert by[k]['evidence']['release_gate_status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',by[k]
+    assert set(by['SAN-PIPE-CW-DN15']['source_pages'])=={57,58},by['SAN-PIPE-CW-DN15']
     assert 13 in by['SAN-PIPE-V-DN50']['source_pages'] and 57 in by['SAN-PIPE-V-DN50']['source_pages'],by['SAN-PIPE-V-DN50']
     assert abs(sum(by[k]['quantity'] for k in PIPE_EXPECTED)-92.5)<1e-6
     fd=next(d for d in auto['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
     assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY' and fd['detections']==4
-    pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_18')
+    pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_19')
     assert pipe['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',pipe
     assert pipe['pipe_release_candidate']['release_blocker_count']==0,pipe
     assert pipe['vertical_level_bounded_reconciliation']['valve_leader_promoted_count']==1,pipe
+    corroboration=pipe['equipment_valve_corroboration']
+    assert corroboration['status']=='CORROBORATED_EQUIPMENT_VALVE_CLASS',corroboration
+    assert corroboration['source_pages']==[57,58] and corroboration['diameter_key']=='DN15',corroboration
+    assert corroboration['primary_plan_label']=='FLOAT VALVE Ø1/2"',corroboration
+    assert corroboration['schematic_label']=='BALL VALVE Ø1/2"',corroboration
+    assert corroboration['nearby_main_label']=='Ø3/4"CW' and corroboration['nearby_main_role']=='AUDIT_ONLY_NOT_BRANCH_SIZING_EVIDENCE',corroboration
     handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/'; evidence={'checks':[],'page_errors':[]}
     with sync_playwright() as p:
       browser=p.chromium.launch(headless=True);ctx=browser.new_context(viewport={'width':1512,'height':982},accept_downloads=True);page=ctx.new_page();page.on('pageerror',lambda e:evidence['page_errors'].append(str(e)))
@@ -62,7 +69,7 @@ def main():
             assert needle in text
         hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and all(p in pages for p in (13,23,24,25,57,58,59,60))
         assert page.locator('#withheld-list .withheld').count()>=6
-        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders 27 rows: 19 scored reference-subset rows plus eight validated sanitary pipe rows totaling 92.500 m; audit subset remains 95% coverage and 100% detected-row accuracy; no evidence link exceeds page 71')
+        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders 27 rows: 19 scored reference-subset rows plus eight validated sanitary pipe rows totaling 92.500 m; tank-side DN15 is independently corroborated by SN-04 BALL VALVE and SN-05 FLOAT VALVE half-inch evidence; audit subset remains 95% coverage and 100% detected-row accuracy; no evidence link exceeds page 71')
         page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000)
         fit=engine.locator('button').filter(has_text=re.compile(r'^\s*fit\s*$',re.I))
         if fit.count() and fit.first.is_visible():fit.first.click()
