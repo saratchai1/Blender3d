@@ -1,7 +1,7 @@
 name: Automatic BOQ benchmark
 on:
   push:
-    branches: [feature/automatic-boq-poc]
+    branches: ['feature/automatic-boq-*']
     paths:
       - 'integrations/opentakeoff/**'
       - 'web/opentakeoff-poc/**'
@@ -55,11 +55,12 @@ jobs:
           assert g['source_policy']['reference_used_for_generation'] is False
           assert g['source_policy']['drawing_pages']==[1,71]
           assert all(max(r['source_pages']) <= 71 for r in g['rows'])
-          assert len(g['rows']) == 6
+          assert len(g['rows']) == 9
           assert b['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ'
-          assert b['reference_rows']==7 and b['detected_reference_rows']==6
+          assert b['reference_rows']==10 and b['detected_reference_rows']==9
+          assert b['coverage_pct']>=90
           assert b['detected_rows_accuracy_pct']==100
-          assert b['mean_absolute_error_pct'] < 1
+          assert b['mean_absolute_error_pct'] < 0.5
           print('AUTO_BOQ_CONTRACT_PASS', {'rows':len(g['rows']),'coverage':b['coverage_pct'],'mae':b['mean_absolute_error_pct']})
           PY
       - name: Retain generated quantities and score evidence
