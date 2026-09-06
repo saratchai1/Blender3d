@@ -55,16 +55,45 @@
   },
   "sanitary_pipe_network": {
     "page_specs": [
-      {"page":57},
-      {"page":58},
-      {"page":59},
-      {"page":60}
+      {
+        "page":57,
+        "sheet":"SN-04",
+        "view_role":"vertical_schematic",
+        "scale_ratio":50,
+        "scale_evidence":"title block states 1:50",
+        "contribution_policy":"DIAGNOSTIC_VERTICAL_ONLY_DO_NOT_ADD_WHOLE_VIEW"
+      },
+      {
+        "page":58,
+        "sheet":"SN-05",
+        "view_role":"ground_floor_plan",
+        "scale_ratio":100,
+        "scale_evidence":"title block and drawing caption state 1:100",
+        "contribution_policy":"PRIMARY_PLAN_HORIZONTAL"
+      },
+      {
+        "page":59,
+        "sheet":"SN-06",
+        "view_role":"upper_floor_plan",
+        "scale_ratio":100,
+        "scale_evidence":"title block and drawing caption state 1:100",
+        "contribution_policy":"PRIMARY_PLAN_HORIZONTAL"
+      },
+      {
+        "page":60,
+        "sheet":"SN-07",
+        "view_role":"enlarged_bathroom_details",
+        "scale_ratio":50,
+        "scale_evidence":"all three enlarged bathroom plans state 1:50",
+        "contribution_policy":"DETAIL_OVERLAY_DO_NOT_ADD_TO_PRIMARY_PLANS"
+      }
     ],
     "min_segment_pt": 3.0,
     "max_stroke_width_pt": 3.0,
     "endpoint_snap_pt": 1.5,
     "tag_snap_max_pt": 30.0,
-    "publication": "diagnostic-only until drawing-scale and component attribution are validated"
+    "publication": "diagnostic-only until view overlap, pipe-class attribution and vertical/horizontal reconciliation are validated",
+    "non_additive_rule": "SN-04 vertical schematic, SN-05/SN-06 plans and SN-07 enlarged details overlap; whole-view lengths must never be summed across these sources"
   },
   "electrical": {
     "legend_page": 64,
