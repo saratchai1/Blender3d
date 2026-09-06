@@ -29,27 +29,25 @@
     "pipe_tag_inventory_pages": [57, 58, 59, 60],
     "items": [
       {
-        "id":"SAN-FLOOR-DRAIN-2","description":"Floor Drain (FD) Dia. 2 นิ้ว","category":"Sanitary","token":"FD","confidence":0.97,
-        "page_specs":[
-          {"page":58,"bounds_pt":[60,60,1120,760]},
-          {"page":60,"bounds_pt":[40,40,650,790]}
-        ]
-      },
-      {
         "id":"SAN-FCO-4","description":"Floor Cleanout (FCO) Dia. 4 นิ้ว","category":"Sanitary","token":"FCO","confidence":0.98,
-        "page_specs":[{"page":60,"bounds_pt":[40,40,650,790]}]
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,1100]}]
       },
       {
         "id":"SAN-CO-2.5","description":"Cleanout (CO) Dia. 2 1/2 นิ้ว","category":"Sanitary","token":"CO","confidence":0.97,
-        "page_specs":[{"page":60,"bounds_pt":[40,40,650,790]}]
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,1100]}]
       },
       {
         "id":"SAN-RFD-2.5","description":"Roof Floor Drain (RFD) Dia. 2 1/2 นิ้ว","category":"Sanitary","token":"RFD","confidence":0.98,
-        "page_specs":[{"page":59,"bounds_pt":[40,40,1120,760]}]
+        "page_specs":[{"page":59,"bounds_pt":[40,40,1120,820]}]
       },
       {
         "id":"SAN-AVC-2","description":"Air Vent Cap (AVC) Dia. 2 นิ้ว","category":"Sanitary","token":"AVC","confidence":0.98,
-        "page_specs":[{"page":60,"bounds_pt":[40,40,650,790]}]
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,1100]}]
+      }
+    ],
+    "diagnostic_only": [
+      {
+        "id":"SAN-FLOOR-DRAIN-2","token":"FD","reason":"four physical Ø2\"FD tags are readable on SN-07, but BOQ reference is five; do not count the fixture schedule row as a physical drain"
       }
     ]
   },
