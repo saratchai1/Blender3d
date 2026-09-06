@@ -1,12 +1,8 @@
 {
-  "id": "dpt-family4-vector-v5",
-  "version": 5,
+  "id": "dpt-family4-vector-v6",
+  "version": 6,
   "source_page_max": 71,
-  "roof": {
-    "page": 13,
-    "scale_ratio": 100,
-    "slope_deg": 6
-  },
+  "roof": {"page": 13, "scale_ratio": 100, "slope_deg": 6},
   "doors": {
     "pages": [11, 12],
     "scale_ratio": 100,
@@ -15,39 +11,18 @@
   "fixture_templates": {
     "render_scale": 1.5,
     "templates": [
-      {
-        "id": "SAN-WC-BOWL",
-        "description": "โถสุขภัณฑ์ WC.1",
-        "category": "Sanitary",
-        "template_page": 23,
-        "template_rect_pt": [287.5, 450.0, 318.333, 465.833],
-        "target_pages": [23, 24, 25],
-        "target_roi_pt": [90, 170, 520, 590],
-        "threshold": 0.70,
-        "rotate_90": false
-      },
-      {
-        "id": "SAN-LAVATORY",
-        "description": "อ่างล้างหน้า",
-        "category": "Sanitary",
-        "template_page": 23,
-        "template_rect_pt": [250, 320, 282, 345],
-        "target_pages": [23, 24, 25],
-        "target_roi_pt": [90, 170, 520, 590],
-        "threshold": 0.55,
-        "rotate_90": true
-      },
-      {
-        "id": "SAN-SHOWER-SET",
-        "description": "ฝักบัวอาบน้ำสายอ่อน",
-        "category": "Sanitary",
-        "template_page": 24,
-        "template_rect_pt": [180, 245, 224, 285],
-        "target_pages": [24, 25],
-        "target_roi_pt": [120, 200, 450, 520],
-        "threshold": 0.50,
-        "rotate_90": false
-      }
+      {"id":"SAN-WC-BOWL","description":"โถสุขภัณฑ์ WC.1","category":"Sanitary","template_page":23,"template_rect_pt":[287.5,450.0,318.333,465.833],"target_pages":[23,24,25],"target_roi_pt":[90,170,520,590],"threshold":0.70,"rotate_90":false},
+      {"id":"SAN-LAVATORY","description":"อ่างล้างหน้า","category":"Sanitary","template_page":23,"template_rect_pt":[250,320,282,345],"target_pages":[23,24,25],"target_roi_pt":[90,170,520,590],"threshold":0.55,"rotate_90":true},
+      {"id":"SAN-SHOWER-SET","description":"ฝักบัวอาบน้ำสายอ่อน","category":"Sanitary","template_page":24,"template_rect_pt":[180,245,224,285],"target_pages":[24,25],"target_roi_pt":[120,200,450,520],"threshold":0.50,"rotate_90":false}
+    ]
+  },
+  "label_templates": {
+    "render_scale": 2.0,
+    "line_len": 16,
+    "templates": [
+      {"id":"SAN-BIDET-SPRAY","description":"ฝักบัวชำระพร้อมสาย","category":"Sanitary","template_page":23,"template_rect_pt":[270,484,310,501],"target_pages":[23,24,25],"target_roi_pt":[140,230,470,540],"threshold":0.60},
+      {"id":"SAN-PAPER-HOLDER","description":"ที่ใส่กระดาษชำระ","category":"Sanitary","template_page":23,"template_rect_pt":[292,505,330,525],"target_pages":[23,24,25],"target_roi_pt":[140,230,470,540],"threshold":0.60},
+      {"id":"SAN-TOWEL-RAIL","description":"ราวแขวนผ้า 0.60 ม.","category":"Sanitary","template_page":24,"template_rect_pt":[294,408,326,424],"target_pages":[23,24,25],"target_roi_pt":[140,230,470,540],"threshold":0.45,"line_len":12}
     ]
   },
   "electrical": {
@@ -55,32 +30,16 @@
     "lighting_pages": [66, 67],
     "render_scale": 1.2,
     "symbol_templates": [
-      {
-        "id": "ELEC-DOWNLIGHT",
-        "description": "โคม Downlight",
-        "template_name": "downlight legend symbol",
-        "template_rect_pt": [524, 218, 540, 233],
-        "target_roi_pt": [420, 240, 820, 650],
-        "threshold": 0.62,
-        "rotate_90": false
-      },
-      {
-        "id": "ELEC-T8-LONG",
-        "description": "โคมฟลูออเรสเซนต์ / LED แบบยาว",
-        "template_name": "long linear light legend symbol",
-        "template_rect_pt": [510, 356, 553, 368],
-        "target_roi_pt": [420, 240, 820, 650],
-        "threshold": 0.84,
-        "rotate_90": false
-      }
+      {"id":"ELEC-DOWNLIGHT","description":"โคม Downlight","template_name":"downlight legend symbol","template_rect_pt":[524,218,540,233],"target_roi_pt":[420,240,820,650],"threshold":0.62,"rotate_90":false},
+      {"id":"ELEC-T8-LONG","description":"โคมฟลูออเรสเซนต์ / LED แบบยาว","template_name":"long linear light legend symbol","template_rect_pt":[510,356,553,368],"target_roi_pt":[420,240,820,650],"threshold":0.84,"rotate_90":false}
     ]
   },
   "sanitary": {
     "page": 58,
     "label_counts": [
-      {"id": "SAN-BOOSTER-PUMP", "description": "ชุด Booster Pump", "tokens": ["BP"], "confidence": 0.97},
-      {"id": "SAN-WATER-METER", "description": "ชุดมาตรวัดน้ำ", "tokens": ["M"], "confidence": 0.94},
-      {"id": "SAN-FLOAT-VALVE", "description": "Float Valve 1/2 นิ้ว", "tokens": ["FLOAT"], "confidence": 0.93}
+      {"id":"SAN-BOOSTER-PUMP","description":"ชุด Booster Pump","tokens":["BP"],"confidence":0.97},
+      {"id":"SAN-WATER-METER","description":"ชุดมาตรวัดน้ำ","tokens":["M"],"confidence":0.94},
+      {"id":"SAN-FLOAT-VALVE","description":"Float Valve 1/2 นิ้ว","tokens":["FLOAT"],"confidence":0.93}
     ]
   }
 }
