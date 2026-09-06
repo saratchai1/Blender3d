@@ -1,4 +1,4 @@
-name: Deploy Blender3d, cinematic film and OpenTakeoff to GitHub Pages
+name: Deploy Blender3d, cinematic film and Automatic BOQ to GitHub Pages
 on:
   push:
     branches: [main]
@@ -20,7 +20,7 @@ jobs:
   build:
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,9 +40,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned Automatic BOQ PDF geometry dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
       - name: Fetch verified real Thai BOQ benchmark PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
-      - name: Build and test the pinned real OpenTakeoff engine
+      - name: Build real OpenTakeoff plus leak-proof Automatic BOQ
         run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff --demo-pdf .generated/samples/family4.pdf
       - name: Install browser QA runtime
         run: |
@@ -50,13 +54,13 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Check existing presentation, WebGL and IFC downloads
         run: python web/office_10000sqm/tools/pages_smoke.py --root .generated/pages
-      - name: Check real Thai PDF benchmark, native upload and honest generated BOQ separation
+      - name: Check Automatic BOQ, reference fence, native PDF review and no double counting
         run: python web/opentakeoff-poc/smoke.py --root .generated/pages
       - name: Check actual moving cinematic cameras, six scenes, controls and mobile WebGL
         run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
       - name: Check the completed offline MP4 player when present
         run: python models/office_10000sqm/film/smoke_player.py --root .generated/pages
-      - name: Retain browser evidence
+      - name: Retain browser and Automatic BOQ evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -66,11 +70,14 @@ jobs:
             .generated/takeoff-qa/
             .generated/cinematic-qa/
             .generated/film-player-qa/
+            .generated/pages/takeoff/auto-boq.json
+            .generated/pages/takeoff/auto-boq-benchmark.json
+            .generated/pages/takeoff/build-info.json
           if-no-files-found: warn
-      - name: Retain portable POC build
+      - name: Retain portable Automatic BOQ POC build
         uses: actions/upload-artifact@v4
         with:
-          name: opentakeoff-poc-static
+          name: opentakeoff-automatic-boq-poc-static
           path: .generated/pages/takeoff/
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -104,7 +111,7 @@ jobs:
   verify-live:
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -114,11 +121,14 @@ jobs:
         run: |
           pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Verify public HTTPS HTML and actual animated WebGL after deployment
+      - name: Verify public Automatic BOQ and leak-proof evidence JSON
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
-        run: |
-          python web/office_10000sqm/cinematic/smoke.py --url "${PAGE_URL%/}/cinematic/" --output .generated/cinematic-live-qa
+        run: python web/opentakeoff-poc/live_smoke.py --url "${PAGE_URL%/}/takeoff/" --output .generated/takeoff-live-qa
+      - name: Verify public HTTPS animated WebGL remains intact
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: python web/office_10000sqm/cinematic/smoke.py --url "${PAGE_URL%/}/cinematic/" --output .generated/cinematic-live-qa
       - name: Verify live offline MP4 playback when the finished movie exists
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
@@ -126,12 +136,13 @@ jobs:
           if [ -f web/office_10000sqm/film/SOLSTICE-14-Architectural-Film.mp4 ]; then
             python models/office_10000sqm/film/smoke_player.py --url "${PAGE_URL%/}/office_10000sqm/film/" --output .generated/film-live-qa
           fi
-      - name: Retain live site validation evidence
+      - name: Retain live validation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cinematic-live-qa
+          name: automatic-boq-and-cinematic-live-qa
           path: |
+            .generated/takeoff-live-qa/
             .generated/cinematic-live-qa/
             .generated/film-live-qa/
           if-no-files-found: warn
