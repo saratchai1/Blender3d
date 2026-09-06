@@ -1,8 +1,12 @@
 {
-  "id": "dpt-family4-vector-v2",
-  "version": 2,
+  "id": "dpt-family4-vector-v3",
+  "version": 3,
   "source_page_max": 71,
-  "roof": {"page": 13, "scale_ratio": 100, "slope_deg": 6},
+  "roof": {
+    "page": 13,
+    "scale_ratio": 100,
+    "slope_deg": 6
+  },
   "doors": {
     "pages": [11, 12],
     "scale_ratio": 100,
@@ -31,6 +35,14 @@
         "threshold": 0.84,
         "rotate_90": false
       }
+    ]
+  },
+  "sanitary": {
+    "page": 58,
+    "label_counts": [
+      {"id": "SAN-BOOSTER-PUMP", "description": "ชุด Booster Pump", "tokens": ["BP"], "confidence": 0.97},
+      {"id": "SAN-WATER-METER", "description": "ชุดมาตรวัดน้ำ", "tokens": ["M"], "confidence": 0.94},
+      {"id": "SAN-FLOAT-VALVE", "description": "Float Valve 1/2 นิ้ว", "tokens": ["FLOAT"], "confidence": 0.93}
     ]
   }
 }
