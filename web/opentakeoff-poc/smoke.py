@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 
 EXPECTED_SHA256='f6db0f85e12113b31a545a5e881a75173938e011908ba1a4491016f77b302175'; EXPECTED_SIZE=13_058_241
 PIPE_EXPECTED={
-    'SAN-PIPE-CW-DN15':7.296,
+    'SAN-PIPE-CW-DN15':8.524,
     'SAN-PIPE-CW-DN20':26.112,
     'SAN-PIPE-RL-DN65':3.57,
     'SAN-PIPE-S-DN100':2.27,
@@ -44,12 +44,13 @@ def main():
         assert abs(by[k]['quantity']-q)<1e-6 and by[k]['unit']=='m' and by[k]['category']=='Sanitary',by[k]
         assert by[k]['evidence']['release_gate_status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',by[k]
     assert 13 in by['SAN-PIPE-V-DN50']['source_pages'] and 57 in by['SAN-PIPE-V-DN50']['source_pages'],by['SAN-PIPE-V-DN50']
-    assert abs(sum(by[k]['quantity'] for k in PIPE_EXPECTED)-91.272)<1e-6
+    assert abs(sum(by[k]['quantity'] for k in PIPE_EXPECTED)-92.5)<1e-6
     fd=next(d for d in auto['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
     assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY' and fd['detections']==4
-    pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_17')
+    pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_18')
     assert pipe['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',pipe
     assert pipe['pipe_release_candidate']['release_blocker_count']==0,pipe
+    assert pipe['vertical_level_bounded_reconciliation']['valve_leader_promoted_count']==1,pipe
     handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/'; evidence={'checks':[],'page_errors':[]}
     with sync_playwright() as p:
       browser=p.chromium.launch(headless=True);ctx=browser.new_context(viewport={'width':1512,'height':982},accept_downloads=True);page=ctx.new_page();page.on('pageerror',lambda e:evidence['page_errors'].append(str(e)))
@@ -57,11 +58,11 @@ def main():
         page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='27'")
         assert page.locator('#auto-rows-body tr').count()==27; assert float(page.locator('#auto-coverage').inner_text())>=95.0; assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<0.15
         text=page.locator('#auto-rows-body').inner_text(); assert 'หลังคาเหล็กรีดลอน' in text and '128.349' in text and '37' in text
-        for needle in ('Booster Pump','มาตรวัดน้ำ','Float Valve','WC.1','อ่างล้างหน้า','ฝักบัวอาบน้ำสายอ่อน','ฝักบัวชำระพร้อมสาย','ที่ใส่กระดาษชำระ','ราวแขวนผ้า','Floor Cleanout','Cleanout','Roof Floor Drain','Air Vent Cap','Cold Water DN20','Vent DN50','Waste DN65'):
+        for needle in ('Booster Pump','มาตรวัดน้ำ','Float Valve','WC.1','อ่างล้างหน้า','ฝักบัวอาบน้ำสายอ่อน','ฝักบัวชำระพร้อมสาย','ที่ใส่กระดาษชำระ','ราวแขวนผ้า','Floor Cleanout','Cleanout','Roof Floor Drain','Air Vent Cap','Cold Water DN15','Cold Water DN20','Vent DN50','Waste DN65'):
             assert needle in text
         hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and all(p in pages for p in (13,23,24,25,57,58,59,60))
         assert page.locator('#withheld-list .withheld').count()>=6
-        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders 27 rows: 19 scored reference-subset rows plus eight validated sanitary pipe rows totaling 91.272 m; audit subset remains 95% coverage and 100% detected-row accuracy; no evidence link exceeds page 71')
+        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders 27 rows: 19 scored reference-subset rows plus eight validated sanitary pipe rows totaling 92.500 m; audit subset remains 95% coverage and 100% detected-row accuracy; no evidence link exceeds page 71')
         page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000)
         fit=engine.locator('button').filter(has_text=re.compile(r'^\s*fit\s*$',re.I))
         if fit.count() and fit.first.is_visible():fit.first.click()
