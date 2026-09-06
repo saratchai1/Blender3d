@@ -44,8 +44,11 @@ def main()->None:
     demo_dir=out/'demo'; demo_dir.mkdir(parents=True,exist_ok=True); shutil.copy2(demo,demo_dir/'family4.pdf')
 
     # AUTOMATIC BOQ: generation is completed before the reference scorer reads
-    # any official BOQ quantity. The v7 generator itself has no reference dependency.
-    auto=ROOT/'integrations/opentakeoff/auto_boq_v7.py'; profile=ROOT/'integrations/opentakeoff/profiles/family4.json'; reference=ROOT/'integrations/opentakeoff/benchmark_reference.json'; generated=out/'auto-boq.json'; benchmark=out/'auto-boq-benchmark.json'
+    # any official BOQ quantity. The v8 generator itself has no reference dependency.
+    # v8 adds source-page sanitary pipe-network diagnostics but intentionally does
+    # not publish pipe-length BOQ rows until the graph attribution is validated.
+    auto=ROOT/'integrations/opentakeoff/auto_boq_v8.py'; profile=ROOT/'integrations/opentakeoff/profiles/family4.json'; reference=ROOT/'integrations/opentakeoff/benchmark_reference.json'; generated=out/'auto-boq.json'; benchmark=out/'auto-boq-benchmark.json'
+    run(sys.executable,str(ROOT/'integrations/opentakeoff/test_auto_boq_v8.py'),cwd=ROOT/'integrations/opentakeoff')
     run(sys.executable,str(auto),'--pdf',str(demo),'--profile',str(profile),'--output',str(generated),cwd=ROOT)
     run(sys.executable,str(ROOT/'integrations/opentakeoff/test_auto_boq.py'),'--pdf',str(demo),'--profile',str(profile),'--reference',str(reference),cwd=ROOT)
     run(sys.executable,str(ROOT/'integrations/opentakeoff/score_auto_boq.py'),'--generated',str(generated),'--reference',str(reference),'--output',str(benchmark),cwd=ROOT)
@@ -60,6 +63,15 @@ def main()->None:
     score=json.loads(benchmark.read_text())
     generated_data=json.loads(generated.read_text())
     fd_diag=next((d for d in generated_data.get('diagnostics',[]) if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2'),None)
-    (out/'build-info.json').write_text(json.dumps({**PIN,'built_at':datetime.now(timezone.utc).isoformat(),'source_commit':os.environ.get('GITHUB_SHA','local'),'upstream_tests':'passed','adapter_tests':'passed','automatic_boq':{'status':'passed','rows':score['detected_reference_rows'],'audit_subset_coverage_pct':score['coverage_pct'],'audit_subset_detected_accuracy_pct':score['detected_rows_accuracy_pct'],'audit_subset_mae_pct':score['mean_absolute_error_pct'],'known_withheld':{'SAN-FLOOR-DRAIN-2':fd_diag.get('detections') if fd_diag else None}},'demo_pdf':{'name':'family4.pdf','bytes':DEMO_SIZE,'sha256':DEMO_SHA256,'source_page':'https://townsquare.dpt.go.th/arch/plan/399'},'limitations':['automatic coverage is a small validated subset, not full BOQ','floor drain is withheld: four explicit drawing tags found versus five BOQ reference; schedule row is not counted as a physical drain','new user PDFs do not yet run the Python detector in GitHub Pages','no cloud persistence','preliminary quantities require review']},indent=2))
+    pipe_diag=next((d for d in generated_data.get('diagnostics',[]) if d.get('detector')=='sanitary_pipe_network_v8'),None)
+    pipe_pages=pipe_diag.get('pages',[]) if pipe_diag else []
+    pipe_summary={
+        'status':pipe_diag.get('status') if pipe_diag else None,
+        'pages':[p.get('page') for p in pipe_pages],
+        'tags':sum(int(p.get('tag_count',0)) for p in pipe_pages),
+        'candidate_components':sum(len(p.get('candidate_components',[])) for p in pipe_pages),
+        'published_pipe_rows':0,
+    }
+    (out/'build-info.json').write_text(json.dumps({**PIN,'built_at':datetime.now(timezone.utc).isoformat(),'source_commit':os.environ.get('GITHUB_SHA','local'),'upstream_tests':'passed','adapter_tests':'passed','automatic_boq':{'status':'passed','rows':score['detected_reference_rows'],'audit_subset_coverage_pct':score['coverage_pct'],'audit_subset_detected_accuracy_pct':score['detected_rows_accuracy_pct'],'audit_subset_mae_pct':score['mean_absolute_error_pct'],'known_withheld':{'SAN-FLOOR-DRAIN-2':fd_diag.get('detections') if fd_diag else None},'pipe_network_diagnostic':pipe_summary},'demo_pdf':{'name':'family4.pdf','bytes':DEMO_SIZE,'sha256':DEMO_SHA256,'source_page':'https://townsquare.dpt.go.th/arch/plan/399'},'limitations':['automatic coverage is a small validated subset, not full BOQ','floor drain is withheld: four explicit drawing tags found versus five BOQ reference; schedule row is not counted as a physical drain','v8 sanitary pipe network is diagnostic-only; no pipe length is published until graph attribution and sheet scale are validated','new user PDFs do not yet run the Python detector in GitHub Pages','no cloud persistence','preliminary quantities require review']},indent=2))
     print('POC_BUILD_OK',out)
 if __name__=='__main__': main()
