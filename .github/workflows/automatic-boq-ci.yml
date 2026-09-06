@@ -49,6 +49,12 @@ jobs:
           --pdf .generated/samples/family4.pdf
           --profile integrations/opentakeoff/profiles/family4.json
           --output .generated/auto-boq-v8-1.json
+      - name: Probe same-layer component gaps before enabling bridges
+        run: >-
+          python integrations/opentakeoff/probe_pipe_gaps_v8.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/pipe-gap-probe-v8.json
       - name: Re-run leak fence and existing detector regression tests
         run: >-
           python integrations/opentakeoff/test_auto_boq.py
@@ -139,6 +145,7 @@ jobs:
           path: |
             .generated/auto-boq.json
             .generated/auto-boq-v8-1.json
+            .generated/pipe-gap-probe-v8.json
             .generated/auto-boq-benchmark.json
           if-no-files-found: warn
           retention-days: 30
