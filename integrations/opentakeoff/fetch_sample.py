@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Fetch the byte-identical public Family 4 plan used as the real takeoff benchmark."""
+"""Fetch the byte-identical public Family 4 plan used as the real takeoff benchmark.
+
+Every source is treated as untrusted until byte size, PDF header and SHA-256 all
+match the pinned benchmark. The deployed GitHub Pages copy is a continuity
+mirror of the same verified public DPT document, useful when the municipal
+origin rejects automated clients.
+"""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -11,6 +17,7 @@ from pathlib import Path
 EXPECTED_SHA256 = "f6db0f85e12113b31a545a5e881a75173938e011908ba1a4491016f77b302175"
 EXPECTED_SIZE = 13_058_241
 DEFAULT_SOURCES = [
+    "https://saratchai1.github.io/Blender3d/takeoff/demo/family4.pdf",
     "https://www.kongkhak.go.th/web/bab/family4.pdf",
 ]
 
@@ -33,13 +40,15 @@ def valid(path: Path) -> bool:
 
 
 def fetch(url: str, dest: Path) -> None:
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 Blender3d-OpenTakeoff-POC/1.0",
-            "Accept": "application/pdf,*/*;q=0.8",
-        },
-    )
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36 Blender3d-OpenTakeoff-POC/1.0",
+        "Accept": "application/pdf,application/octet-stream;q=0.9,*/*;q=0.8",
+        "Accept-Language": "th-TH,th;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+    }
+    if "kongkhak.go.th" in url:
+        headers["Referer"] = "https://www.kongkhak.go.th/"
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=90) as response, dest.open("wb") as out:
         while True:
             chunk = response.read(1024 * 1024)
