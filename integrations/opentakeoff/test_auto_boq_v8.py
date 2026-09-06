@@ -43,13 +43,14 @@ def main() -> None:
     assert analysis["segment_count"] == 4, analysis
     assert analysis["component_count"] == 2, analysis
     assert analysis["tag_count"] >= 1, analysis
-    candidates = [row for row in analysis["candidate_components"] if row["status"] == "UNAMBIGUOUS_TAG_CLASS"]
+    candidates = [row for row in analysis["candidate_components"] if row["status"] == "TAG_CLASS_SINGLE_NEAREST_VECTOR_CANDIDATE"]
     assert candidates, analysis
     candidate = candidates[0]
     assert candidate["classes"] == [{"system": "W", "diameter_in": 2.0}], candidate
     assert candidate["segment_count"] == 3, candidate
+    assert candidate["publication_status"] == "WITHHELD_DIAGNOSTIC_ONLY"
     expected_m = 400 / 72 * 0.0254 * 100
-    assert math.isclose(candidate["length_m"], round(expected_m, 3), abs_tol=1e-9), candidate
+    assert math.isclose(candidate["length_m_candidate"], round(expected_m, 3), abs_tol=1e-9), candidate
 
     # Thai CAD source uses both explicit and run-together mixed fractions.
     assert v8.parse_inches("2-1/2") == 2.5
@@ -61,12 +62,12 @@ def main() -> None:
 
     doc, page = make_page(multi_scale=True)
     analysis = v8.analyze_pipe_page(page, 2)
-    assert analysis["scale_candidates"] == [100, 20], analysis["scale_candidates"]
+    assert analysis["scale_candidates_from_extractable_english_text"] == [100, 20], analysis
     candidate = analysis["candidate_components"][0]
     assert candidate["length_status"] == "WITHHELD_SCALE_AMBIGUOUS", candidate
-    assert "length_m" not in candidate
+    assert "length_m_candidate" not in candidate
     doc.close()
-    print("AUTO_BOQ_V8_TEST_PASS", {"topology": "T connected / X separate", "scale_guard": "ambiguous withheld", "mixed_fraction": "Thai CAD forms parsed"})
+    print("AUTO_BOQ_V8_TEST_PASS", {"topology": "T connected / X separate", "scale_guard": "ambiguous withheld", "mixed_fraction": "Thai CAD forms parsed", "publication": "diagnostic-only"})
 
 
 if __name__ == "__main__":
