@@ -1,0 +1,17 @@
+{
+  "schema": "blender3d.auto_boq.reference.v1",
+  "document": "family4.pdf",
+  "reference_only": true,
+  "generation_forbidden": true,
+  "reference_page_range": [72, 95],
+  "scope_note": "Small audit subset from the official BOQ. This is not the full BOQ and must never be imported by auto_boq.py.",
+  "items": [
+    {"id":"ARCH-ROOF-METAL","quantity":129,"unit":"m²"},
+    {"id":"ARCH-FASCIA","quantity":45,"unit":"m"},
+    {"id":"ARCH-DOOR-D2","quantity":7,"unit":"ea"},
+    {"id":"ARCH-DOOR-D3","quantity":4,"unit":"ea"},
+    {"id":"ELEC-DOWNLIGHT","quantity":37,"unit":"ea"},
+    {"id":"ELEC-T8-LONG","quantity":1,"unit":"ea"},
+    {"id":"ELEC-T8-SHORT","quantity":2,"unit":"ea","expected_detector_status":"WITHHELD"}
+  ]
+}
