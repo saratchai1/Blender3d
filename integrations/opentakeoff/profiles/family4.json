@@ -1,6 +1,6 @@
 {
-  "id": "dpt-family4-vector-v3",
-  "version": 3,
+  "id": "dpt-family4-vector-v4",
+  "version": 4,
   "source_page_max": 71,
   "roof": {
     "page": 13,
@@ -11,6 +11,22 @@
     "pages": [11, 12],
     "scale_ratio": 100,
     "type_by_nominal_width_m": {"0.80": "D2", "0.70": "D3"}
+  },
+  "fixture_templates": {
+    "render_scale": 1.5,
+    "templates": [
+      {
+        "id": "SAN-WC-BOWL",
+        "description": "โถสุขภัณฑ์ WC.1",
+        "category": "Sanitary",
+        "template_page": 23,
+        "template_rect_pt": [287.5, 450.0, 318.333, 465.833],
+        "target_pages": [23, 24, 25],
+        "target_roi_pt": [90, 170, 520, 590],
+        "threshold": 0.70,
+        "rotate_90": false
+      }
+    ]
   },
   "electrical": {
     "legend_page": 64,
