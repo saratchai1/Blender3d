@@ -16,12 +16,12 @@ def main():
         try:
             res=page.goto(url,wait_until='domcontentloaded',timeout=60000); assert res and res.status==200
             page.locator('#auto-rows-body tr').first.wait_for(timeout=30000)
-            page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='10'",timeout=30000)
-            assert page.locator('#auto-rows-body tr').count()==10
-            assert float(page.locator('#auto-coverage').inner_text())>=90.9
+            page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='12'",timeout=30000)
+            assert page.locator('#auto-rows-body tr').count()==12
+            assert float(page.locator('#auto-coverage').inner_text())>=92.3
             assert page.locator('#auto-accuracy').inner_text()=='100'
             assert float(page.locator('#auto-mae').inner_text())<0.5
-            text=page.locator('#auto-rows-body').inner_text(); assert 'Booster Pump' in text and 'มาตรวัดน้ำ' in text and 'Float Valve' in text and 'WC.1' in text
+            text=page.locator('#auto-rows-body').inner_text(); assert 'Booster Pump' in text and 'มาตรวัดน้ำ' in text and 'Float Valve' in text and 'WC.1' in text and 'อ่างล้างหน้า' in text and 'ฝักบัว' in text
             hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))')
             pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]
             assert pages and max(pages)<=71 and 58 in pages and all(p in pages for p in (23,24,25))
@@ -29,12 +29,14 @@ def main():
             assert data[0]==200 and data[2]==200
             auto,bench=data[1],data[3]
             assert auto['source_policy']['reference_used_for_generation'] is False
-            assert len(auto['rows'])==10 and all(max(r['source_pages'])<=71 for r in auto['rows'])
-            by={r['id']:r for r in auto['rows']}; assert by['SAN-BOOSTER-PUMP']['quantity']==1 and by['SAN-WATER-METER']['quantity']==1 and by['SAN-FLOAT-VALVE']['quantity']==1 and by['SAN-WC-BOWL']['quantity']==3
+            assert len(auto['rows'])==12 and all(max(r['source_pages'])<=71 for r in auto['rows'])
+            by={r['id']:r for r in auto['rows']}
+            assert by['SAN-BOOSTER-PUMP']['quantity']==1 and by['SAN-WATER-METER']['quantity']==1 and by['SAN-FLOAT-VALVE']['quantity']==1
+            assert by['SAN-WC-BOWL']['quantity']==3 and by['SAN-LAVATORY']['quantity']==3 and by['SAN-SHOWER-SET']['quantity']==2
             assert by['SAN-WC-BOWL']['source_pages']==[23,24,25]
-            assert bench['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ' and bench['reference_rows']==11 and bench['detected_reference_rows']==10 and bench['coverage_pct']>=90.9
+            assert bench['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ' and bench['reference_rows']==13 and bench['detected_reference_rows']==12 and bench['coverage_pct']>=92.3
             page.screenshot(path=str(a.output/'automatic-boq-live.png'),full_page=True)
-            report['checks'].append('Public HTTPS Automatic BOQ rendered ten generated rows with >=90.9% audit-subset coverage, WC.1 evidence on drawing pages 23-25 and sanitary-equipment evidence on page 58')
+            report['checks'].append('Public HTTPS Automatic BOQ rendered twelve generated rows with >=92.3% audit-subset coverage, including WC.1, lavatory and shower-set evidence from drawing pages 23-25')
             report['checks'].append('Public generated JSON proves reference isolation and all evidence pages <= 71')
             page.set_viewport_size({'width':390,'height':844}); page.screenshot(path=str(a.output/'automatic-boq-live-mobile.png'),full_page=True)
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
