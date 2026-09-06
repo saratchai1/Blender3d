@@ -1,0 +1,118 @@
+name: Automatic BOQ v8.19 cross-sheet valve CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/auto_boq_v8_19.py'
+      - 'integrations/opentakeoff/equipment_valve_corroboration_v8.py'
+      - 'integrations/opentakeoff/test_equipment_valve_corroboration_v8.py'
+      - 'integrations/opentakeoff/profiles/family4_equipment_vertical_evidence.json'
+      - 'integrations/opentakeoff/probe_cw_valve_leaders_v8.py'
+      - 'integrations/opentakeoff/vertical_valve_leader_reconcile_v8.py'
+      - 'integrations/opentakeoff/pipe_release_reconcile_v8.py'
+      - 'integrations/opentakeoff/pipe_publish_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_15.py'
+      - 'integrations/opentakeoff/profiles/family4_roof_level_evidence.json'
+      - 'integrations/opentakeoff/profiles/family4.json'
+      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-v8-19-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-v8-19:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Run cross-sheet and upstream regressions
+        working-directory: integrations/opentakeoff
+        run: |
+          python test_equipment_valve_corroboration_v8.py
+          python test_vertical_valve_leader_reconcile_v8.py
+          python test_pipe_publish_v8.py
+          python test_pipe_release_reconcile_v8.py
+          python test_roof_terminal_reconcile_v8.py
+          python test_vertical_direct_branch_v8.py
+          python test_vertical_level_bounds_v8.py
+          python test_vertical_schematic_v8.py
+          python test_cross_view_system_consensus_v8.py
+          python test_strict_pipe_tags_v8.py
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Generate v8.18 control
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_18.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
+          --output .generated/v8-18-control.json
+      - name: Generate v8.19 cross-sheet corroborated BOQ
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_19.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
+          --equipment-evidence integrations/opentakeoff/profiles/family4_equipment_vertical_evidence.json
+          --output .generated/v8-19.json
+      - name: Assert same quantity with stronger independent evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('.generated/v8-18-control.json').read_text())
+          n=json.loads(Path('.generated/v8-19.json').read_text())
+          assert c['source_policy']['reference_used_for_generation'] is False
+          assert n['source_policy']['reference_used_for_generation'] is False
+          assert len(c['rows'])==len(n['rows'])==27
+          cp={r['id']:r for r in c['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')}
+          np={r['id']:r for r in n['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')}
+          assert set(cp)==set(np) and len(np)==8,(cp,np)
+          for row_id in cp:
+              assert abs(float(cp[row_id]['quantity'])-float(np[row_id]['quantity']))<1e-9,(row_id,cp[row_id],np[row_id])
+          assert abs(sum(float(r['quantity']) for r in np.values())-92.5)<1e-9,np
+          assert abs(np['SAN-PIPE-CW-DN15']['quantity']-8.524)<1e-9,np['SAN-PIPE-CW-DN15']
+          assert abs(np['SAN-PIPE-CW-DN20']['quantity']-26.112)<1e-9,np['SAN-PIPE-CW-DN20']
+          assert set(np['SAN-PIPE-CW-DN15']['source_pages'])=={57,58},np['SAN-PIPE-CW-DN15']
+          assert 13 in np['SAN-PIPE-V-DN50']['source_pages'],np['SAN-PIPE-V-DN50']
+          assert all(max(r['source_pages'])<=71 for r in n['rows'])
+          d=next(x for x in n['diagnostics'] if x.get('detector')=='sanitary_pipe_network_v8_19')
+          corroboration=d['equipment_valve_corroboration']
+          assert corroboration['status']=='CORROBORATED_EQUIPMENT_VALVE_CLASS',corroboration
+          assert corroboration['diameter_key']=='DN15',corroboration
+          assert corroboration['source_pages']==[57,58],corroboration
+          assert corroboration['primary_plan_label']=='FLOAT VALVE Ø1/2"',corroboration
+          assert corroboration['schematic_label']=='BALL VALVE Ø1/2"',corroboration
+          assert corroboration['nearby_main_label']=='Ø3/4"CW',corroboration
+          assert corroboration['nearby_main_role']=='AUDIT_ONLY_NOT_BRANCH_SIZING_EVIDENCE',corroboration
+          assert corroboration['accepted_valve_leader']['target_segment_index']==183,corroboration
+          assert d['pipe_release_candidate']['status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',d['pipe_release_candidate']
+          assert d['pipe_release_candidate']['release_blocker_count']==0,d['pipe_release_candidate']
+          assert d['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',d['reconciliation']
+          v=d['vertical_level_bounded_reconciliation']
+          promoted=v['valve_leader_promoted_runs']
+          assert len(promoted)==1 and promoted[0]['segment_indexes']==[182,183,184,185,186,187],promoted
+          assert promoted[0]['diameter_key']=='DN15' and promoted[0]['vertical_length_m_candidate']==1.228,promoted
+          print('AUTO_BOQ_V8_19_CROSS_SHEET_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5,'tank_branch':'DN15 1.228m','sources':[57,58]})
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-19-evidence
+          path: |
+            .generated/v8-18-control.json
+            .generated/v8-19.json
+          if-no-files-found: warn
+          retention-days: 30
