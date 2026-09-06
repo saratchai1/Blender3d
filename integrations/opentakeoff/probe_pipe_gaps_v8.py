@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Diagnostic-only probe for same-layer component gaps on v8 Family4 pipe pages.
+"""Diagnostic-only probes for fragmented v8 Family4 pipe components.
 
-This script does not change any BOQ quantity. It measures whether semantic pipe
-components without diameter evidence are separated from tagged components by
-small geometry/style breaks (for example a fitting/symbol or stroke-style change).
-The output is used to choose a conservative bridge threshold from real drawings
-instead of guessing one in production code.
+No BOQ quantity changes here. Two conservative evidence-transfer ideas are
+measured against the real drawings before either can enter production logic:
+1. same-page/same-layer small geometry gaps around fittings or style breaks;
+2. exact preserved CAD layer+stroke-style matches across sheets.
+
+Schematic/detail lengths remain non-additive. Cross-sheet style matching can only
+suggest a diameter class for a primary-plan component; it never contributes the
+source view's length.
 """
 from __future__ import annotations
 
@@ -55,11 +58,17 @@ def _tag_classes(tags: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
     return {cid: [classes[k] for k in sorted(classes)] for cid, classes in by_component.items()}
 
 
-def analyze_page(
-    page: fitz.Page,
-    spec: dict[str, Any],
-    cfg: dict[str, Any],
-) -> dict[str, Any]:
+def _style_key(component: dict[str, Any]) -> str:
+    style = component["style"]
+    return json.dumps({
+        "layer": str(style.get("layer") or ""),
+        "width_pt": round(float(style.get("width_pt") or 0.0), 3),
+        "color": style.get("color"),
+        "dash": str(style.get("dash") or "solid"),
+    }, sort_keys=True, separators=(",", ":"))
+
+
+def analyze_page(page: fitz.Page, spec: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
     bounds = spec.get("bounds_pt")
     min_len = float(cfg.get("min_segment_pt", 3.0))
     max_width = float(cfg.get("max_stroke_width_pt", 3.0))
@@ -94,6 +103,7 @@ def analyze_page(
         row = {
             "component_id": int(component["id"]),
             "layer": component.get("layer"),
+            "style_key": _style_key(component),
             "segment_count": int(component["segment_count"]),
             "length_pt": round(float(component["length_pt"]), 3),
             "bbox_pt": [round(float(v), 2) for v in component["bbox_pt"]],
@@ -128,6 +138,22 @@ def analyze_page(
             "potential_coverage_fraction": round((seeded_pt + bridge_pt) / total_semantic_pt, 4) if total_semantic_pt else 0.0,
         })
 
+    style_seed_evidence = [{
+        "component_id": int(component["id"]),
+        "layer": component.get("layer"),
+        "style_key": _style_key(component),
+        "classes": classes_by_component[int(component["id"])],
+        "length_pt": round(float(component["length_pt"]), 3),
+    } for component in seeded]
+    unseeded_style_components = [{
+        "component_id": int(component["id"]),
+        "layer": component.get("layer"),
+        "style_key": _style_key(component),
+        "segment_count": int(component["segment_count"]),
+        "length_pt": round(float(component["length_pt"]), 3),
+        "bbox_pt": [round(float(v), 2) for v in component["bbox_pt"]],
+    } for component in unseeded]
+
     return {
         "page": int(spec["page"]),
         "sheet": spec.get("sheet"),
@@ -142,6 +168,63 @@ def analyze_page(
         "seeded_component_fraction": round(seeded_pt / total_semantic_pt, 4) if total_semantic_pt else 0.0,
         "threshold_summary": threshold_summary,
         "nearest_seed_candidates": candidates,
+        "style_seed_evidence": style_seed_evidence,
+        "unseeded_style_components": unseeded_style_components,
+    }
+
+
+def apply_global_style_probe(pages: list[dict[str, Any]]) -> dict[str, Any]:
+    observed: dict[str, dict[tuple[str, str], dict[str, Any]]] = defaultdict(dict)
+    sheets_by_style: dict[str, set[str]] = defaultdict(set)
+    for page in pages:
+        for seed in page["style_seed_evidence"]:
+            style_key = seed["style_key"]
+            sheets_by_style[style_key].add(str(page.get("sheet") or page["page"]))
+            for cls in seed["classes"]:
+                key = (str(cls["system"]), str(cls["diameter_key"]))
+                observed[style_key][key] = cls
+
+    style_catalog = []
+    for style_key, classes in observed.items():
+        style_catalog.append({
+            "style_key": style_key,
+            "classes": [classes[k] for k in sorted(classes)],
+            "source_sheets": sorted(sheets_by_style[style_key]),
+            "status": "UNIQUE_CLASS" if len(classes) == 1 else "CONFLICTING_CLASSES",
+        })
+    style_catalog.sort(key=lambda row: row["style_key"])
+
+    unique_map = {
+        style_key: next(iter(classes.values()))
+        for style_key, classes in observed.items()
+        if len(classes) == 1
+    }
+    class_count_map = {style_key: len(classes) for style_key, classes in observed.items()}
+    for page in pages:
+        eligible = []
+        conflicts = []
+        for component in page["unseeded_style_components"]:
+            style_key = component["style_key"]
+            if style_key in unique_map:
+                eligible.append({**component, "transferred_class": unique_map[style_key], "source_sheets": sorted(sheets_by_style[style_key])})
+            elif class_count_map.get(style_key, 0) > 1:
+                conflicts.append({**component, "candidate_class_count": class_count_map[style_key], "source_sheets": sorted(sheets_by_style[style_key])})
+        eligible_pt = sum(float(row["length_pt"]) for row in eligible)
+        total_pt = float(page["semantic_length_pt"])
+        seeded_pt = float(page["seeded_component_length_pt"])
+        page["exact_global_style_transfer"] = {
+            "eligible_component_count": len(eligible),
+            "eligible_length_pt": round(eligible_pt, 3),
+            "potential_coverage_fraction": round((seeded_pt + eligible_pt) / total_pt, 4) if total_pt else 0.0,
+            "conflicting_style_component_count": len(conflicts),
+            "eligible_components": eligible,
+            "conflicting_style_components": conflicts,
+            "publication_status": "DIAGNOSTIC_ONLY_NO_ASSIGNMENT",
+        }
+    return {
+        "style_catalog": style_catalog,
+        "unique_style_count": sum(1 for row in style_catalog if row["status"] == "UNIQUE_CLASS"),
+        "conflicting_style_count": sum(1 for row in style_catalog if row["status"] == "CONFLICTING_CLASSES"),
     }
 
 
@@ -157,9 +240,11 @@ def main() -> None:
     guarded = base.GuardedPdf(doc, int(profile["source_page_max"]))
     pages = [analyze_page(guarded.page(int(spec["page"])), spec, cfg) for spec in cfg.get("page_specs", [])]
     doc.close()
+    style_probe = apply_global_style_probe(pages)
     result = {
         "status": "DIAGNOSTIC_ONLY_NO_QUANTITY_CHANGE",
-        "purpose": "measure same-layer fragment gaps before enabling diameter evidence bridges",
+        "purpose": "measure same-layer gaps and exact global CAD-style diameter transfer before enabling either bridge",
+        "global_style_probe": style_probe,
         "pages": pages,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -167,9 +252,9 @@ def main() -> None:
     print("AUTO_BOQ_V8_GAP_PROBE_OK", json.dumps({
         p["sheet"]: {
             "seeded_fraction": p["seeded_component_fraction"],
-            "at_1_5pt": next(x["potential_coverage_fraction"] for x in p["threshold_summary"] if x["gap_threshold_pt"] == 1.5),
-            "at_3pt": next(x["potential_coverage_fraction"] for x in p["threshold_summary"] if x["gap_threshold_pt"] == 3.0),
-            "at_6pt": next(x["potential_coverage_fraction"] for x in p["threshold_summary"] if x["gap_threshold_pt"] == 6.0),
+            "gap_6pt": next(x["potential_coverage_fraction"] for x in p["threshold_summary"] if x["gap_threshold_pt"] == 6.0),
+            "gap_10pt": next(x["potential_coverage_fraction"] for x in p["threshold_summary"] if x["gap_threshold_pt"] == 10.0),
+            "exact_global_style": p["exact_global_style_transfer"]["potential_coverage_fraction"],
         }
         for p in pages
     }, ensure_ascii=False))
