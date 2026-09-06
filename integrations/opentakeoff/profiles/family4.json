@@ -1,6 +1,6 @@
 {
-  "id": "dpt-family4-vector-v7",
-  "version": 7,
+  "id": "dpt-family4-vector-v8",
+  "version": 8,
   "source_page_max": 71,
   "roof": {"page": 13, "scale_ratio": 100, "slope_deg": 6},
   "doors": {
@@ -52,6 +52,19 @@
         "reason":"four physical Ø2\"FD tags are readable on SN-07, but BOQ reference is five; do not count the fixture schedule row as a physical drain"
       }
     ]
+  },
+  "sanitary_pipe_network": {
+    "page_specs": [
+      {"page":57},
+      {"page":58},
+      {"page":59},
+      {"page":60}
+    ],
+    "min_segment_pt": 3.0,
+    "max_stroke_width_pt": 3.0,
+    "endpoint_snap_pt": 1.5,
+    "tag_snap_max_pt": 30.0,
+    "publication": "diagnostic-only until drawing-scale and component attribution are validated"
   },
   "electrical": {
     "legend_page": 64,
