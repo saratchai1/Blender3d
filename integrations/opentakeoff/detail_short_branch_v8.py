@@ -6,6 +6,8 @@ from typing import Any
 import auto_boq_v8 as v8
 import detail_view_transfer_v8 as base
 
+_BASE_PROBE = base.probe_detail_transfer
+
 
 def _distance(a: tuple[float,float], b: tuple[float,float]) -> float:
     return math.hypot(b[0]-a[0], b[1]-a[1])
@@ -34,7 +36,7 @@ def probe_detail_transfer(
     render_scale: float = 1.5,
 ) -> dict[str,Any]:
     """Base affine transfer plus endpoint fallback for short drafting stubs only."""
-    result = base.probe_detail_transfer(
+    result = _BASE_PROBE(
         detail_page,target_page,spec,
         min_segment_pt=min_segment_pt,
         max_stroke_width_pt=max_stroke_width_pt,
