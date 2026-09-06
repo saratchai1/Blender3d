@@ -38,6 +38,12 @@ jobs:
           --pdf .generated/samples/family4.pdf
           --profile integrations/opentakeoff/profiles/family4.json
           --output-dir .generated/pipe-pages
+      - name: Render semantic CAD pipe layers for classification QA
+        run: >-
+          python integrations/opentakeoff/render_pipe_layers_v8.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output-dir .generated/pipe-layers
       - name: Run v8 topology and parser unit tests
         working-directory: integrations/opentakeoff
         run: |
@@ -185,5 +191,6 @@ jobs:
             .generated/pipe-gap-probe-v8.json
             .generated/auto-boq-benchmark.json
             .generated/pipe-pages/
+            .generated/pipe-layers/
           if-no-files-found: warn
           retention-days: 30
