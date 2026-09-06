@@ -57,14 +57,14 @@ jobs:
           --profile integrations/opentakeoff/profiles/family4.json
           --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
           --output .generated/v8-15-control.json
-      - name: Generate v8.16 release candidate
+      - name: Generate fail-safe v8.16 release diagnostic
         run: >-
           python integrations/opentakeoff/auto_boq_v8_16.py
           --pdf .generated/samples/family4.pdf
           --profile integrations/opentakeoff/profiles/family4.json
           --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
           --output .generated/v8-16.json
-      - name: Assert release gate passes without publication
+      - name: Assert substantive unresolved CW branch blocks v8.16 release
         run: |
           python - <<'PY'
           import json
@@ -77,31 +77,26 @@ jobs:
           assert not any(str(r.get('id','')).startswith('SAN-PIPE-') for r in n['rows'])
           dn=next(d for d in n['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_16')
           final=dn['pipe_release_candidate']
-          assert final['status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',final
-          assert final['publication_policy']=='READY_FOR_PIPE_ROW_PUBLICATION',final
-          assert final['release_blocker_count']==0,final
-          assert final['excluded_non_quantity_run_count']==10,final
+          assert final['status']=='WITHHELD_PIPE_RELEASE_BLOCKERS',final
+          assert final['publication_policy']=='WITHHELD_NO_PIPE_PUBLICATION',final
+          assert final['release_blocker_count']==1,final
+          blocker=final['release_blockers'][0]
+          assert blocker['system']=='CW',blocker
+          assert blocker['segment_indexes']==[182,183,184,185,186,187],blocker
+          assert abs(blocker['vertical_span_m']-1.228)<1e-6,blocker
+          assert final['excluded_non_quantity_run_count']==9,final
           assert dn['reconciliation']['horizontal_diameter_gate']=='PASS'
-          assert dn['reconciliation']['full_pipe_boq_publication_status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE'
-          rows={(r['system'],r['diameter_key']):r for r in final['candidate_rows']}
-          expected={
-              ('CW','DN15'):7.296,
-              ('CW','DN20'):26.112,
-              ('RL','DN65'):3.57,
-              ('S','DN100'):2.27,
-              ('SW','DN100'):19.455,
-              ('V','DN50'):14.665,
-              ('W','DN50'):10.746,
-              ('W','DN65'):7.158,
-          }
-          assert set(rows)==set(expected),(rows,expected)
-          for key,value in expected.items():
-              assert abs(rows[key]['total_length_m']-value)<1e-6,(key,rows[key],value)
-          v_ex=[x for x in final['excluded_non_quantity_runs'] if x['system']=='V']
-          cw_ex=[x for x in final['excluded_non_quantity_runs'] if x['system']=='CW']
-          assert len(v_ex)==2 and all(x['release_exclusion_status']=='EXCLUDED_TERMINAL_PIECE_ALREADY_REPRESENTED_BY_ROOF_MAIN_RISER' for x in v_ex),v_ex
-          assert len(cw_ex)==8 and all(x['release_exclusion_status']=='EXCLUDED_SCHEMATIC_SERVICE_OFFSET_NO_EXPLICIT_PHYSICAL_HEIGHT' for x in cw_ex),cw_ex
-          print('AUTO_BOQ_V8_16_RELEASE_GATE_PASS',{'pipe_classes':len(rows),'total_m':round(sum(r['total_length_m'] for r in rows.values()),3),'excluded':10,'blockers':0,'published':0})
+          # v8.16 must no longer claim a publishable release while this physical branch is unresolved.
+          assert dn['reconciliation']['full_pipe_boq_publication_status']!='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE'
+          short_cw=[x for x in final['excluded_non_quantity_runs'] if x['system']=='CW']
+          assert len(short_cw)==7,short_cw
+          assert all(x['vertical_span_m']<0.5 for x in short_cw),short_cw
+          print('AUTO_BOQ_V8_16_FAIL_SAFE_PASS',{
+              'blocker_segments':blocker['segment_indexes'],
+              'blocker_span_m':blocker['vertical_span_m'],
+              'short_cw_excluded':len(short_cw),
+              'published':0,
+          })
           PY
       - uses: actions/upload-artifact@v4
         if: always()
