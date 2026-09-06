@@ -21,13 +21,13 @@ function render(){
     values.forEach((v,i)=>{const td=document.createElement('td');td.textContent=v;if([2,3,4].includes(i))td.className='num';if(i===0){const small=document.createElement('small');small.textContent=row.sheets.join(' · ');td.append(small);}tr.append(td);});
     frag.append(tr);
   }
-  if(!r.rows.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=7;td.className='empty';td.textContent='ยังไม่มีรายการ — เปิดแบบ ตั้งสเกล แล้วเริ่มวัดในแท็บวัดแบบ';tr.append(td);frag.append(tr);}
+  if(!r.rows.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=7;td.className='empty';td.textContent='ยังไม่มี Generated Takeoff — เปิดแบบ ตรวจสเกล แล้วเริ่มวัด; ตัวเลข BOQ ที่อยู่ใน PDF จะไม่ถูกนำมาใส่ตรงนี้อัตโนมัติ';tr.append(td);frag.append(tr);}
   $('#rows').replaceChildren(frag);
   for(const kind of Object.keys(names)){
     const rows=r.rows.filter(x=>x.kind===kind);
     $(`#${kind}-total`).textContent=rows.some(x=>x.net==null)?'ต้องตรวจ':fmt(rows.reduce((n,x)=>n+(x.net??0),0),kind==='count'?0:2);
   }
-  $('#review-note').textContent=`${r.shape_count} เส้นวัด / จุด · ${r.pending} รายการยังรอตรวจ · ข้อมูลจาก autosave ล่าสุด`;
+  $('#review-note').textContent=`${r.shape_count} เส้นวัด / จุด · ${r.pending} รายการยังรอตรวจ · generated takeoff เท่านั้น`;
   $('#csv').disabled=!r.rows.length;$('#json').disabled=!snapshot.takeoff;
 }
 window.addEventListener('message',e=>{
@@ -43,8 +43,9 @@ $('#workspace').addEventListener('change',e=>{
   $('#csv').disabled=true;$('#json').disabled=true;
   for(const kind of Object.keys(names))$(`#${kind}-total`).textContent='—';
   $('#rows').replaceChildren();$('#review-note').textContent='กำลังอ่านพื้นที่ทำงานที่เลือก…';
-  $('#workspace-note').textContent=workspace==='demo'?'แบบสมมติสำหรับทดสอบ ไม่ใช่แปลน SOLSTICE 14 — เส้นวัดเริ่มต้นสร้างด้วยสคริปต์ ไม่ใช่ AI ตรวจหาห้อง':'แบบของคุณแยกจากตัวอย่าง — ตั้งสเกลแต่ละแผ่นก่อนวัด และสำรอง Project export ก่อนล้างข้อมูลเบราว์เซอร์';
+  $('#workspace-note').textContent=workspace==='demo'?'ตัวอย่างจริง 99 หน้า พร้อม BOQ อ้างอิงช่วงหน้า 72–95 — ใช้หน้าต้นเล่มทำ takeoff แล้วค่อยตรวจเทียบคำตอบ':'แบบของคุณแยกจากตัวอย่าง — ตั้ง/ตรวจสเกลแต่ละแผ่นก่อนวัด และสำรอง Project export ก่อนล้างข้อมูลเบราว์เซอร์';
   const url=`./engine/?workspace=${workspace}`;frame.src=url;$('#full-engine').href=url;
+  $('#reference-boq').hidden=workspace!=='demo';
   setStatus('กำลังเปิดพื้นที่ทำงาน…','loading');$('#engine-error').hidden=true;tab('plan');
 });
 function download(content,name,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
@@ -53,6 +54,5 @@ $('#json').onclick=()=>snapshot&&download(JSON.stringify(snapshot.takeoff,null,2
 $('#refresh').onclick=request;
 $('#retry').onclick=()=>{frame.src=`./engine/?workspace=${workspace}`;$('#engine-error').hidden=true;setStatus('กำลังลองใหม่…','loading');};
 frame.addEventListener('load',request);
-// This polls only the same-origin in-browser store; it never contacts a server.
 setInterval(()=>{if(!document.hidden)request();},4000);
-setTimeout(()=>{if(!lastReceived){setStatus('เครื่องมือยังไม่ตอบกลับ — ลองเปิดเต็มจอ','error');$('#engine-error').hidden=false;$('#error-text').textContent='การโหลดอาจถูกบล็อก หรือการ build ยังไม่เสร็จ เปิดเครื่องมือเต็มจอเพื่อตรวจสอบ';}},45000);
+setTimeout(()=>{if(!lastReceived){setStatus('เครื่องมือยังไม่ตอบกลับ — ลองเปิดเต็มจอ','error');$('#engine-error').hidden=false;$('#error-text').textContent='การโหลดไฟล์ตัวอย่างจริงอาจใช้เวลามากกว่า demo เดิม หากยังไม่เปิดให้ลองเต็มจอหรือ reload';}},60000);

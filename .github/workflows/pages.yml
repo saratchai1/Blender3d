@@ -40,15 +40,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Fetch verified real Thai BOQ benchmark PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
       - name: Build and test the pinned real OpenTakeoff engine
-        run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff
+        run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff --demo-pdf .generated/samples/family4.pdf
       - name: Install browser QA runtime
         run: |
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
       - name: Check existing presentation, WebGL and IFC downloads
         run: python web/office_10000sqm/tools/pages_smoke.py --root .generated/pages
-      - name: Check actual takeoff canvas, PDF upload, metric BOQ, persistence and exports
+      - name: Check real Thai PDF benchmark, native upload and honest generated BOQ separation
         run: python web/opentakeoff-poc/smoke.py --root .generated/pages
       - name: Check actual moving cinematic cameras, six scenes, controls and mobile WebGL
         run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
