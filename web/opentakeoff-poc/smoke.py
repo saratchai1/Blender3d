@@ -19,26 +19,31 @@ def main():
     sample=a.root/'takeoff/demo/family4.pdf'; auto=json.loads((a.root/'takeoff/auto-boq.json').read_text()); bench=json.loads((a.root/'takeoff/auto-boq-benchmark.json').read_text())
     assert sample.stat().st_size==EXPECTED_SIZE and hashlib.sha256(sample.read_bytes()).hexdigest()==EXPECTED_SHA256
     assert auto['source_policy']['reference_used_for_generation'] is False and all(max(r['source_pages'])<=71 for r in auto['rows'])
-    assert len(auto['rows'])==15; assert bench['reference_rows']==16 and bench['detected_reference_rows']==15; assert bench['coverage_pct']>=93.75; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<0.20
+    assert len(auto['rows'])==19; assert bench['reference_rows']==20 and bench['detected_reference_rows']==19; assert bench['coverage_pct']>=95.0; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<0.15
     by={r['id']:r for r in auto['rows']}
+    assert 'SAN-FLOOR-DRAIN-2' not in by
     assert by['SAN-BOOSTER-PUMP']['quantity']==1 and by['SAN-WATER-METER']['quantity']==1 and by['SAN-FLOAT-VALVE']['quantity']==1
     assert all(by[k]['source_pages']==[58] for k in ('SAN-BOOSTER-PUMP','SAN-WATER-METER','SAN-FLOAT-VALVE'))
     assert by['SAN-WC-BOWL']['quantity']==3 and by['SAN-LAVATORY']['quantity']==3 and by['SAN-SHOWER-SET']['quantity']==2
     for k in ('SAN-BIDET-SPRAY','SAN-PAPER-HOLDER','SAN-TOWEL-RAIL'):
         assert by[k]['quantity']==3 and by[k]['source_pages']==[23,24,25]
         assert by[k]['method']=='raster:line-stripped CAD label sweep'
+    for k,q in {'SAN-FCO-4':2,'SAN-CO-2.5':1,'SAN-RFD-2.5':2,'SAN-AVC-2':2}.items():
+        assert by[k]['quantity']==q and by[k]['method']=='text:positioned sanitary drawing tag'
+    fd=next(d for d in auto['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
+    assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY' and fd['detections']==4
     handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/'; evidence={'checks':[],'page_errors':[]}
     with sync_playwright() as p:
       browser=p.chromium.launch(headless=True);ctx=browser.new_context(viewport={'width':1512,'height':982},accept_downloads=True);page=ctx.new_page();page.on('pageerror',lambda e:evidence['page_errors'].append(str(e)))
       try:
-        page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='15'")
-        assert page.locator('#auto-rows-body tr').count()==15; assert float(page.locator('#auto-coverage').inner_text())>=93.75; assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<0.20
+        page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='19'")
+        assert page.locator('#auto-rows-body tr').count()==19; assert float(page.locator('#auto-coverage').inner_text())>=95.0; assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<0.15
         text=page.locator('#auto-rows-body').inner_text(); assert 'หลังคาเหล็กรีดลอน' in text and '128.349' in text and '37' in text
-        for needle in ('Booster Pump','มาตรวัดน้ำ','Float Valve','WC.1','อ่างล้างหน้า','ฝักบัวอาบน้ำสายอ่อน','ฝักบัวชำระพร้อมสาย','ที่ใส่กระดาษชำระ','ราวแขวนผ้า'):
+        for needle in ('Booster Pump','มาตรวัดน้ำ','Float Valve','WC.1','อ่างล้างหน้า','ฝักบัวอาบน้ำสายอ่อน','ฝักบัวชำระพร้อมสาย','ที่ใส่กระดาษชำระ','ราวแขวนผ้า','Floor Cleanout','Cleanout','Roof Floor Drain','Air Vent Cap'):
             assert needle in text
-        hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and 58 in pages and all(p in pages for p in (23,24,25))
+        hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and all(p in pages for p in (23,24,25,58,59,60))
         assert page.locator('#withheld-list .withheld').count()>=6
-        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders fifteen generated rows; audit subset coverage >=93.75%; all detected rows within ±5%; bathroom accessory evidence remains on drawing pages 23-25; no evidence link exceeds page 71')
+        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders nineteen scored rows; audit subset coverage 95%; all detected rows within ±5%; sanitary fitting tags are evidence-backed on drawing pages 59-60; floor drain remains withheld with four explicit tags; no evidence link exceeds page 71')
         page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000);page.wait_for_timeout(1500);saved=engine.evaluate(READ_DB,'demo');pdf=saved['pdfs'][0]
         assert pdf['name']=='family4.pdf' and pdf['size']==EXPECTED_SIZE and bytes(pdf['head'])==b'%PDF-';ann=saved['annotations'];assert ann['shapes']==[] and ann['sheet_tabs']==['family4.pdf#11'];assert large_canvas(engine)
         evidence['checks'].append('Exact Family4 PDF opens in native OpenTakeoff review canvas; Automatic BOQ rows are not injected as manual shapes')
