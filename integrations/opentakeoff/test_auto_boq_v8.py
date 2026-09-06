@@ -50,8 +50,13 @@ def main() -> None:
     assert candidate["segment_count"] == 3, candidate
     expected_m = 400 / 72 * 0.0254 * 100
     assert math.isclose(candidate["length_m"], round(expected_m, 3), abs_tol=1e-9), candidate
+
+    # Thai CAD source uses both explicit and run-together mixed fractions.
     assert v8.parse_inches("2-1/2") == 2.5
+    assert v8.parse_inches("21/2") == 2.5
+    assert v8.parse_inches("11/2") == 1.5
     assert v8.parse_inches("3/4") == 0.75
+    assert "S" in v8.PIPE_SYSTEMS
     doc.close()
 
     doc, page = make_page(multi_scale=True)
@@ -61,7 +66,7 @@ def main() -> None:
     assert candidate["length_status"] == "WITHHELD_SCALE_AMBIGUOUS", candidate
     assert "length_m" not in candidate
     doc.close()
-    print("AUTO_BOQ_V8_TEST_PASS", {"topology": "T connected / X separate", "scale_guard": "ambiguous withheld"})
+    print("AUTO_BOQ_V8_TEST_PASS", {"topology": "T connected / X separate", "scale_guard": "ambiguous withheld", "mixed_fraction": "Thai CAD forms parsed"})
 
 
 if __name__ == "__main__":
