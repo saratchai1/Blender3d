@@ -4,7 +4,7 @@ This POC combines the real pinned `Kentucky-ai/opentakeoff` review canvas with a
 
 ## What is automatic now
 
-`auto_boq.py` reads **drawing pages 1–71 only**. It has no import, path or quantity dependency on `benchmark_reference.json`. The official BOQ range (pages 72–95) is read only by the separate `score_auto_boq.py` after generation has finished.
+The v6 generator reads **drawing pages 1–71 only**. It has no import, path or quantity dependency on `benchmark_reference.json`. The official BOQ range (pages 72–95) is read only by the separate `score_auto_boq.py` after generation has finished.
 
 Validated automatic detectors in the current Family4 profile:
 
@@ -14,18 +14,21 @@ Validated automatic detectors in the current Family4 profile:
 | `ARCH-FASCIA` | vector roof outline perimeter | 45.199 m |
 | `ARCH-DOOR-D2` | door-swing radius, 0.80 m | 7 ea |
 | `ARCH-DOOR-D3` | door-swing radius, 0.70 m | 4 ea |
-| `SAN-WC-BOWL` | drawing-label template sweep on bathroom details pages 23–25 | 3 ea |
+| `SAN-WC-BOWL` | bathroom-detail template sweep | 3 ea |
 | `SAN-LAVATORY` | bathroom-detail template sweep | 3 ea |
 | `SAN-SHOWER-SET` | bathroom-detail template sweep | 2 ea |
+| `SAN-BIDET-SPRAY` | line-stripped CAD label sweep | 3 ea |
+| `SAN-PAPER-HOLDER` | line-stripped CAD label sweep | 3 ea |
+| `SAN-TOWEL-RAIL` | line-stripped CAD label sweep | 3 ea |
 | `SAN-BOOSTER-PUMP` | exact positioned plan label `BP` | 1 ea |
 | `SAN-WATER-METER` | exact positioned plan label `M` | 1 ea |
 | `SAN-FLOAT-VALVE` | exact positioned plan label `FLOAT` | 1 ea |
 | `ELEC-DOWNLIGHT` | electrical legend template sweep | 37 ea |
 | `ELEC-T8-LONG` | electrical legend template sweep | 1 ea |
 
-The separate official audit subset now contains **13 rows** across architecture, sanitary equipment/fixtures and electrical. Twelve are detected, giving **92.31% coverage of that audit subset**. All twelve detected rows are within ±5%; the current mean absolute percentage error is about **0.079%**. These numbers are **not full-project BOQ accuracy**.
+The isolated audit subset contains **16 rows**. Fifteen are detected, giving **93.75% coverage of that audit subset**. All fifteen detected rows are within ±5%; the current mean absolute percentage error is about **0.063%**. These numbers are **not full-project BOQ accuracy**.
 
-The short T8 row and broader categories are withheld until their detectors are reliable. Current withheld registry: windows, sanitary fixtures beyond the validated bathroom/equipment tags, switch/socket, floor finishes, wall area, sanitary piping and structure.
+The three v6 accessory rows use visible labels on bathroom detail pages 23–25. The detector first suppresses long orthogonal CAD wall/grid lines, then matches the remaining label glyph pattern. This is specifically for drawings where legacy CAD fonts make normal text extraction unreliable. The short T8 row and broader categories remain withheld until their detectors are reliable.
 
 ## Accuracy policy
 
@@ -33,7 +36,7 @@ The short T8 row and broader categories are withheld until their detectors are r
 - Every published automatic row carries `source_pages`, `method`, `confidence`, `review` and evidence.
 - Source-page guard rejects any generation attempt after page 71.
 - Reference quantities live in a different file and scorer.
-- `Automatic BOQ benchmark` CI regenerates quantities from the exact PDF before reading the reference and retains the generated JSON as evidence.
+- CI regenerates quantities from the exact PDF before reading the reference and retains generated JSON as evidence.
 - CI asserts known benchmark tolerances and that all generated evidence pages are <= 71.
 - Automatic output is preliminary and requires estimator review before procurement.
 
@@ -46,16 +49,16 @@ GitHub Pages publishes `/Blender3d/takeoff/` with four surfaces:
 3. **Manual BOQ** — only user-created/review takeoff; kept separate to prevent automatic/manual double counting.
 4. **วิธี / Accuracy** — source fence, method and limitations.
 
-The demo uses the verified Family4 PDF. User-uploaded PDFs still open in the manual/review workspace. GitHub Pages is static, so the Python Automatic BOQ detector does **not yet run on arbitrary new uploads in-browser**. Do not describe that capability as implemented yet.
+The demo uses the verified Family4 PDF. User-uploaded PDFs still open in the manual/review workspace. GitHub Pages is static, so the Python Automatic BOQ detector does **not yet run on arbitrary new uploads in-browser**.
 
 ## Reproduce
 
-Requires Python 3.12+, Node 24, PyMuPDF, NumPy and OpenCV. Install the exact detector environment from the committed requirements file:
+Requires Python 3.12+, Node 24, PyMuPDF, NumPy and OpenCV.
 
 ```sh
 python -m pip install -r integrations/opentakeoff/requirements-auto-boq.txt
 python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
-python integrations/opentakeoff/auto_boq.py \
+python integrations/opentakeoff/auto_boq_v6.py \
   --pdf .generated/samples/family4.pdf \
   --profile integrations/opentakeoff/profiles/family4.json \
   --output .generated/auto-boq.json
@@ -69,7 +72,11 @@ python integrations/opentakeoff/score_auto_boq.py \
   --output .generated/auto-boq-benchmark.json
 ```
 
-To build the full site, checkout the pinned OpenTakeoff commit listed in `upstream.json` and run `build.py`; CI does this automatically. The Pages workflow also browser-tests the generated Automatic BOQ before deployment and runs a second acceptance test against the public HTTPS site after deployment.
+`auto_boq.py` remains the v5 base extractor; `auto_boq_v6.py` extends it with the line-stripped label detector without giving either generator access to the reference file. `build.py` uses the v6 entry point.
+
+## Current withheld scope
+
+Windows, floor drains/soap accessories/floor faucets/valves that do not yet have stable fingerprints, switch/socket, floor finishes, wall area, sanitary pipe lengths and structural quantities remain `WITHHELD`. Sanitary piping is the next geometry target because the source drawings expose pipe system/diameter labels, but network-line classification must be validated before a length is published.
 
 ## Data and security
 
