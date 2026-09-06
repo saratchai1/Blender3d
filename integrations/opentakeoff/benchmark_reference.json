@@ -4,7 +4,7 @@
   "reference_only": true,
   "generation_forbidden": true,
   "reference_page_range": [72, 95],
-  "scope_note": "Audit subset from the official BOQ, expanded across architecture, sanitary equipment/fixtures/accessories and electrical. This is not the full BOQ and must never be imported by the generator.",
+  "scope_note": "Audit subset from the official BOQ, expanded across architecture, sanitary equipment/fixtures/accessories/fittings and electrical. This is not the full BOQ and must never be imported by the generator.",
   "items": [
     {"id":"ARCH-ROOF-METAL","quantity":129,"unit":"m²"},
     {"id":"ARCH-FASCIA","quantity":45,"unit":"m"},
@@ -21,6 +21,11 @@
     {"id":"SAN-SHOWER-SET","quantity":2,"unit":"ea"},
     {"id":"SAN-BIDET-SPRAY","quantity":3,"unit":"ea"},
     {"id":"SAN-PAPER-HOLDER","quantity":3,"unit":"ea"},
-    {"id":"SAN-TOWEL-RAIL","quantity":3,"unit":"ea"}
+    {"id":"SAN-TOWEL-RAIL","quantity":3,"unit":"ea"},
+    {"id":"SAN-FLOOR-DRAIN-2","quantity":5,"unit":"ea"},
+    {"id":"SAN-FCO-4","quantity":2,"unit":"ea"},
+    {"id":"SAN-CO-2.5","quantity":1,"unit":"ea"},
+    {"id":"SAN-RFD-2.5","quantity":2,"unit":"ea"},
+    {"id":"SAN-AVC-2","quantity":2,"unit":"ea"}
   ]
 }
