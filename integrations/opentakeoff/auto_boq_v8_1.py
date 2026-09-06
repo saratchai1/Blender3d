@@ -2,9 +2,10 @@
 """v8.1 pipe diagnostics: diameter normalization + non-additive view reconciliation.
 
 This remains diagnostic-only for pipe BOQ publication. It extends v8 without
-changing the released v7 quantity rows. The purpose is to close two known v8
-gaps safely: diameter splitting on connected CAD networks and deterministic
-exclusion of overlapping schematic/detail views from additive horizontal totals.
+changing the released v7 quantity rows. The purpose is to close known v8 gaps
+safely: diameter splitting on connected CAD networks, deterministic exclusion of
+overlapping schematic/detail views, fixture branch-size evidence from SN-07, and
+explicit enlarged-detail-to-primary-plan transfer diagnostics.
 """
 from __future__ import annotations
 
@@ -18,6 +19,8 @@ import fitz
 
 import auto_boq as base
 import auto_boq_v8 as v8
+import detail_view_transfer_v8 as detail_transfer
+import fixture_schedule_v8 as fixture_schedule
 import pipe_reconcile_v8 as reconcile
 
 SCHEMA = base.SCHEMA
@@ -98,7 +101,7 @@ def _associate_tags(
         expected_layer = tag.get("expected_layer")
         semantic_layer_present = bool(expected_layer and expected_layer in present_layers)
         indexes = (
-            [i for i, segment in enumerate(segments) if segment.get("layer") == expected_layer]
+            [i for i, segment in enumerate(segments) if segment["layer"] == expected_layer]
             if semantic_layer_present
             else list(range(len(segments)))
         )
@@ -116,7 +119,7 @@ def _associate_tags(
                 "segment_index": index,
                 "component_id": component_by_segment.get(index),
                 "distance_pt": round(distance, 2),
-                "layer": segments[index].get("layer", ""),
+                "layer": segments[index]["layer"],
             }
             for distance, index in ranked[:5]
         ]
@@ -125,7 +128,7 @@ def _associate_tags(
             tag["nearest_segment"] = index
             tag["component_id"] = component_by_segment.get(index)
             tag["distance_pt"] = round(distance, 2)
-            tag["associated_layer"] = segments[index].get("layer", "")
+            tag["associated_layer"] = segments[index]["layer"]
             tag["association_status"] = (
                 "ASSOCIATED_BY_PDF_CAD_LAYER"
                 if semantic_layer_present
@@ -208,6 +211,23 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
 
     doc = fitz.open(pdf_path)
     guarded = base.GuardedPdf(doc, int(profile["source_page_max"]))
+
+    schedule_diag: dict[str, Any] | None = None
+    schedule_cfg = cfg.get("fixture_branch_schedule")
+    if schedule_cfg:
+        schedule_page = int(schedule_cfg["page"])
+        schedule_diag = fixture_schedule.parse_fixture_schedule_page(
+            guarded.page(schedule_page),
+            list(map(float, schedule_cfg["bounds_pt"])),
+        )
+        schedule_diag.update({
+            "page": schedule_page,
+            "sheet": schedule_cfg.get("sheet"),
+            "evidence_role": schedule_cfg.get("evidence_role"),
+            "coordinate_basis": schedule_cfg.get("coordinate_basis"),
+            "publication_policy": schedule_cfg.get("publication_policy", "EVIDENCE_ONLY_NO_PIPE_LENGTH_ADDITION"),
+        })
+
     analyses: list[dict[str, Any]] = []
     for spec in page_specs:
         page_no = int(spec["page"])
@@ -225,6 +245,19 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
             if spec.get(key) is not None:
                 analysis[key] = spec[key]
         analyses.append(analysis)
+
+    detail_probes: list[dict[str, Any]] = []
+    for link in cfg.get("detail_view_links", []):
+        detail_probes.append(detail_transfer.probe_detail_transfer(
+            guarded.page(int(link["detail_page"])),
+            guarded.page(int(link["target_page"])),
+            link,
+            min_segment_pt=float(cfg.get("min_segment_pt", 3.0)),
+            max_stroke_width_pt=float(cfg.get("max_stroke_width_pt", 3.0)),
+            endpoint_snap_pt=float(cfg.get("endpoint_snap_pt", 1.5)),
+            tag_snap_max_pt=float(cfg.get("tag_snap_max_pt", 30.0)),
+            render_scale=float(cfg.get("detail_match_render_scale", 1.5)),
+        ))
     doc.close()
 
     reconciliation = reconcile.reconcile_pages(
@@ -235,15 +268,17 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
         "detector": "sanitary_pipe_network_v8_1",
         "status": "DIAGNOSTIC_HORIZONTAL_CANDIDATES_NO_PUBLISHED_PIPE_ROWS",
         "pages": analyses,
+        "fixture_branch_schedule": schedule_diag,
+        "detail_view_reconciliation": detail_probes,
         "reconciliation": reconciliation,
         "systems": list(v8.PIPE_SYSTEMS),
         "system_layer_map": v8.SYSTEM_LAYER,
         "non_additive_rule": cfg.get("non_additive_rule"),
-        "note": "v8.1 normalizes inch/mm/DN diameter evidence and splits connected CAD networks by nearest network tag. Equal-distance multi-size segments are withheld rather than guessed. Only PRIMARY_PLAN_HORIZONTAL views can contribute horizontal candidates; vertical schematic and enlarged details remain evidence-only.",
+        "note": "v8.1 normalizes inch/mm/DN diameter evidence and splits connected CAD networks by nearest network tag. SN-07 fixture branch sizes are parsed from the vector schedule grid, and enlarged bathrooms are geometrically matched back to SN-05/SN-06 as diagnostic sizing evidence only. Equal-distance or ambiguous segment mappings are withheld. Only PRIMARY_PLAN_HORIZONTAL views can contribute horizontal candidates; vertical schematic and enlarged details never add their whole-view lengths.",
     })
     for item in result["coverage"].get("withheld_detectors", []):
         if item.get("name") == "sanitary piping":
-            item["reason"] = "v8.1 has deterministic horizontal non-additive reconciliation and normalized diameter splitting, but full pipe publication remains withheld until vertical risers and detail-to-primary overrides are explicitly reconciled"
+            item["reason"] = "v8.1 has deterministic horizontal non-additive reconciliation, normalized diameter splitting, vector fixture branch-size schedule evidence and diagnostic detail-to-primary mapping; full pipe publication remains withheld until accepted detail transfers are proven safe and vertical risers are reconciled"
     return result
 
 
@@ -258,9 +293,14 @@ def main() -> None:
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     diag = next((d for d in result.get("diagnostics", []) if d.get("detector") == "sanitary_pipe_network_v8_1"), None)
     reconciliation = (diag or {}).get("reconciliation", {})
+    schedule = (diag or {}).get("fixture_branch_schedule") or {}
+    detail_probes = (diag or {}).get("detail_view_reconciliation") or []
     print("AUTO_BOQ_V8_1_OK", json.dumps({
         "rows": len(result["rows"]),
         "pipe_pages": len((diag or {}).get("pages", [])),
+        "fixture_schedule_connections": schedule.get("connection_count", 0),
+        "detail_matches": {probe.get("id"): (probe.get("match") or {}).get("match_score") for probe in detail_probes},
+        "detail_transfer_candidates": sum(int(probe.get("candidate_count", 0)) for probe in detail_probes),
         "horizontal_candidates": len(reconciliation.get("horizontal_primary_rows", [])),
         "horizontal_diameter_gate": reconciliation.get("horizontal_diameter_gate"),
         "published_pipe_rows": 0,
