@@ -25,9 +25,12 @@ def extract(pdf_path: Path, profile_path: Path, roof_evidence_path: Path) -> dic
     )
     if not diag:
         return result
+    roof_evidence = diag.get('architectural_roof_evidence') or {}
+    roof_source_page = roof_evidence.get('source_page')
     final = release.build_pipe_release_candidate(
         diag.get('reconciliation') or {},
         diag.get('vertical_level_bounded_reconciliation') or {},
+        roof_source_page=int(roof_source_page) if roof_source_page is not None else None,
     )
     diag['pipe_release_candidate'] = final
     diag['detector'] = 'sanitary_pipe_network_v8_16'
@@ -42,7 +45,7 @@ def extract(pdf_path: Path, profile_path: Path, roof_evidence_path: Path) -> dic
         'v8.16 combines only SN-05/SN-06 primary horizontal lengths with SN-04 vertical lengths already validated by explicit levels, direct tags and/or A-06 roof corroboration. '
         'SN-07 remains sizing/matching evidence only. Remaining V terminal drawing pieces are excluded because the roof-corroborated main riser already represents that height; '
         'remaining CW local schematic offsets are excluded because they do not map an explicit physical elevation interval. Every exclusion remains in the audit payload. '
-        'This version proves the release gate but intentionally emits zero SAN-PIPE rows.'
+        'The A-06 roof source page is carried into V DN50 provenance. This version proves the release gate but intentionally emits zero SAN-PIPE rows.'
     )
     return result
 
