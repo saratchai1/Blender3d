@@ -1,0 +1,80 @@
+name: Automatic BOQ v8.17 Pages POC CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/**'
+      - 'web/opentakeoff-poc/**'
+      - '.github/workflows/automatic-boq-v8-17-pages-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-browser-poc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/checkout@v4
+        with:
+          repository: Kentucky-ai/opentakeoff
+          ref: 7a3c8eb44252d0d9083157ad9677866f92f711bb
+          path: .external/opentakeoff-poc
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned BOQ dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Build OpenTakeoff POC with v8.17 Automatic BOQ
+        run: >-
+          python integrations/opentakeoff/build.py
+          --upstream .external/opentakeoff-poc
+          --output .generated/pages/takeoff
+          --demo-pdf .generated/samples/family4.pdf
+      - name: Assert static build publishes eight pipe rows
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          auto=json.loads(Path('.generated/pages/takeoff/auto-boq.json').read_text())
+          info=json.loads(Path('.generated/pages/takeoff/build-info.json').read_text())
+          pipes=[r for r in auto['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')]
+          assert len(auto['rows'])==27,len(auto['rows'])
+          assert len(pipes)==8,pipes
+          assert abs(sum(float(r['quantity']) for r in pipes)-91.272)<1e-6,pipes
+          assert info['automatic_boq']['published_rows']==27,info
+          net=info['automatic_boq']['pipe_network']
+          assert net['published_pipe_rows']==8 and net['publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',net
+          assert net['release_blockers']==0,net
+          assert 13 in next(r for r in pipes if r['id']=='SAN-PIPE-V-DN50')['source_pages']
+          print('V8_17_STATIC_POC_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':91.272})
+          PY
+      - name: Install Chromium QA runtime
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Run Automatic BOQ browser smoke
+        run: python web/opentakeoff-poc/smoke.py --root .generated/pages --out .generated/takeoff-v8-17-qa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-17-pages-poc
+          path: |
+            .generated/pages/takeoff/auto-boq.json
+            .generated/pages/takeoff/auto-boq-benchmark.json
+            .generated/pages/takeoff/build-info.json
+            .generated/takeoff-v8-17-qa/
+          if-no-files-found: warn
+          retention-days: 30
