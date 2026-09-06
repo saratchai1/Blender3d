@@ -1,0 +1,63 @@
+name: Automatic BOQ architectural roof probe
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/probe_arch_roof_levels_v8.py'
+      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-arch-roof-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-arch-roof-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Render and probe architectural pages 11-13
+        run: >-
+          python integrations/opentakeoff/probe_arch_roof_levels_v8.py
+          --pdf .generated/samples/family4.pdf
+          --output-dir .generated/arch-roof-probe
+          --pages 11,12,13
+          --source-page-max 71
+      - name: Assert source-only diagnostic contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.generated/arch-roof-probe/arch-roof-level-probe.json').read_text())
+          assert d['status']=='DIAGNOSTIC_ARCHITECTURAL_LEVEL_PROBE_ONLY'
+          assert d['source_pages']==[11,12,13]
+          assert max(d['source_pages']) <= d['source_page_max'] == 71
+          assert d['reference_used'] is False
+          assert d['publication_policy']=='EVIDENCE_ONLY_NO_PIPE_QUANTITY_CHANGE'
+          assert all(Path(p['render']).exists() for p in d['pages'])
+          print('ARCH_ROOF_PROBE_CONTRACT_PASS', {
+              'pages':d['source_pages'],
+              'numeric':{p['page']:len(p['numeric_candidates']) for p in d['pages']},
+              'keywords':{p['page']:len(p['keyword_hits']) for p in d['pages']},
+          })
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-arch-roof-probe
+          path: .generated/arch-roof-probe/
+          if-no-files-found: error
+          retention-days: 30
