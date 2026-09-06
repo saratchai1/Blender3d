@@ -2,15 +2,20 @@
 """v8 extension: source-page-only sanitary pipe-network diagnostics.
 
 This stage deliberately does NOT publish pipe-length BOQ rows. It reads vector
-linework and nearby diameter/system tags from drawing pages only, groups open CAD
-segments by stroke style and real endpoint/T-junction connectivity, and reports
-candidate network lengths only when a sheet scale is evidenced. The official BOQ
-reference remains scorer-only and is never imported here.
+linework, preserved PDF CAD layer names, and nearby diameter/system tags from
+source drawing pages only. The official BOQ reference remains scorer-only and is
+never imported here.
+
+Evidence priority:
+1. Preserved PDF CAD layer semantics (CW / WASTE / SOIL / V / RL).
+2. Drawing tag for system + diameter.
+3. Geometric proximity only inside the expected semantic layer.
+4. Unlayered proximity fallback only when the expected semantic layer is absent.
 
 Important source-policy rule: Family4 SN-04 (vertical schematic), SN-05/SN-06
 plans, and SN-07 enlarged bathroom details overlap. Whole-view lengths from these
-views are therefore NON-ADDITIVE until a reconciliation policy has separated
-vertical risers, primary-plan runs, and detail-only branches.
+views are NON-ADDITIVE until reconciliation has separated vertical risers,
+primary-plan horizontal runs, and detail-only branches.
 """
 from __future__ import annotations
 
@@ -29,15 +34,39 @@ from auto_boq_v7 import extract as extract_v7
 
 SCHEMA = base.SCHEMA
 PIPE_SYSTEMS = ("CW", "W", "SW", "S", "V", "RL")
+SYSTEM_LAYER = {
+    "CW": "CW",
+    "W": "WASTE",
+    "SW": "SOIL",
+    "S": "SOIL",
+    "V": "V",
+    "RL": "RL",
+}
+SEMANTIC_PIPE_LAYERS = ("CW", "WASTE", "SOIL", "V", "RL")
+LAYER_SYSTEMS = {
+    "CW": ("CW",),
+    "WASTE": ("W",),
+    "SOIL": ("S", "SW"),
+    "V": ("V",),
+    "RL": ("RL",),
+}
 TAG_RX = re.compile(
     r'(?:Ø|DIA\.?\s*)?(?P<dia>\d+(?:-\d+/\d+|/\d+|\.\d+)?)\s*["”″]?\s*'
     r'(?P<system>CW|SW|RL|W|V|S)(?![A-Z])',
     re.IGNORECASE,
 )
-# Deliberately conservative. Family4 real drawing scales are profile-evidenced
-# from the title block because the Thai scale label's embedded font does not
-# extract as Unicode text. A naked 1:200 slope note must never become sheet scale.
+# Conservative by design. The Family4 Thai title-block scale label does not
+# extract reliably as Unicode, so real sheet scale is profile-evidenced instead.
+# A naked 1:200 slope note must never become a sheet scale.
 SCALE_RX = re.compile(r"(?i)SCALE[^\n\r]{0,40}?1\s*[:/]\s*(\d{1,4})")
+
+
+def expected_layer_for_system(system: str) -> str | None:
+    return SYSTEM_LAYER.get(str(system or "").upper())
+
+
+def normalize_layer(value: Any) -> str:
+    return str(value or "").strip().upper()
 
 
 def _point(value: Any) -> tuple[float, float]:
@@ -79,11 +108,12 @@ def _segment_key(
     width: float,
     color: tuple[float, float, float] | None,
     dash: str,
+    layer: str,
 ) -> tuple[Any, ...]:
     aa = (round(a[0], 2), round(a[1], 2))
     bb = (round(b[0], 2), round(b[1], 2))
     lo, hi = sorted((aa, bb))
-    return lo, hi, round(width, 2), color, dash
+    return lo, hi, round(width, 2), color, dash, layer
 
 
 def line_segments(
@@ -92,12 +122,12 @@ def line_segments(
     min_len_pt: float = 3.0,
     max_width_pt: float = 3.0,
 ) -> list[dict[str, Any]]:
-    """Return unique OPEN straight vector segments only.
+    """Return unique OPEN straight vector segments with preserved CAD layer.
 
     Closed paths are intentionally excluded because on sanitary sheets they are
     usually symbols, fixtures, bubbles, or frames rather than pipe centre-lines.
     Curves are withheld in v8 instead of flattening them into invented pipe runs.
-    Exact duplicate CAD strokes are counted once.
+    Exact duplicate CAD strokes are counted once inside the same layer/style.
     """
     out: list[dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
@@ -109,6 +139,8 @@ def line_segments(
             continue
         color = _color(drawing.get("color"))
         dash = _dash(drawing.get("dashes"))
+        layer_raw = str(drawing.get("layer") or "").strip()
+        layer = normalize_layer(layer_raw)
         for item in drawing.get("items") or []:
             if not item or item[0] != "l":
                 continue
@@ -116,7 +148,7 @@ def line_segments(
             length = _distance(a, b)
             if length < min_len_pt or not _inside(_midpoint(a, b), bounds):
                 continue
-            key = _segment_key(a, b, width, color, dash)
+            key = _segment_key(a, b, width, color, dash, layer)
             if key in seen:
                 continue
             seen.add(key)
@@ -127,13 +159,30 @@ def line_segments(
                 "width_pt": width,
                 "color": color,
                 "dash": dash,
+                "layer": layer,
+                "layer_raw": layer_raw,
                 "path_index": path_index,
             })
     return out
 
 
+def declared_layers(page: fitz.Page) -> set[str]:
+    return {
+        normalize_layer(drawing.get("layer"))
+        for drawing in (page.get_drawings() or [])
+        if normalize_layer(drawing.get("layer"))
+    }
+
+
 def _style(segment: dict[str, Any]) -> tuple[Any, ...]:
-    return round(float(segment["width_pt"]), 2), segment["color"], segment["dash"]
+    # Layer is part of topology identity. Two CAD systems may share line colour,
+    # width and dash but must never merge merely because they geometrically touch.
+    return (
+        segment["layer"],
+        round(float(segment["width_pt"]), 2),
+        segment["color"],
+        segment["dash"],
+    )
 
 
 def distance_point_segment(
@@ -155,11 +204,11 @@ def style_components(
     segments: list[dict[str, Any]],
     snap_pt: float = 1.5,
 ) -> tuple[list[dict[str, Any]], dict[int, int]]:
-    """Group same-style runs through shared endpoints and real T junctions.
+    """Group same-layer/style runs through shared endpoints and real T junctions.
 
-    An endpoint landing on another same-style run forms a T junction. An
-    interior/interior X crossing is NOT connected. This avoids joining two
-    systems merely because their lines cross on a plan.
+    An endpoint landing on another same-layer/style run forms a T junction. An
+    interior/interior X crossing is NOT connected. This avoids joining two runs
+    merely because their lines cross on a plan.
     """
     by_style: dict[tuple[Any, ...], list[int]] = defaultdict(list)
     for index, segment in enumerate(segments):
@@ -221,7 +270,13 @@ def style_components(
                     ys.append(point[1])
             components.append({
                 "id": component_id,
-                "style": {"width_pt": style[0], "color": style[1], "dash": style[2]},
+                "layer": style[0],
+                "style": {
+                    "layer": style[0],
+                    "width_pt": style[1],
+                    "color": style[2],
+                    "dash": style[3],
+                },
                 "segment_indexes": members,
                 "segment_count": len(members),
                 "length_pt": sum(float(segments[i]["length_pt"]) for i in members),
@@ -238,9 +293,7 @@ def parse_inches(token: str) -> float:
         return float(whole) + parse_inches(fraction)
     if "/" in value:
         numerator, denominator = value.split("/", 1)
-        # Thai CAD source writes 2 1/2 as "21/2" and 1 1/2 as "11/2".
-        # Treat a multi-digit numerator as whole-part + final numerator digit
-        # only for ordinary drawing fraction denominators.
+        # Family4 CAD text writes 2 1/2 as "21/2" and 1 1/2 as "11/2".
         if len(numerator) > 1 and denominator in {"2", "4", "8", "16"}:
             return float(numerator[:-1]) + float(numerator[-1]) / float(denominator)
         return float(numerator) / float(denominator)
@@ -258,9 +311,8 @@ def pipe_tag_anchors(
     """Read pipe size/system tags, including tags split across adjacent words.
 
     The n-gram pass can rediscover the same glyphs with surrounding words. We
-    therefore collapse same-class hits whose centres are within 8 PDF points,
-    keeping the tightest text box. This prevents '( UP ) Ø2V' from becoming
-    three apparent physical tags.
+    collapse same-class hits whose centres are within 8 PDF points, keeping the
+    tightest text box so '( UP ) Ø2V' never becomes several physical tags.
     """
     words = page.get_text("words") or []
     lines: dict[tuple[int, int], list[Any]] = defaultdict(list)
@@ -302,6 +354,7 @@ def pipe_tag_anchors(
                         "text": " ".join(str(w[4]) for w in chunk),
                         "system": system,
                         "diameter_in": diameter,
+                        "expected_layer": expected_layer_for_system(system),
                         "center_pt": center,
                         "bbox_pt": [x0, y0, x1, y1],
                     })
@@ -331,6 +384,72 @@ def scale_candidates(page: fitz.Page) -> list[int]:
     return out
 
 
+def _rank_segments(
+    tag: dict[str, Any],
+    segments: list[dict[str, Any]],
+    indexes: list[int],
+    max_distance_pt: float,
+) -> list[tuple[float, int]]:
+    ranked: list[tuple[float, int]] = []
+    for index in indexes:
+        segment = segments[index]
+        distance = distance_point_segment(tag["center_pt"], segment["a"], segment["b"])
+        if distance <= max_distance_pt:
+            ranked.append((distance, index))
+    ranked.sort(key=lambda item: (item[0], item[1]))
+    return ranked
+
+
+def _candidate_preview(
+    ranked: list[tuple[float, int]],
+    segments: list[dict[str, Any]],
+    component_by_segment: dict[int, int],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "segment_index": index,
+            "component_id": component_by_segment.get(index),
+            "distance_pt": round(distance, 2),
+            "layer": segments[index]["layer"],
+            "style": {
+                "width_pt": round(float(segments[index]["width_pt"]), 2),
+                "color": segments[index]["color"],
+                "dash": segments[index]["dash"],
+            },
+        }
+        for distance, index in ranked[:5]
+    ]
+
+
+def _semantic_layer_inventory(
+    segments: list[dict[str, Any]],
+    components: list[dict[str, Any]],
+    scales: list[int],
+    present_layers: set[str],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for layer in SEMANTIC_PIPE_LAYERS:
+        layer_segments = [segment for segment in segments if segment["layer"] == layer]
+        length_pt = sum(float(segment["length_pt"]) for segment in layer_segments)
+        row: dict[str, Any] = {
+            "layer": layer,
+            "systems": list(LAYER_SYSTEMS[layer]),
+            "declared_in_pdf": layer in present_layers,
+            "segment_count": len(layer_segments),
+            "component_count": sum(1 for component in components if component["layer"] == layer),
+            "length_pt": round(length_pt, 2),
+            "publication_status": "WITHHELD_DIAGNOSTIC_ONLY",
+            "evidence_basis": "PDF_CAD_LAYER",
+        }
+        if len(scales) == 1:
+            row["scale_ratio"] = scales[0]
+            row["length_m_candidate"] = round(length_pt / 72.0 * 0.0254 * scales[0], 3)
+        else:
+            row["length_status"] = "WITHHELD_SCALE_AMBIGUOUS" if len(scales) > 1 else "WITHHELD_SCALE_NOT_FOUND"
+        rows.append(row)
+    return rows
+
+
 def analyze_pipe_page(
     page: fitz.Page,
     page_no: int,
@@ -345,32 +464,43 @@ def analyze_pipe_page(
     segments = line_segments(page, bounds, min_len_pt, max_width_pt)
     components, component_by_segment = style_components(segments, endpoint_snap_pt)
     tags = pipe_tag_anchors(page, bounds)
+    present_layers = declared_layers(page)
 
     for tag in tags:
-        ranked: list[tuple[float, int]] = []
-        for index, segment in enumerate(segments):
-            distance = distance_point_segment(tag["center_pt"], segment["a"], segment["b"])
-            if distance <= tag_snap_max_pt:
-                ranked.append((distance, index))
-        ranked.sort(key=lambda item: item[0])
-        tag["segment_candidates"] = [
-            {
-                "segment_index": index,
-                "component_id": component_by_segment.get(index),
-                "distance_pt": round(distance, 2),
-                "style": {
-                    "width_pt": round(float(segments[index]["width_pt"]), 2),
-                    "color": segments[index]["color"],
-                    "dash": segments[index]["dash"],
-                },
-            }
-            for distance, index in ranked[:5]
-        ]
-        if ranked:
-            tag["nearest_segment"] = ranked[0][1]
-            tag["distance_pt"] = round(ranked[0][0], 2)
-            tag["component_id"] = component_by_segment.get(ranked[0][1])
-            tag["association_status"] = "NEAREST_VECTOR_CANDIDATE_NOT_PROVEN_PIPE"
+        expected_layer = tag.get("expected_layer")
+        semantic_layer_present = bool(expected_layer and expected_layer in present_layers)
+        if semantic_layer_present:
+            indexes = [i for i, segment in enumerate(segments) if segment["layer"] == expected_layer]
+            ranked = _rank_segments(tag, segments, indexes, tag_snap_max_pt)
+            tag["association_basis"] = "PDF_CAD_LAYER"
+            tag["semantic_layer_present"] = True
+            tag["segment_candidates"] = _candidate_preview(ranked, segments, component_by_segment)
+            if ranked:
+                nearest = ranked[0]
+                tag["nearest_segment"] = nearest[1]
+                tag["distance_pt"] = round(nearest[0], 2)
+                tag["component_id"] = component_by_segment.get(nearest[1])
+                tag["associated_layer"] = segments[nearest[1]]["layer"]
+                tag["association_status"] = "ASSOCIATED_BY_PDF_CAD_LAYER"
+            else:
+                tag["association_status"] = "WITHHELD_NO_SEMANTIC_LAYER_SEGMENT_NEAR_TAG"
+        else:
+            # This fallback exists for genuinely unlayered PDFs and synthetic
+            # fixtures only. If the source declares the semantic layer, an
+            # arbitrary nearby architectural/grid line is never substituted.
+            ranked = _rank_segments(tag, segments, list(range(len(segments))), tag_snap_max_pt)
+            tag["association_basis"] = "UNLAYERED_PROXIMITY_FALLBACK"
+            tag["semantic_layer_present"] = False
+            tag["segment_candidates"] = _candidate_preview(ranked, segments, component_by_segment)
+            if ranked:
+                nearest = ranked[0]
+                tag["nearest_segment"] = nearest[1]
+                tag["distance_pt"] = round(nearest[0], 2)
+                tag["component_id"] = component_by_segment.get(nearest[1])
+                tag["associated_layer"] = segments[nearest[1]]["layer"]
+                tag["association_status"] = "UNLAYERED_FALLBACK_CANDIDATE"
+            else:
+                tag["association_status"] = "WITHHELD_NO_VECTOR_SEGMENT_NEAR_TAG"
 
     inferred_scales = scale_candidates(page)
     scales = [int(explicit_scale_ratio)] if explicit_scale_ratio else inferred_scales
@@ -384,15 +514,25 @@ def analyze_pipe_page(
     for component_id, component_tags in tags_by_component.items():
         component = components[component_id]
         classes = sorted({(tag["system"], float(tag["diameter_in"])) for tag in component_tags})
+        bases = sorted({str(tag.get("association_basis") or "") for tag in component_tags})
+        semantic_only = bases == ["PDF_CAD_LAYER"]
         row: dict[str, Any] = {
             "component_id": component_id,
+            "layer": component["layer"],
             "classes": [{"system": system, "diameter_in": diameter} for system, diameter in classes],
+            "association_basis": bases,
             "segment_count": component["segment_count"],
             "length_pt": round(float(component["length_pt"]), 2),
             "bbox_pt": [round(float(value), 2) for value in component["bbox_pt"]],
             "style": component["style"],
             "tag_count": len(component_tags),
-            "status": "TAG_CLASS_SINGLE_NEAREST_VECTOR_CANDIDATE" if len(classes) == 1 else "WITHHELD_CONFLICTING_TAGS",
+            "status": (
+                "SEMANTIC_LAYER_SINGLE_TAG_CLASS"
+                if len(classes) == 1 and semantic_only
+                else "UNLAYERED_SINGLE_TAG_CLASS_CANDIDATE"
+                if len(classes) == 1
+                else "WITHHELD_CONFLICTING_TAGS"
+            ),
             "publication_status": "WITHHELD_DIAGNOSTIC_ONLY",
         }
         if len(scales) == 1:
@@ -406,7 +546,7 @@ def analyze_pipe_page(
     style_summary: dict[str, dict[str, Any]] = {}
     for component in components:
         style = component["style"]
-        key = f"w={style['width_pt']}|c={style['color']}|d={style['dash']}"
+        key = f"layer={style['layer']}|w={style['width_pt']}|c={style['color']}|d={style['dash']}"
         entry = style_summary.setdefault(key, {"components": 0, "segments": 0, "length_pt": 0.0})
         entry["components"] += 1
         entry["segments"] += int(component["segment_count"])
@@ -414,16 +554,20 @@ def analyze_pipe_page(
     for entry in style_summary.values():
         entry["length_pt"] = round(entry["length_pt"], 2)
 
+    layer_inventory = _semantic_layer_inventory(segments, components, scales, present_layers)
     return {
         "page": int(page_no),
         "bounds_pt": bounds,
         "scale_candidates_from_extractable_english_text": inferred_scales,
         "effective_scale_candidates": scales,
+        "declared_layer_count": len(present_layers),
+        "semantic_layers_present": [layer for layer in SEMANTIC_PIPE_LAYERS if layer in present_layers],
         "segment_count": len(segments),
         "component_count": len(components),
         "tag_count": len(tags),
         "tags": tags,
         "candidate_components": candidate_components,
+        "layer_inventory": layer_inventory,
         "style_summary": style_summary,
     }
 
@@ -460,17 +604,19 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
             if spec.get(key) is not None:
                 analysis[key] = spec[key]
         analyses.append(analysis)
+
     result["diagnostics"].append({
         "detector": "sanitary_pipe_network_v8",
         "status": "DIAGNOSTIC_ONLY_NO_QUANTITY",
         "pages": analyses,
         "systems": list(PIPE_SYSTEMS),
+        "system_layer_map": SYSTEM_LAYER,
         "non_additive_rule": cfg.get("non_additive_rule"),
-        "note": "v8 inventories source-page vector components and nearby pipe tags. Nearest-vector association is diagnostic evidence, not proof that a segment is pipe. Overlapping schematic/plan/detail views are never summed, and no pipe BOQ length is published until view reconciliation and pipe-class attribution are validated.",
+        "note": "v8 uses preserved PDF CAD layer semantics before proximity. A tag is associated only to the expected semantic layer when that layer exists; architectural/grid lines cannot substitute for a missing nearby pipe segment. Overlapping schematic/plan/detail views are never summed, and no pipe BOQ length is published until view reconciliation plus diameter splitting are validated.",
     })
     for item in result["coverage"].get("withheld_detectors", []):
         if item.get("name") == "sanitary piping":
-            item["reason"] = "v8 now inventories source-page vector networks, scales and tag-linked candidates, but publication remains withheld because SN-04/SN-05/SN-06/SN-07 overlap and nearest-vector association is not yet proven pipe attribution"
+            item["reason"] = "v8 now inventories source-page semantic CAD layers, scales and tag-linked candidates, but publication remains withheld because SN-04/SN-05/SN-06/SN-07 overlap and connected semantic-layer networks still require diameter/view reconciliation"
     doc.close()
     return result
 
@@ -490,6 +636,7 @@ def main() -> None:
         "pipe_pages": len(diag.get("pages", [])) if diag else 0,
         "pipe_tags": sum(int(p.get("tag_count", 0)) for p in diag.get("pages", [])) if diag else 0,
         "pipe_candidates": sum(len(p.get("candidate_components", [])) for p in diag.get("pages", [])) if diag else 0,
+        "semantic_layers": sorted({layer for p in diag.get("pages", []) for layer in p.get("semantic_layers_present", [])}) if diag else [],
         "published_pipe_rows": 0,
         "output": str(args.output),
     }, ensure_ascii=False))
