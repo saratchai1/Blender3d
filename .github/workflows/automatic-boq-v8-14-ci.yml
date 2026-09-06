@@ -1,0 +1,114 @@
+name: Automatic BOQ v8.14 direct vertical CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/auto_boq_v8_14.py'
+      - 'integrations/opentakeoff/vertical_direct_branch_v8.py'
+      - 'integrations/opentakeoff/test_vertical_direct_branch_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_13.py'
+      - 'integrations/opentakeoff/vertical_level_bounds_v8.py'
+      - 'integrations/opentakeoff/test_vertical_level_bounds_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_12.py'
+      - 'integrations/opentakeoff/vertical_schematic_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_11.py'
+      - 'integrations/opentakeoff/profiles/family4.json'
+      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-v8-14-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-v8-14:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Run direct vertical and upstream regressions
+        working-directory: integrations/opentakeoff
+        run: |
+          python test_vertical_direct_branch_v8.py
+          python test_vertical_level_bounds_v8.py
+          python test_vertical_schematic_v8.py
+          python test_cross_view_system_consensus_v8.py
+          python test_strict_pipe_tags_v8.py
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Generate v8.13 control
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_13.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/v8-13-control.json
+      - name: Generate v8.14 direct vertical diagnostic
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_14.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/v8-14.json
+      - name: Assert direct branch promotion is narrow and non-publishing
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('.generated/v8-13-control.json').read_text())
+          n=json.loads(Path('.generated/v8-14.json').read_text())
+          assert c['source_policy']['reference_used_for_generation'] is False
+          assert n['source_policy']['reference_used_for_generation'] is False
+          assert len(c['rows'])==len(n['rows'])==19
+          assert not any(str(r.get('id','')).startswith('SAN-PIPE-') for r in n['rows'])
+          dc=next(d for d in c['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_13')
+          dn=next(d for d in n['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_14')
+          assert dc['reconciliation']['horizontal_diameter_gate']=='PASS'
+          assert dn['reconciliation']['horizontal_diameter_gate']=='PASS'
+          before=dc['vertical_level_bounded_reconciliation']
+          after=dn['vertical_level_bounded_reconciliation']
+          assert after['direct_branch_promoted_count']==2,after
+          promoted=after['direct_branch_promoted_runs']
+          assert all(r['system']=='W' and r['diameter_key']=='DN65' for r in promoted),promoted
+          assert all(r['classification_status']=='CANDIDATE_EXPLICIT_SINGLE_SEGMENT_VERTICAL_BRANCH' for r in promoted),promoted
+          assert all(r['direct_assignment_status']=='EXPLICIT_TAG_SEED' for r in promoted),promoted
+          assert all(len(r['segment_indexes'])==1 for r in promoted),promoted
+          assert all(r['terminal_extension_above_m']<=0.05 and r['terminal_extension_below_m']<=0.05 for r in promoted),promoted
+          rows={(r['system'],r['diameter_key']):r for r in after['candidate_rows']}
+          assert ('W','DN65') in rows,rows
+          assert 2.44 <= rows[('W','DN65')]['vertical_length_m_candidate'] <= 2.46,rows
+          # Existing validated level-bounded candidates stay unchanged.
+          assert rows[('V','DN50')]['vertical_length_m_candidate']==7.5,rows
+          assert rows[('CW','DN20')]['vertical_length_m_candidate']==6.3,rows
+          assert rows[('SW','DN100')]['vertical_length_m_candidate']==8.1,rows
+          # Terminal V pieces and non-direct/multi-segment service stubs remain withheld.
+          terminal_v=[r for r in after['withheld_runs'] if r.get('system')=='V' and float(r.get('terminal_extension_above_m',0))>0]
+          assert terminal_v,after
+          assert not any(r.get('system')=='CW' and r.get('classification_status')=='CANDIDATE_EXPLICIT_SINGLE_SEGMENT_VERTICAL_BRANCH' for r in promoted),promoted
+          assert after['withheld_run_count']==before['withheld_run_count']-2,(before,after)
+          assert after['publication_policy']=='DIAGNOSTIC_ONLY_NO_VERTICAL_PUBLICATION'
+          assert dn['reconciliation']['full_pipe_boq_publication_status'].startswith('WITHHELD_')
+          print('AUTO_BOQ_V8_14_DIRECT_VERTICAL_PASS',{
+              'direct_promoted':after['direct_branch_promoted_count'],
+              'vertical_rows':{str(k):v['vertical_length_m_candidate'] for k,v in rows.items()},
+              'remaining_withheld':after['withheld_run_count'],
+              'pipe_rows':0,
+          })
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-14-evidence
+          path: |
+            .generated/v8-13-control.json
+            .generated/v8-14.json
+          if-no-files-found: warn
+          retention-days: 30
