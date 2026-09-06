@@ -14,15 +14,16 @@ Validated automatic detectors in the current Family4 profile:
 | `ARCH-FASCIA` | vector roof outline perimeter | 45.199 m |
 | `ARCH-DOOR-D2` | door-swing radius, 0.80 m | 7 ea |
 | `ARCH-DOOR-D3` | door-swing radius, 0.70 m | 4 ea |
+| `SAN-WC-BOWL` | drawing-label template sweep on bathroom details pages 23–25 | 3 ea |
 | `SAN-BOOSTER-PUMP` | exact positioned plan label `BP` | 1 ea |
 | `SAN-WATER-METER` | exact positioned plan label `M` | 1 ea |
 | `SAN-FLOAT-VALVE` | exact positioned plan label `FLOAT` | 1 ea |
 | `ELEC-DOWNLIGHT` | electrical legend template sweep | 37 ea |
 | `ELEC-T8-LONG` | electrical legend template sweep | 1 ea |
 
-The separate official audit subset now contains ten rows across architecture, sanitary equipment and electrical. Nine are detected, giving **90% coverage of that audit subset**. All nine detected rows are within ±5%; the current mean absolute percentage error is about **0.105%**. These numbers are **not full-project BOQ accuracy**.
+The separate official audit subset now contains **11 rows** across architecture, sanitary equipment/fixtures and electrical. Ten are detected, giving **90.91% coverage of that audit subset**. All ten detected rows are within ±5%; the current mean absolute percentage error is about **0.095%**. These numbers are **not full-project BOQ accuracy**.
 
-The short T8 row and broader categories are withheld until their detectors are reliable. Current withheld registry: windows, sanitary fixtures beyond the validated equipment tags, switch/socket, floor finishes, wall area, sanitary piping and structure.
+The short T8 row and broader categories are withheld until their detectors are reliable. Current withheld registry: windows, sanitary fixtures beyond WC.1 and the validated equipment tags, switch/socket, floor finishes, wall area, sanitary piping and structure.
 
 ## Accuracy policy
 
