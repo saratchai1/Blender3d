@@ -19,28 +19,29 @@ def main():
     sample=a.root/'takeoff/demo/family4.pdf'; auto=json.loads((a.root/'takeoff/auto-boq.json').read_text()); bench=json.loads((a.root/'takeoff/auto-boq-benchmark.json').read_text())
     assert sample.stat().st_size==EXPECTED_SIZE and hashlib.sha256(sample.read_bytes()).hexdigest()==EXPECTED_SHA256
     assert auto['source_policy']['reference_used_for_generation'] is False and all(max(r['source_pages'])<=71 for r in auto['rows'])
-    assert len(auto['rows'])==6; assert bench['reference_rows']==7 and bench['detected_reference_rows']==6; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<1
+    assert len(auto['rows'])==9; assert bench['reference_rows']==10 and bench['detected_reference_rows']==9; assert bench['coverage_pct']>=90; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<0.5
+    by={r['id']:r for r in auto['rows']}; assert by['SAN-BOOSTER-PUMP']['quantity']==1 and by['SAN-WATER-METER']['quantity']==1 and by['SAN-FLOAT-VALVE']['quantity']==1
+    assert all(by[k]['source_pages']==[58] for k in ('SAN-BOOSTER-PUMP','SAN-WATER-METER','SAN-FLOAT-VALVE'))
     handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/'; evidence={'checks':[],'page_errors':[]}
     with sync_playwright() as p:
       browser=p.chromium.launch(headless=True);ctx=browser.new_context(viewport={'width':1512,'height':982},accept_downloads=True);page=ctx.new_page();page.on('pageerror',lambda e:evidence['page_errors'].append(str(e)))
       try:
-        page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='6'")
-        assert page.locator('#auto-rows-body tr').count()==6; assert page.locator('#auto-coverage').inner_text()=='85.71'; assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<1
-        assert 'หลังคาเหล็กรีดลอน' in page.locator('#auto-rows-body').inner_text(); assert '128.349' in page.locator('#auto-rows-body').inner_text(); assert '37' in page.locator('#auto-rows-body').inner_text()
-        hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))')
-        pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71
+        page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='9'")
+        assert page.locator('#auto-rows-body tr').count()==9; assert page.locator('#auto-coverage').inner_text() in ('90','90.00'); assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<0.5
+        text=page.locator('#auto-rows-body').inner_text(); assert 'หลังคาเหล็กรีดลอน' in text and '128.349' in text and '37' in text; assert 'Booster Pump' in text and 'มาตรวัดน้ำ' in text and 'Float Valve' in text
+        hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and 58 in pages
         assert page.locator('#withheld-list .withheld').count()==7
-        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders six generated rows; audit subset coverage 85.71%; all six detected rows within ±5%; evidence links never exceed drawing page 71')
+        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders nine generated rows; audit subset coverage 90%; all nine detected rows within ±5%; sanitary equipment evidence is from drawing page 58; no evidence link exceeds page 71')
         page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000);page.wait_for_timeout(1500);saved=engine.evaluate(READ_DB,'demo');pdf=saved['pdfs'][0]
         assert pdf['name']=='family4.pdf' and pdf['size']==EXPECTED_SIZE and bytes(pdf['head'])==b'%PDF-';ann=saved['annotations'];assert ann['shapes']==[] and ann['sheet_tabs']==['family4.pdf#11'];assert large_canvas(engine)
-        evidence['checks'].append('Exact Family4 PDF opens in native OpenTakeoff review canvas; no Automatic BOQ quantities are smuggled into manual shapes')
+        evidence['checks'].append('Exact Family4 PDF opens in native OpenTakeoff review canvas; Automatic BOQ rows are not injected as manual shapes')
         page.locator('[data-tab="boq"]').click();assert page.locator('#csv').is_disabled();assert page.locator('#rows').inner_text().startswith('ยังไม่มี Manual Takeoff');assert float(page.locator('#floor-total').inner_text().replace(',',''))==0
         evidence['checks'].append('Manual BOQ remains independently empty, preventing automatic/manual double counting')
         page.locator('#workspace').select_option('user');page.locator('#status[data-state="ready"]').wait_for(timeout=60000);assert page.locator('[data-tab="auto"]').is_disabled();engine=page.frames[1];own=engine.evaluate(READ_DB,'user');assert len(own['pdfs'])==0 and (own.get('annotations') is None or own['annotations']['shapes']==[])
         engine.locator('input[type="file"]').first.wait_for(state='attached',timeout=30000);target=engine.locator('input[type="file"][accept*="pdf"]').first
         if target.count()==0:target=engine.locator('input[type="file"][multiple]').first
         target.set_input_files(str(sample.resolve()));engine.locator('canvas').first.wait_for(timeout=120000);page.wait_for_timeout(2000);own=engine.evaluate(READ_DB,'user');assert any(x['name']=='family4.pdf' and x['size']==EXPECTED_SIZE for x in own['pdfs']);assert own['annotations']['shapes']==[]
-        evidence['checks'].append('User PDF upload remains isolated; Automatic tab is disabled for user PDFs until runtime extraction is implemented')
+        evidence['checks'].append('User PDF upload remains isolated; Automatic tab is disabled for arbitrary user PDFs until runtime extraction is implemented')
         page.locator('#workspace').select_option('demo');page.locator('[data-tab="auto"]').click();page.set_viewport_size({'width':390,'height':844});page.screenshot(path=str(a.out/'02-automatic-boq-mobile.png'),full_page=True);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2');assert not evidence['page_errors'],evidence['page_errors'];evidence['status']='passed'
       except Exception as e:
         evidence['status']='failed';evidence['error']=str(e);page.screenshot(path=str(a.out/'failure.png'),full_page=True);raise
