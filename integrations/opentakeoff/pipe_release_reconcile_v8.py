@@ -103,6 +103,9 @@ def build_pipe_release_candidate(
         entry['vertical_length_m'] += float(row.get('vertical_length_m_candidate') or 0.0)
         if 57 not in entry['source_pages']:
             entry['source_pages'].append(57)
+        for p in row.get('source_pages') or []:
+            if int(p) not in entry['source_pages']:
+                entry['source_pages'].append(int(p))
         sources = list(row.get('sources') or [])
         if roof_source_page is not None and any('A-06_ROOF_LEVEL' in str(source) for source in sources):
             if int(roof_source_page) not in entry['source_pages']:
