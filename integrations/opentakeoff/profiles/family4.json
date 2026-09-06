@@ -47,7 +47,9 @@
     ],
     "diagnostic_only": [
       {
-        "id":"SAN-FLOOR-DRAIN-2","token":"FD","reason":"four physical Ø2\"FD tags are readable on SN-07, but BOQ reference is five; do not count the fixture schedule row as a physical drain"
+        "id":"SAN-FLOOR-DRAIN-2","token":"FD",
+        "page_specs":[{"page":60,"bounds_pt":[40,40,650,1100]}],
+        "reason":"four physical Ø2\"FD tags are readable on SN-07, but BOQ reference is five; do not count the fixture schedule row as a physical drain"
       }
     ]
   },
