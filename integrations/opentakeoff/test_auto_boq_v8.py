@@ -43,7 +43,9 @@ def main() -> None:
     assert analysis["segment_count"] == 4, analysis
     assert analysis["component_count"] == 2, analysis
     assert analysis["tag_count"] >= 1, analysis
-    candidates = [row for row in analysis["candidate_components"] if row["status"] == "TAG_CLASS_SINGLE_NEAREST_VECTOR_CANDIDATE"]
+    # Synthetic PyMuPDF drawings have no preserved CAD layer, so v8 must expose
+    # the explicit unlayered fallback status rather than pretending layer proof.
+    candidates = [row for row in analysis["candidate_components"] if row["status"] == "UNLAYERED_SINGLE_TAG_CLASS_CANDIDATE"]
     assert candidates, analysis
     candidate = candidates[0]
     assert candidate["classes"] == [{"system": "W", "diameter_in": 2.0}], candidate
