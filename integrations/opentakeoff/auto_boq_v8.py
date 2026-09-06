@@ -4,8 +4,13 @@
 This stage deliberately does NOT publish pipe-length BOQ rows. It reads vector
 linework and nearby diameter/system tags from drawing pages only, groups open CAD
 segments by stroke style and real endpoint/T-junction connectivity, and reports
-candidate network lengths only when a single sheet scale is stated. The official
-BOQ reference remains scorer-only and is never imported here.
+candidate network lengths only when a sheet scale is evidenced. The official BOQ
+reference remains scorer-only and is never imported here.
+
+Important source-policy rule: Family4 SN-04 (vertical schematic), SN-05/SN-06
+plans, and SN-07 enlarged bathroom details overlap. Whole-view lengths from these
+views are therefore NON-ADDITIVE until a reconciliation policy has separated
+vertical risers, primary-plan runs, and detail-only branches.
 """
 from __future__ import annotations
 
@@ -23,12 +28,15 @@ import auto_boq as base
 from auto_boq_v7 import extract as extract_v7
 
 SCHEMA = base.SCHEMA
-PIPE_SYSTEMS = ("CW", "W", "SW", "V", "RL")
+PIPE_SYSTEMS = ("CW", "W", "SW", "S", "V", "RL")
 TAG_RX = re.compile(
     r'(?:Ø|DIA\.?\s*)?(?P<dia>\d+(?:-\d+/\d+|/\d+|\.\d+)?)\s*["”″]?\s*'
-    r'(?P<system>CW|SW|RL|W|V)(?![A-Z])',
+    r'(?P<system>CW|SW|RL|W|V|S)(?![A-Z])',
     re.IGNORECASE,
 )
+# Deliberately conservative. Family4 real drawing scales are profile-evidenced
+# from the title block because the Thai scale label's embedded font does not
+# extract as Unicode text. A naked 1:200 slope note must never become sheet scale.
 SCALE_RX = re.compile(r"(?i)SCALE[^\n\r]{0,40}?1\s*[:/]\s*(\d{1,4})")
 
 
@@ -59,16 +67,23 @@ def _color(value: Any) -> tuple[float, float, float] | None:
     return tuple(round(float(x), 3) for x in value[:3])
 
 
+def _dash(value: Any) -> str:
+    if value in (None, "", []):
+        return "solid"
+    return str(value).strip() or "solid"
+
+
 def _segment_key(
     a: tuple[float, float],
     b: tuple[float, float],
     width: float,
     color: tuple[float, float, float] | None,
+    dash: str,
 ) -> tuple[Any, ...]:
     aa = (round(a[0], 2), round(a[1], 2))
     bb = (round(b[0], 2), round(b[1], 2))
     lo, hi = sorted((aa, bb))
-    return lo, hi, round(width, 2), color
+    return lo, hi, round(width, 2), color, dash
 
 
 def line_segments(
@@ -82,6 +97,7 @@ def line_segments(
     Closed paths are intentionally excluded because on sanitary sheets they are
     usually symbols, fixtures, bubbles, or frames rather than pipe centre-lines.
     Curves are withheld in v8 instead of flattening them into invented pipe runs.
+    Exact duplicate CAD strokes are counted once.
     """
     out: list[dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
@@ -92,6 +108,7 @@ def line_segments(
         if width > max_width_pt:
             continue
         color = _color(drawing.get("color"))
+        dash = _dash(drawing.get("dashes"))
         for item in drawing.get("items") or []:
             if not item or item[0] != "l":
                 continue
@@ -99,7 +116,7 @@ def line_segments(
             length = _distance(a, b)
             if length < min_len_pt or not _inside(_midpoint(a, b), bounds):
                 continue
-            key = _segment_key(a, b, width, color)
+            key = _segment_key(a, b, width, color, dash)
             if key in seen:
                 continue
             seen.add(key)
@@ -109,13 +126,14 @@ def line_segments(
                 "length_pt": length,
                 "width_pt": width,
                 "color": color,
+                "dash": dash,
                 "path_index": path_index,
             })
     return out
 
 
 def _style(segment: dict[str, Any]) -> tuple[Any, ...]:
-    return round(float(segment["width_pt"]), 2), segment["color"]
+    return round(float(segment["width_pt"]), 2), segment["color"], segment["dash"]
 
 
 def distance_point_segment(
@@ -139,8 +157,9 @@ def style_components(
 ) -> tuple[list[dict[str, Any]], dict[int, int]]:
     """Group same-style runs through shared endpoints and real T junctions.
 
-    An interior/interior X crossing is NOT connected. This avoids silently
-    joining two systems merely because their lines cross on a plan.
+    An endpoint landing on another same-style run forms a T junction. An
+    interior/interior X crossing is NOT connected. This avoids joining two
+    systems merely because their lines cross on a plan.
     """
     by_style: dict[tuple[Any, ...], list[int]] = defaultdict(list)
     for index, segment in enumerate(segments):
@@ -177,13 +196,15 @@ def style_components(
         for i in ids:
             for endpoint in (segments[i]["a"], segments[i]["b"]):
                 key = math.floor(endpoint[0] / cell), math.floor(endpoint[1] / cell)
+                candidates: set[int] = set()
                 for gx in range(key[0] - 1, key[0] + 2):
                     for gy in range(key[1] - 1, key[1] + 2):
-                        for j in segment_grid.get((gx, gy), []):
-                            if j == i:
-                                continue
-                            if distance_point_segment(endpoint, segments[j]["a"], segments[j]["b"]) <= snap_pt:
-                                union(i, j)
+                        candidates.update(segment_grid.get((gx, gy), []))
+                for j in candidates:
+                    if j == i:
+                        continue
+                    if distance_point_segment(endpoint, segments[j]["a"], segments[j]["b"]) <= snap_pt:
+                        union(i, j)
 
         groups: dict[int, list[int]] = defaultdict(list)
         for i in ids:
@@ -200,7 +221,7 @@ def style_components(
                     ys.append(point[1])
             components.append({
                 "id": component_id,
-                "style": {"width_pt": style[0], "color": style[1]},
+                "style": {"width_pt": style[0], "color": style[1], "dash": style[2]},
                 "segment_indexes": members,
                 "segment_count": len(members),
                 "length_pt": sum(float(segments[i]["length_pt"]) for i in members),
@@ -210,21 +231,37 @@ def style_components(
 
 
 def parse_inches(token: str) -> float:
+    """Parse drawing-style inches, including Family4's run-together 21/2 form."""
     value = token.strip().replace(" ", "")
     if "-" in value:
         whole, fraction = value.split("-", 1)
         return float(whole) + parse_inches(fraction)
     if "/" in value:
         numerator, denominator = value.split("/", 1)
+        # Thai CAD source writes 2 1/2 as "21/2" and 1 1/2 as "11/2".
+        # Treat a multi-digit numerator as whole-part + final numerator digit
+        # only for ordinary drawing fraction denominators.
+        if len(numerator) > 1 and denominator in {"2", "4", "8", "16"}:
+            return float(numerator[:-1]) + float(numerator[-1]) / float(denominator)
         return float(numerator) / float(denominator)
     return float(value)
+
+
+def _box_area(box: list[float]) -> float:
+    return max(0.0, box[2] - box[0]) * max(0.0, box[3] - box[1])
 
 
 def pipe_tag_anchors(
     page: fitz.Page,
     bounds: list[float] | None = None,
 ) -> list[dict[str, Any]]:
-    """Read pipe size/system tags, including tags split across adjacent PDF words."""
+    """Read pipe size/system tags, including tags split across adjacent words.
+
+    The n-gram pass can rediscover the same glyphs with surrounding words. We
+    therefore collapse same-class hits whose centres are within 8 PDF points,
+    keeping the tightest text box. This prevents '( UP ) Ø2V' from becoming
+    three apparent physical tags.
+    """
     words = page.get_text("words") or []
     lines: dict[tuple[int, int], list[Any]] = defaultdict(list)
     for word in words:
@@ -232,8 +269,8 @@ def pipe_tag_anchors(
         line = int(word[6]) if len(word) > 6 else 0
         lines[(block, line)].append(word)
 
-    hits: list[dict[str, Any]] = []
-    seen: set[tuple[Any, ...]] = set()
+    raw_hits: list[dict[str, Any]] = []
+    seen_exact: set[tuple[Any, ...]] = set()
     for line_words in lines.values():
         line_words.sort(key=lambda w: (float(w[0]), float(w[1])))
         for start in range(len(line_words)):
@@ -258,16 +295,29 @@ def pipe_tag_anchors(
                         continue
                     system = match.group("system").upper()
                     key = (system, round(diameter, 4), round(x0, 1), round(y0, 1), round(x1, 1), round(y1, 1))
-                    if key in seen:
+                    if key in seen_exact:
                         continue
-                    seen.add(key)
-                    hits.append({
+                    seen_exact.add(key)
+                    raw_hits.append({
                         "text": " ".join(str(w[4]) for w in chunk),
                         "system": system,
                         "diameter_in": diameter,
                         "center_pt": center,
                         "bbox_pt": [x0, y0, x1, y1],
                     })
+
+    hits: list[dict[str, Any]] = []
+    for candidate in sorted(raw_hits, key=lambda hit: (_box_area(hit["bbox_pt"]), hit["bbox_pt"][1], hit["bbox_pt"][0])):
+        duplicate = False
+        for kept in hits:
+            if kept["system"] != candidate["system"] or abs(float(kept["diameter_in"]) - float(candidate["diameter_in"])) > 1e-6:
+                continue
+            if _distance(kept["center_pt"], candidate["center_pt"]) <= 8.0:
+                duplicate = True
+                break
+        if not duplicate:
+            hits.append(candidate)
+    hits.sort(key=lambda hit: (hit["bbox_pt"][1], hit["bbox_pt"][0], hit["system"], hit["diameter_in"]))
     return hits
 
 
@@ -308,6 +358,11 @@ def analyze_pipe_page(
                 "segment_index": index,
                 "component_id": component_by_segment.get(index),
                 "distance_pt": round(distance, 2),
+                "style": {
+                    "width_pt": round(float(segments[index]["width_pt"]), 2),
+                    "color": segments[index]["color"],
+                    "dash": segments[index]["dash"],
+                },
             }
             for distance, index in ranked[:5]
         ]
@@ -315,6 +370,7 @@ def analyze_pipe_page(
             tag["nearest_segment"] = ranked[0][1]
             tag["distance_pt"] = round(ranked[0][0], 2)
             tag["component_id"] = component_by_segment.get(ranked[0][1])
+            tag["association_status"] = "NEAREST_VECTOR_CANDIDATE_NOT_PROVEN_PIPE"
 
     inferred_scales = scale_candidates(page)
     scales = [int(explicit_scale_ratio)] if explicit_scale_ratio else inferred_scales
@@ -336,12 +392,13 @@ def analyze_pipe_page(
             "bbox_pt": [round(float(value), 2) for value in component["bbox_pt"]],
             "style": component["style"],
             "tag_count": len(component_tags),
-            "status": "UNAMBIGUOUS_TAG_CLASS" if len(classes) == 1 else "WITHHELD_CONFLICTING_TAGS",
+            "status": "TAG_CLASS_SINGLE_NEAREST_VECTOR_CANDIDATE" if len(classes) == 1 else "WITHHELD_CONFLICTING_TAGS",
+            "publication_status": "WITHHELD_DIAGNOSTIC_ONLY",
         }
         if len(scales) == 1:
             ratio = scales[0]
             row["scale_ratio"] = ratio
-            row["length_m"] = round(float(component["length_pt"]) / 72.0 * 0.0254 * ratio, 3)
+            row["length_m_candidate"] = round(float(component["length_pt"]) / 72.0 * 0.0254 * ratio, 3)
         else:
             row["length_status"] = "WITHHELD_SCALE_AMBIGUOUS" if len(scales) > 1 else "WITHHELD_SCALE_NOT_FOUND"
         candidate_components.append(row)
@@ -349,7 +406,7 @@ def analyze_pipe_page(
     style_summary: dict[str, dict[str, Any]] = {}
     for component in components:
         style = component["style"]
-        key = f"w={style['width_pt']}|c={style['color']}"
+        key = f"w={style['width_pt']}|c={style['color']}|d={style['dash']}"
         entry = style_summary.setdefault(key, {"components": 0, "segments": 0, "length_pt": 0.0})
         entry["components"] += 1
         entry["segments"] += int(component["segment_count"])
@@ -360,7 +417,7 @@ def analyze_pipe_page(
     return {
         "page": int(page_no),
         "bounds_pt": bounds,
-        "scale_candidates": inferred_scales,
+        "scale_candidates_from_extractable_english_text": inferred_scales,
         "effective_scale_candidates": scales,
         "segment_count": len(segments),
         "component_count": len(components),
@@ -389,7 +446,7 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
     analyses: list[dict[str, Any]] = []
     for spec in page_specs:
         page_no = int(spec["page"])
-        analyses.append(analyze_pipe_page(
+        analysis = analyze_pipe_page(
             guarded.page(page_no),
             page_no,
             bounds=spec.get("bounds_pt"),
@@ -398,17 +455,22 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
             endpoint_snap_pt=float(cfg.get("endpoint_snap_pt", 1.5)),
             tag_snap_max_pt=float(cfg.get("tag_snap_max_pt", 30.0)),
             explicit_scale_ratio=int(spec["scale_ratio"]) if spec.get("scale_ratio") else None,
-        ))
+        )
+        for key in ("sheet", "view_role", "scale_evidence", "contribution_policy"):
+            if spec.get(key) is not None:
+                analysis[key] = spec[key]
+        analyses.append(analysis)
     result["diagnostics"].append({
         "detector": "sanitary_pipe_network_v8",
         "status": "DIAGNOSTIC_ONLY_NO_QUANTITY",
         "pages": analyses,
         "systems": list(PIPE_SYSTEMS),
-        "note": "v8 groups source-page vector pipe candidates by stroke style and real endpoint/T-junction connectivity. No pipe BOQ length is published until components, scale, and diameter/system attribution are validated against drawing evidence.",
+        "non_additive_rule": cfg.get("non_additive_rule"),
+        "note": "v8 inventories source-page vector components and nearby pipe tags. Nearest-vector association is diagnostic evidence, not proof that a segment is pipe. Overlapping schematic/plan/detail views are never summed, and no pipe BOQ length is published until view reconciliation and pipe-class attribution are validated.",
     })
     for item in result["coverage"].get("withheld_detectors", []):
         if item.get("name") == "sanitary piping":
-            item["reason"] = "v8 now inventories vector network components and tag-linked candidate lengths, but publication remains withheld until sheet-scale and system/diameter attribution are validated"
+            item["reason"] = "v8 now inventories source-page vector networks, scales and tag-linked candidates, but publication remains withheld because SN-04/SN-05/SN-06/SN-07 overlap and nearest-vector association is not yet proven pipe attribution"
     doc.close()
     return result
 
@@ -427,6 +489,8 @@ def main() -> None:
         "rows": len(result["rows"]),
         "pipe_pages": len(diag.get("pages", [])) if diag else 0,
         "pipe_tags": sum(int(p.get("tag_count", 0)) for p in diag.get("pages", [])) if diag else 0,
+        "pipe_candidates": sum(len(p.get("candidate_components", [])) for p in diag.get("pages", [])) if diag else 0,
+        "published_pipe_rows": 0,
         "output": str(args.output),
     }, ensure_ascii=False))
 
