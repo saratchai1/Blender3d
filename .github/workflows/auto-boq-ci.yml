@@ -55,14 +55,16 @@ jobs:
           assert g['source_policy']['reference_used_for_generation'] is False
           assert g['source_policy']['drawing_pages']==[1,71]
           assert all(max(r['source_pages']) <= 71 for r in g['rows'])
-          assert len(g['rows']) == 10
+          assert len(g['rows']) == 12
           by={r['id']:r for r in g['rows']}
           assert by['SAN-WC-BOWL']['quantity']==3 and by['SAN-WC-BOWL']['source_pages']==[23,24,25]
+          assert by['SAN-LAVATORY']['quantity']==3 and by['SAN-LAVATORY']['source_pages']==[23,24,25]
+          assert by['SAN-SHOWER-SET']['quantity']==2 and by['SAN-SHOWER-SET']['source_pages']==[24,25]
           assert b['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ'
-          assert b['reference_rows']==11 and b['detected_reference_rows']==10
-          assert b['coverage_pct']>=90.9
+          assert b['reference_rows']==13 and b['detected_reference_rows']==12
+          assert b['coverage_pct']>=92.3
           assert b['detected_rows_accuracy_pct']==100
-          assert b['mean_absolute_error_pct'] < 0.5
+          assert b['mean_absolute_error_pct'] < 0.25
           print('AUTO_BOQ_CONTRACT_PASS', {'rows':len(g['rows']),'coverage':b['coverage_pct'],'mae':b['mean_absolute_error_pct']})
           PY
       - name: Retain generated quantities and score evidence
