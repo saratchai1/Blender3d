@@ -25,15 +25,24 @@ def _center(word: Any) -> tuple[float, float]:
     return ((float(word[0]) + float(word[2])) / 2.0, (float(word[1]) + float(word[3])) / 2.0)
 
 
+def _visible_center(page: fitz.Page, word: Any) -> tuple[float, float]:
+    x, y = _center(word)
+    p = fitz.Point(x, y) * page.rotation_matrix
+    return float(p.x), float(p.y)
+
+
 def _spatial_records(page: fitz.Page) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     words = list(page.get_text('words') or [])
+    visible = {id(word): _visible_center(page, word) for word in words}
     debug = []
     for word in words:
         upper = str(word[4]).upper()
         if any(token in upper for token in DEBUG_TOKENS):
+            vx, vy = visible[id(word)]
             debug.append({
                 'text': str(word[4]),
                 'bbox_pt': [round(float(v), 3) for v in word[:4]],
+                'visible_center_pt': [round(vx, 3), round(vy, 3)],
                 'block': int(word[5]) if len(word) > 5 else None,
                 'line': int(word[6]) if len(word) > 6 else None,
             })
@@ -45,15 +54,15 @@ def _spatial_records(page: fitz.Page) -> tuple[list[dict[str, Any]], list[dict[s
         anchor = next((a for a in ANCHORS if a in seed_text), None)
         if not anchor:
             continue
-        sx, sy = _center(seed)
+        sx, sy = visible[id(seed)]
         nearby = []
         for word in words:
-            wx, wy = _center(word)
-            # Family4 splits English callouts across PDF text groups; recover by
-            # same-baseline geometry rather than relying on block/line ids.
+            wx, wy = visible[id(word)]
+            # Group in human-visible page coordinates. This works even when the
+            # PDF page itself is rotated and raw text coordinates run vertically.
             if abs(wy - sy) <= 10.0 and (sx - 25.0) <= wx <= (sx + 180.0):
                 nearby.append(word)
-        nearby.sort(key=lambda w: (float(w[0]), float(w[1])))
+        nearby.sort(key=lambda w: visible[id(w)][0])
         text = ' '.join(str(w[4]) for w in nearby)
         upper = text.upper()
         name = next((n for n in VALVE_NAMES if n in upper), None)
@@ -70,7 +79,13 @@ def _spatial_records(page: fitz.Page) -> tuple[list[dict[str, Any]], list[dict[s
             min(float(w[0]) for w in nearby), min(float(w[1]) for w in nearby),
             max(float(w[2]) for w in nearby), max(float(w[3]) for w in nearby),
         ]
-        rows.append({'name': name, 'text': text, 'bbox_pt': bbox, 'diameter': normalized})
+        rows.append({
+            'name': name,
+            'text': text,
+            'bbox_pt': bbox,
+            'diameter': normalized,
+            'visible_seed_center_pt': [round(sx, 3), round(sy, 3)],
+        })
         seen_names.add(name)
     return rows, debug
 
@@ -120,6 +135,7 @@ def probe(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
         'status': 'DIAGNOSTIC_ONLY_NO_QUANTITY_CHANGE',
         'source_page': 57,
         'source_page_max': int(profile['source_page_max']),
+        'page_rotation_deg': int(page.rotation),
         'expected_layer': 'CW',
         'callouts': rows,
         'callout_count': len(rows),
@@ -142,6 +158,7 @@ def main() -> None:
     print('CW_VALVE_LEADER_PROBE_OK', json.dumps({
         'callouts': result['callout_count'],
         'associated': result['associated_count'],
+        'rotation': result['page_rotation_deg'],
         'debug_keyword_words': len(result['debug_keyword_words']),
         'output': str(args.output),
     }, ensure_ascii=False))
