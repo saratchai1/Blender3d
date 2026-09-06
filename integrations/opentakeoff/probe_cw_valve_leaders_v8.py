@@ -58,8 +58,6 @@ def _spatial_records(page: fitz.Page) -> tuple[list[dict[str, Any]], list[dict[s
         nearby = []
         for word in words:
             wx, wy = visible[id(word)]
-            # Group in human-visible page coordinates. This works even when the
-            # PDF page itself is rotated and raw text coordinates run vertically.
             if abs(wy - sy) <= 10.0 and (sx - 25.0) <= wx <= (sx + 180.0):
                 nearby.append(word)
         nearby.sort(key=lambda w: visible[id(w)][0])
@@ -96,6 +94,7 @@ def probe(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
     doc = fitz.open(pdf_path)
     guarded = base.GuardedPdf(doc, int(profile['source_page_max']))
     page = guarded.page(57)
+    page_rotation = int(page.rotation)
     segments = v8.line_segments(
         page, None,
         float(cfg.get('min_segment_pt', 3.0)),
@@ -135,7 +134,7 @@ def probe(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
         'status': 'DIAGNOSTIC_ONLY_NO_QUANTITY_CHANGE',
         'source_page': 57,
         'source_page_max': int(profile['source_page_max']),
-        'page_rotation_deg': int(page.rotation),
+        'page_rotation_deg': page_rotation,
         'expected_layer': 'CW',
         'callouts': rows,
         'callout_count': len(rows),
