@@ -2,8 +2,9 @@
 """v7 extension: count repeated sanitary drawing tags from drawing pages only.
 
 The module wraps v6. It never imports or opens the benchmark reference. New
-quantities are derived from visible plan tags such as FD/FCO/RFD/AVC/CO on
-sanitary drawing sheets. Per-page ROIs exclude legends/schedules where needed.
+quantities are derived from visible plan tags such as FCO/RFD/AVC/CO on sanitary
+drawing sheets. Ambiguous tags such as FD can be retained as diagnostics without
+publishing a BOQ quantity.
 """
 from __future__ import annotations
 
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 import fitz
-import numpy as np
 
 import auto_boq as base
 from auto_boq_v6 import extract as extract_v6
@@ -36,8 +36,8 @@ def count_positioned_tag(
 ) -> list[dict[str, Any]]:
     """Find token as an alpha tag inside positioned PDF words.
 
-    A negative/positive alpha boundary makes FD not match RFD and CO not match
-    FCO. Tokens can still be embedded in strings such as Ø2\"FD or RFD+RL.
+    Alpha boundaries make FD not match RFD and CO not match FCO. Tokens may be
+    embedded in dimension strings such as Ø2\"FD or Ø2\"V+AVC.
     """
     token = token.upper().strip()
     rx = re.compile(rf"(?<![A-Z]){re.escape(token)}(?![A-Z])")
@@ -112,6 +112,19 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
         ))
         existing.add(detector["id"])
 
+    for detector in cfg.get("diagnostic_only", []):
+        page_specs = detector.get("page_specs", [])
+        hits = count_positioned_tag(guarded, detector["token"], page_specs) if page_specs else []
+        result["diagnostics"].append({
+            "detector": f"positioned_tag_diagnostic:{detector['id']}",
+            "token": detector["token"],
+            "pages": [int(x["page"]) for x in page_specs],
+            "detections": len(hits),
+            "status": "WITHHELD_DIAGNOSTIC_ONLY",
+            "reason": detector.get("reason", "not validated for publication"),
+            "hits": hits,
+        })
+
     inv_pages = [int(p) for p in cfg.get("pipe_tag_inventory_pages", [])]
     if inv_pages:
         result["diagnostics"].append({
@@ -130,7 +143,7 @@ def extract(pdf_path: Path, profile_path: Path) -> dict[str, Any]:
             item["reason"] = "diameter/system tags are inventoried in v7, but network-line tracing and length reconciliation are still under validation"
         if item.get("name") == "sanitary fixtures beyond validated bathroom accessories":
             item["name"] = "sanitary fixtures/accessories beyond validated tags"
-            item["reason"] = "soap/floor faucets/valves still need stable fingerprints before publication"
+            item["reason"] = "floor drain remains unresolved at 4 explicit drawing tags versus 5 BOQ reference; soap/floor faucets/valves also need stable fingerprints"
 
     doc.close()
     return result
