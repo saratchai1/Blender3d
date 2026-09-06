@@ -43,6 +43,7 @@ jobs:
         run: |
           python test_auto_boq_v8.py
           python test_pipe_reconcile_v8.py
+          python test_fixture_schedule_v8.py
       - name: Generate v8 Automatic BOQ without reference access
         run: >-
           python integrations/opentakeoff/auto_boq_v8.py
@@ -114,7 +115,7 @@ jobs:
               'coverage_pct': bench['coverage_pct'],
           })
           PY
-      - name: Assert v8.1 non-additive reconciliation contract
+      - name: Assert v8.1 schedule and non-additive reconciliation contract
         run: |
           python - <<'PY'
           import json
@@ -128,6 +129,26 @@ jobs:
           pages = diag['pages']
           assert [p['page'] for p in pages] == [57, 58, 59, 60]
           assert all('diameter_coverage' in p and 'diameter_rows' in p for p in pages)
+
+          schedule = diag['fixture_branch_schedule']
+          assert schedule['page'] == 60 and schedule['sheet'] == 'SN-07'
+          assert schedule['status'] == 'PARSED', schedule
+          assert schedule['connection_count'] == 18, schedule
+          expected = {
+              ('WC','CW'):'DN15', ('WC','S'):'DN100', ('WC','V'):'DN50',
+              ('WC1','CW'):'DN25', ('WC1','S'):'DN100', ('WC1','V'):'DN50',
+              ('LAV','CW'):'DN15', ('LAV','V'):'DN40', ('LAV','W'):'DN50',
+              ('UR','CW'):'DN20', ('UR','S'):'DN50', ('UR','V'):'DN40',
+              ('SH','CW'):'DN15', ('C','CW'):'DN15',
+              ('SINK','CW'):'DN15', ('SINK','V'):'DN40', ('SINK','W'):'DN50',
+              ('FD','W'):'DN50',
+          }
+          got = {(r['fixture'],r['system']):r['diameter_key'] for r in schedule['rows']}
+          assert got == expected, got
+          assert schedule['publication_policy'] == 'EVIDENCE_ONLY_NO_PIPE_LENGTH_ADDITION'
+
+          probes = diag['detail_view_reconciliation']
+          assert {p['id'] for p in probes} == {'BATHROOM-1','BATHROOM-2','BATHROOM-3'}
           rec = diag['reconciliation']
           assert rec['primary_pages'] == [58, 59]
           assert rec['cross_view_policy_status'] == 'PASS_NON_ADDITIVE_BY_VIEW_ROLE'
@@ -137,7 +158,17 @@ jobs:
           assert excluded['SN-07'] == 'DETAIL_OVERLAY_EVIDENCE_ONLY'
           assert all(float(p['diameter_coverage']['total_length_pt']) > 0 for p in pages if p['page'] in (58, 59))
           print('V8_1_FAMILY4_RECONCILIATION_PASS', {
-              'normalized_tags': sum(p['tag_count'] for p in pages),
+              'schedule_connections': schedule['connection_count'],
+              'detail_probes': {
+                  p['id']: {
+                      'status': p['status'],
+                      'score': p['match'].get('match_score'),
+                      'candidates': p.get('candidate_count',0),
+                      'ambiguous': p.get('ambiguous_count',0),
+                      'unmatched': p.get('unmatched_count',0),
+                  }
+                  for p in probes
+              },
               'primary_coverage': {p['sheet']: p['diameter_coverage']['assigned_fraction'] for p in pages if p['page'] in (58, 59)},
               'horizontal_gate': rec['horizontal_diameter_gate'],
               'horizontal_candidate_rows': len(rec['horizontal_primary_rows']),
