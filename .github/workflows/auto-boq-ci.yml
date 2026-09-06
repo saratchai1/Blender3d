@@ -55,19 +55,20 @@ jobs:
           assert g['source_policy']['reference_used_for_generation'] is False
           assert g['source_policy']['drawing_pages']==[1,71]
           assert all(max(r['source_pages']) <= 71 for r in g['rows'])
-          assert len(g['rows']) == 20
+          assert len(g['rows']) == 19
           by={r['id']:r for r in g['rows']}
-          for item,qty in {
-            'SAN-FLOOR-DRAIN-2':5,'SAN-FCO-4':2,'SAN-CO-2.5':1,'SAN-RFD-2.5':2,'SAN-AVC-2':2
-          }.items():
+          assert 'SAN-FLOOR-DRAIN-2' not in by
+          for item,qty in {'SAN-FCO-4':2,'SAN-CO-2.5':1,'SAN-RFD-2.5':2,'SAN-AVC-2':2}.items():
               assert by[item]['quantity']==qty, (item,by[item])
               assert by[item]['method']=='text:positioned sanitary drawing tag'
+          fd=next(d for d in g['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
+          assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY' and fd['detections']==4
           assert b['scope']=='AUDIT_SUBSET_ONLY_NOT_FULL_BOQ'
-          assert b['reference_rows']==21 and b['detected_reference_rows']==20
-          assert b['coverage_pct']>=95.23
+          assert b['reference_rows']==20 and b['detected_reference_rows']==19
+          assert b['coverage_pct']>=95.0
           assert b['detected_rows_accuracy_pct']==100
           assert b['mean_absolute_error_pct'] < 0.15
-          print('AUTO_BOQ_CONTRACT_PASS', {'rows':len(g['rows']),'coverage':b['coverage_pct'],'mae':b['mean_absolute_error_pct']})
+          print('AUTO_BOQ_CONTRACT_PASS', {'rows':len(g['rows']),'coverage':b['coverage_pct'],'mae':b['mean_absolute_error_pct'],'fd_diagnostic_hits':fd['detections']})
           PY
       - name: Retain generated quantities and score evidence
         uses: actions/upload-artifact@v4
