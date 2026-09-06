@@ -34,13 +34,21 @@ jobs:
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
       - name: Run v8 topology and parser unit tests
         working-directory: integrations/opentakeoff
-        run: python test_auto_boq_v8.py
+        run: |
+          python test_auto_boq_v8.py
+          python test_pipe_reconcile_v8.py
       - name: Generate v8 Automatic BOQ without reference access
         run: >-
           python integrations/opentakeoff/auto_boq_v8.py
           --pdf .generated/samples/family4.pdf
           --profile integrations/opentakeoff/profiles/family4.json
           --output .generated/auto-boq.json
+      - name: Generate v8.1 diameter reconciliation diagnostics
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_1.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/auto-boq-v8-1.json
       - name: Re-run leak fence and existing detector regression tests
         run: >-
           python integrations/opentakeoff/test_auto_boq.py
@@ -94,12 +102,43 @@ jobs:
               'coverage_pct': bench['coverage_pct'],
           })
           PY
+      - name: Assert v8.1 non-additive reconciliation contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path('.generated/auto-boq-v8-1.json').read_text())
+          assert result['source_policy']['reference_used_for_generation'] is False
+          assert not any(row['id'].startswith('SAN-PIPE-') for row in result['rows'])
+          diag = next(d for d in result['diagnostics'] if d.get('detector') == 'sanitary_pipe_network_v8_1')
+          assert diag['status'] == 'DIAGNOSTIC_HORIZONTAL_CANDIDATES_NO_PUBLISHED_PIPE_ROWS'
+          pages = diag['pages']
+          assert [p['page'] for p in pages] == [57, 58, 59, 60]
+          assert all('diameter_coverage' in p and 'diameter_rows' in p for p in pages)
+          rec = diag['reconciliation']
+          assert rec['primary_pages'] == [58, 59]
+          assert rec['cross_view_policy_status'] == 'PASS_NON_ADDITIVE_BY_VIEW_ROLE'
+          assert rec['full_pipe_boq_publication_status'] == 'WITHHELD_VERTICAL_AND_DETAIL_RECONCILIATION'
+          excluded = {row['sheet']: row['reason'] for row in rec['excluded_non_additive_views']}
+          assert excluded['SN-04'] == 'VERTICAL_SCHEMATIC_EVIDENCE_ONLY'
+          assert excluded['SN-07'] == 'DETAIL_OVERLAY_EVIDENCE_ONLY'
+          assert all(float(p['diameter_coverage']['total_length_pt']) > 0 for p in pages if p['page'] in (58, 59))
+          print('V8_1_FAMILY4_RECONCILIATION_PASS', {
+              'normalized_tags': sum(p['tag_count'] for p in pages),
+              'primary_coverage': {p['sheet']: p['diameter_coverage']['assigned_fraction'] for p in pages if p['page'] in (58, 59)},
+              'horizontal_gate': rec['horizontal_diameter_gate'],
+              'horizontal_candidate_rows': len(rec['horizontal_primary_rows']),
+              'published_pipe_rows': 0,
+          })
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: automatic-boq-v8-evidence
           path: |
             .generated/auto-boq.json
+            .generated/auto-boq-v8-1.json
             .generated/auto-boq-benchmark.json
           if-no-files-found: warn
           retention-days: 30
