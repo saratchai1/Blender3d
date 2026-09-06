@@ -27,6 +27,7 @@ The short T8 row and broader categories are withheld until the detector is relia
 - Every published automatic row carries `source_pages`, `method`, `confidence`, `review` and evidence.
 - Source-page guard rejects any generation attempt after page 71.
 - Reference quantities live in a different file and scorer.
+- `Automatic BOQ benchmark` CI regenerates quantities from the exact PDF before reading the reference and retains the generated JSON as evidence.
 - CI asserts known benchmark tolerances and that all generated evidence pages are <= 71.
 - Automatic output is preliminary and requires estimator review before procurement.
 
@@ -43,10 +44,10 @@ The demo uses the verified Family4 PDF. User-uploaded PDFs still open in the man
 
 ## Reproduce
 
-Requires Python 3.12+, Node 24, PyMuPDF, NumPy and OpenCV.
+Requires Python 3.12+, Node 24, PyMuPDF, NumPy and OpenCV. Install the exact detector environment from the committed requirements file:
 
 ```sh
-python -m pip install PyMuPDF==1.26.4 numpy==2.2.6 opencv-python-headless==4.12.0.88
+python -m pip install -r integrations/opentakeoff/requirements-auto-boq.txt
 python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
 python integrations/opentakeoff/auto_boq.py \
   --pdf .generated/samples/family4.pdf \
@@ -62,7 +63,7 @@ python integrations/opentakeoff/score_auto_boq.py \
   --output .generated/auto-boq-benchmark.json
 ```
 
-To build the full site, checkout the pinned OpenTakeoff commit listed in `upstream.json` and run `build.py`; CI does this automatically.
+To build the full site, checkout the pinned OpenTakeoff commit listed in `upstream.json` and run `build.py`; CI does this automatically. The Pages workflow also browser-tests the generated Automatic BOQ before deployment and runs a second acceptance test against the public HTTPS site after deployment.
 
 ## Data and security
 
