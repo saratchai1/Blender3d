@@ -44,9 +44,12 @@ def main():
         hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and all(p in pages for p in (23,24,25,58,59,60))
         assert page.locator('#withheld-list .withheld').count()>=6
         page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders nineteen scored rows; audit subset coverage 95%; all detected rows within ±5%; sanitary fitting tags are evidence-backed on drawing pages 59-60; floor drain remains withheld with four explicit tags; no evidence link exceeds page 71')
-        page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000);page.wait_for_timeout(1500);saved=engine.evaluate(READ_DB,'demo');pdf=saved['pdfs'][0]
+        page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000)
+        fit=engine.locator('button').filter(has_text=re.compile(r'^\s*fit\s*$',re.I))
+        if fit.count() and fit.first.is_visible():fit.first.click()
+        page.wait_for_timeout(1500);saved=engine.evaluate(READ_DB,'demo');pdf=saved['pdfs'][0]
         assert pdf['name']=='family4.pdf' and pdf['size']==EXPECTED_SIZE and bytes(pdf['head'])==b'%PDF-';ann=saved['annotations'];assert ann['shapes']==[] and ann['sheet_tabs']==['family4.pdf#11'];assert large_canvas(engine)
-        evidence['checks'].append('Exact Family4 PDF opens in native OpenTakeoff review canvas; Automatic BOQ rows are not injected as manual shapes')
+        evidence['checks'].append('Exact Family4 PDF opens in native OpenTakeoff review canvas; Fit produces a large review surface; Automatic BOQ rows are not injected as manual shapes')
         page.locator('[data-tab="boq"]').click();assert page.locator('#csv').is_disabled();assert page.locator('#rows').inner_text().startswith('ยังไม่มี Manual Takeoff');assert float(page.locator('#floor-total').inner_text().replace(',',''))==0
         evidence['checks'].append('Manual BOQ remains independently empty, preventing automatic/manual double counting')
         page.locator('#workspace').select_option('user');page.locator('#status[data-state="ready"]').wait_for(timeout=60000);assert page.locator('[data-tab="auto"]').is_disabled();engine=page.frames[1];own=engine.evaluate(READ_DB,'user');assert len(own['pdfs'])==0 and (own.get('annotations') is None or own['annotations']['shapes']==[])
