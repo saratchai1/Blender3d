@@ -4,7 +4,7 @@
   "reference_only": true,
   "generation_forbidden": true,
   "reference_page_range": [72, 95],
-  "scope_note": "Audit subset from the official BOQ, expanded across architecture, sanitary equipment and electrical. This is not the full BOQ and must never be imported by auto_boq.py.",
+  "scope_note": "Audit subset from the official BOQ, expanded across architecture, sanitary equipment/fixtures and electrical. This is not the full BOQ and must never be imported by auto_boq.py.",
   "items": [
     {"id":"ARCH-ROOF-METAL","quantity":129,"unit":"m²"},
     {"id":"ARCH-FASCIA","quantity":45,"unit":"m"},
@@ -15,6 +15,7 @@
     {"id":"ELEC-T8-SHORT","quantity":2,"unit":"ea","expected_detector_status":"WITHHELD"},
     {"id":"SAN-BOOSTER-PUMP","quantity":1,"unit":"ea"},
     {"id":"SAN-WATER-METER","quantity":1,"unit":"ea"},
-    {"id":"SAN-FLOAT-VALVE","quantity":1,"unit":"ea"}
+    {"id":"SAN-FLOAT-VALVE","quantity":1,"unit":"ea"},
+    {"id":"SAN-WC-BOWL","quantity":3,"unit":"ea"}
   ]
 }
