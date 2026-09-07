@@ -2,24 +2,30 @@ import { extractBrowserAutoBoq as extractBrowser } from './browser-auto-boq.mjs'
 import { configuredBackendUrl, tryPythonAutoBoq } from './browser-backend-runtime.mjs';
 
 const EVIDENCE_RUNTIME_EVENT = 'boq-evidence:runtime-result';
+const EVIDENCE_RUNTIME_STATE = '__BOQ_EVIDENCE_RUNTIME__';
 
 function publishEvidenceRuntime(result, { bytes, name }) {
   try {
+    const pdfBytes = bytes instanceof Uint8Array
+      ? bytes.slice()
+      : new Uint8Array(bytes || []).slice();
+    const detail = {
+      result,
+      name,
+      pdfBytes,
+      fingerprint: `${result?.document?.sha256 || ''}:${name || result?.document?.name || ''}:${pdfBytes.byteLength}`,
+    };
+    // Persist the latest runtime evidence in the page as well as emitting an
+    // event. The BOQ table is rendered immediately after extraction returns, so
+    // the viewer can recover deterministically even if the event arrived before
+    // the table's MutationObserver saw the final rows.
+    globalThis[EVIDENCE_RUNTIME_STATE] = detail;
     if (typeof globalThis?.dispatchEvent === 'function' && typeof globalThis?.CustomEvent === 'function') {
-      const pdfBytes = bytes instanceof Uint8Array
-        ? bytes.slice()
-        : new Uint8Array(bytes || []).slice();
-      globalThis.dispatchEvent(new globalThis.CustomEvent(EVIDENCE_RUNTIME_EVENT, {
-        detail: {
-          result,
-          name,
-          pdfBytes,
-        },
-      }));
+      globalThis.dispatchEvent(new globalThis.CustomEvent(EVIDENCE_RUNTIME_EVENT, { detail }));
     }
   } catch (error) {
     // Evidence UI is supplementary. Never make quantity extraction fail because
-    // a browser cannot publish the viewer event.
+    // a browser cannot publish the viewer state/event.
   }
   return result;
 }
