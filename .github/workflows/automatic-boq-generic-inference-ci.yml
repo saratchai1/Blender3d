@@ -1,0 +1,82 @@
+name: Automatic BOQ Generic PDF Inference CI
+
+on:
+  push:
+    branches:
+      - feat/generic-pdf-profile-inference
+    paths:
+      - 'integrations/opentakeoff/**'
+      - 'web/opentakeoff-poc/browser-auto-boq-hybrid*'
+      - 'web/opentakeoff-poc/browser-backend-runtime*'
+      - '.github/workflows/automatic-boq-generic-inference-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automatic-boq-generic-inference-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generic-inference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Automatic BOQ dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Compile generic runtime
+        run: >-
+          python -m py_compile
+          integrations/opentakeoff/generic_profile_inference.py
+          integrations/opentakeoff/runtime_backend.py
+          integrations/opentakeoff/runtime_server.py
+      - name: Test generic vector sanitary inference and fail-closed gates
+        working-directory: integrations/opentakeoff
+        run: python test_generic_profile_inference.py
+      - name: Test runtime/backend isolation
+        working-directory: integrations/opentakeoff
+        run: |
+          python test_runtime_backend.py
+          python test_runtime_server.py
+      - name: Test browser backend contract
+        run: node --test web/opentakeoff-poc/browser-auto-boq-hybrid.test.mjs
+      - name: Fetch verified Family4 regression PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Prove registered Family4 v8.19 remains unchanged
+        run: >-
+          python integrations/opentakeoff/runtime_backend.py
+          --pdf .generated/samples/family4.pdf
+          --output .generated/generic-ci/family4.json
+      - name: Assert Family4 profile still wins before generic inference
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out=json.loads(Path('.generated/generic-ci/family4.json').read_text())
+          pipes=[r for r in out['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')]
+          assert out['runtime_status']=='PUBLISHED_VALIDATED_PROFILE_BOQ',out
+          assert out['runtime_profile']=='family4-v8.19',out
+          assert len(out['rows'])==27,len(out['rows'])
+          assert len(pipes)==8,len(pipes)
+          assert abs(sum(float(r['quantity']) for r in pipes)-92.5)<1e-6,pipes
+          assert out['source_policy']['reference_used_for_generation'] is False
+          print('GENERIC_INFERENCE_FAMILY4_REGRESSION_PASS', {'rows':27,'pipe_rows':8,'pipe_total_m':92.5})
+          PY
+      - name: Retain generic inference evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automatic-boq-generic-inference
+          path: .generated/generic-ci/
+          if-no-files-found: warn
+          retention-days: 30
