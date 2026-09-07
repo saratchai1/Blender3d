@@ -5,6 +5,7 @@ on:
     branches:
       - feat/auto-boq-live-backend
       - main
+      - ci/render-exact-evidence-gate
     paths:
       - 'integrations/opentakeoff/runtime_backend.py'
       - 'integrations/opentakeoff/runtime_server.py'
@@ -41,7 +42,7 @@ jobs:
       - name: Install pinned Automatic BOQ dependencies
         run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements.txt
 
-      - name: Test profile, generic inference and HTTP contract
+      - name: Test profile, generic inference, single-flight concurrency and HTTP contract
         run: |
           python integrations/opentakeoff/test_runtime_backend.py
           python integrations/opentakeoff/test_runtime_server.py
@@ -50,11 +51,11 @@ jobs:
       - name: Fetch verified Family4 benchmark PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
 
-      - name: Start guarded HTTP runtime
+      - name: Start guarded single-flight HTTP runtime
         env:
           PORT: '8765'
           BOQ_ALLOWED_ORIGINS: 'https://saratchai1.github.io'
-          BOQ_MAX_CONCURRENT_JOBS: '2'
+          BOQ_MAX_CONCURRENT_JOBS: '1'
         run: |
           set -euo pipefail
           mkdir -p .generated/live-backend-qa
@@ -79,6 +80,8 @@ jobs:
           assert value['registered_profiles']==1,value
           assert value['fail_closed_unknown_profiles'] is True,value
           assert value['max_upload_bytes']==30*1024*1024,value
+          assert value['max_concurrent_jobs']==1,value
+          assert value['concurrency_policy']=='SINGLE_FLIGHT_FAIL_CLOSED_RETRYABLE_429',value
           print('AUTO_BOQ_HTTP_HEALTH_PASS',value)
           PY
 
@@ -101,7 +104,8 @@ jobs:
           assert abs(sum(float(r['quantity']) for r in pipes)-92.5)<1e-6
           assert value['source_policy']['reference_used_for_generation'] is False
           assert all(max(r.get('source_pages') or [0])<=71 for r in value['rows'])
-          print('AUTO_BOQ_HTTP_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5})
+          assert all((r.get('evidence') or {}).get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED' for r in pipes),pipes
+          print('AUTO_BOQ_HTTP_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5,'exact_geometry':True})
           PY
 
       - name: Verify modified Family4 cannot borrow validated profile and fails closed through generic inference
