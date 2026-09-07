@@ -14,6 +14,7 @@ RUNTIME_MODULES = (
     "browser-auto-boq-hybrid.mjs",
     "browser-backend-runtime.mjs",
     "evidence-viewer.mjs",
+    "evidence-pipe-segments.mjs",
     "evidence-bootstrap.mjs",
 )
 
@@ -129,6 +130,7 @@ def main() -> None:
         "offline_browser_fallback": True,
         "reference_data_dependency": False,
         "evidence_viewer": "PDFJS_SOURCE_DRAWING_OVERLAY_FROM_GENERATION_EVIDENCE",
+        "pipe_segment_evidence": "EXACT_RECONSTRUCTED_SOURCE_PDF_VECTOR_SEGMENTS",
     }
     (output / "browser-runtime-info.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
