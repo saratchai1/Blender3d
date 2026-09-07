@@ -1,0 +1,122 @@
+name: Automatic BOQ Render Live CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-live-backend
+    paths:
+      - '.github/workflows/automatic-boq-render-live-ci.yml'
+      - 'integrations/opentakeoff/runtime_server.py'
+      - 'integrations/opentakeoff/runtime_backend.py'
+      - 'integrations/opentakeoff/fetch_sample.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BACKEND_BASE: https://blender3d-auto-boq.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fetch verified Family4 benchmark PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+
+      - name: Verify public health endpoint and CORS
+        run: |
+          set -euo pipefail
+          mkdir -p .generated/render-live-qa
+          for i in $(seq 1 20); do
+            code=$(curl --silent --show-error --output .generated/render-live-qa/health.json \
+              --write-out '%{http_code}' \
+              -H 'Origin: https://saratchai1.github.io' \
+              "$BACKEND_BASE/health" || true)
+            if [ "$code" = '200' ]; then break; fi
+            sleep 3
+          done
+          test "$code" = '200'
+          curl --fail --silent --show-error -D .generated/render-live-qa/options-headers.txt -o /dev/null \
+            -X OPTIONS \
+            -H 'Origin: https://saratchai1.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type,x-file-name' \
+            "$BACKEND_BASE/api/auto-boq"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          health=json.loads(Path('.generated/render-live-qa/health.json').read_text())
+          headers=Path('.generated/render-live-qa/options-headers.txt').read_text().lower()
+          assert health['status']=='ok',health
+          assert health['engine']=='v8.19-profile-gated',health
+          assert health['registered_profiles']==1,health
+          assert health['fail_closed_unknown_profiles'] is True,health
+          assert 'access-control-allow-origin: https://saratchai1.github.io' in headers,headers
+          assert 'access-control-allow-methods: post, options' in headers,headers
+          print('RENDER_PUBLIC_HEALTH_CORS_PASS',health)
+          PY
+
+      - name: POST Family4 through public Render endpoint
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H 'Content-Type: application/pdf' \
+            -H 'X-File-Name: family4.pdf' \
+            -H 'Origin: https://saratchai1.github.io' \
+            --data-binary @.generated/samples/family4.pdf \
+            "$BACKEND_BASE/api/auto-boq" \
+            > .generated/render-live-qa/family4.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          value=json.loads(Path('.generated/render-live-qa/family4.json').read_text())
+          pipes=[r for r in value.get('rows',[]) if str(r.get('id','')).startswith('SAN-PIPE-')]
+          assert value['runtime_status']=='PUBLISHED_VALIDATED_PROFILE_BOQ',value.get('runtime_status')
+          assert value['runtime_profile']=='family4-v8.19',value.get('runtime_profile')
+          assert len(value['rows'])==27,len(value['rows'])
+          assert len(pipes)==8,len(pipes)
+          assert abs(sum(float(r['quantity']) for r in pipes)-92.5)<1e-6
+          assert value['source_policy']['reference_used_for_generation'] is False
+          assert all(max(r.get('source_pages') or [0])<=71 for r in value['rows'])
+          print('RENDER_PUBLIC_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5})
+          PY
+
+      - name: Verify public unknown-profile fail closed
+        run: |
+          set -euo pipefail
+          cp .generated/samples/family4.pdf .generated/samples/changed.pdf
+          printf '\n%% changed-byte-for-profile-gate\n' >> .generated/samples/changed.pdf
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H 'Content-Type: application/pdf' \
+            -H 'X-File-Name: changed.pdf' \
+            -H 'Origin: https://saratchai1.github.io' \
+            --data-binary @.generated/samples/changed.pdf \
+            "$BACKEND_BASE/api/auto-boq" \
+            > .generated/render-live-qa/changed.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          value=json.loads(Path('.generated/render-live-qa/changed.json').read_text())
+          assert value['runtime_status']=='WITHHELD_UNREGISTERED_DRAWING_PROFILE',value
+          assert value['rows']==[],value['rows']
+          assert value['source_policy']['profile_hash_gate'] is True
+          assert value['source_policy']['reference_used_for_generation'] is False
+          print('RENDER_PUBLIC_UNKNOWN_PROFILE_FAIL_CLOSED_PASS')
+          PY
+
+      - name: Retain public Render evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automatic-boq-render-live-qa
+          path: .generated/render-live-qa/
+          if-no-files-found: warn
+          retention-days: 30
