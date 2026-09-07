@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - feat/generic-pdf-profile-inference
+      - main
     paths:
       - 'integrations/opentakeoff/**'
       - 'web/opentakeoff-poc/browser-auto-boq-hybrid*'
       - 'web/opentakeoff-poc/browser-backend-runtime*'
+      - 'web/opentakeoff-poc/poc.js'
       - '.github/workflows/automatic-boq-generic-inference-ci.yml'
   workflow_dispatch:
 
