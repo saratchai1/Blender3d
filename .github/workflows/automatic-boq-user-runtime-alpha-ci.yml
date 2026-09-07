@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/auto-boq-user-runtime-alpha
+      - feat/auto-boq-user-pipe-geometry-alpha
     paths:
       - 'web/opentakeoff-poc/**'
       - 'integrations/opentakeoff/**'
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: automatic-boq-user-runtime-alpha
+  group: automatic-boq-user-runtime-alpha-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -42,8 +43,8 @@ jobs:
           persist-credentials: false
       - name: Fetch verified Family4 PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
-      - name: Test fail-closed browser parser
-        run: node --test web/opentakeoff-poc/browser-auto-boq.test.mjs
+      - name: Test fail-closed browser parser and pipe geometry core
+        run: node --test web/opentakeoff-poc/browser-auto-boq.test.mjs web/opentakeoff-poc/browser-pipe-geometry.test.mjs
       - name: Build v8.19 OpenTakeoff POC
         run: >-
           python integrations/opentakeoff/build.py
