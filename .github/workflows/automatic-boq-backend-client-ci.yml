@@ -6,6 +6,7 @@ on:
       - feat/auto-boq-backend-client
       - feat/auto-boq-live-backend
       - ci/render-exact-evidence-gate
+      - fix/render-edge-transient-retry
     paths:
       - 'web/opentakeoff-poc/browser-auto-boq-hybrid*'
       - 'web/opentakeoff-poc/browser-backend-runtime*'
@@ -35,7 +36,7 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
-      - name: Test backend client contract including retryable 429 single-flight busy responses
+      - name: Test backend client contract including 429 and edge 502/503/504 retries
         run: node --test web/opentakeoff-poc/browser-backend-runtime.test.mjs web/opentakeoff-poc/browser-auto-boq-hybrid.test.mjs
       - name: Install Automatic BOQ dependencies
         run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
@@ -72,6 +73,7 @@ jobs:
           assert 'https://blender3d-auto-boq.onrender.com' in html,html[:1000]
           assert 'DEFAULT_BACKEND_URL' in backend
           assert 'BUSY_RETRY_ATTEMPTS' in backend
+          assert 'RETRYABLE_EDGE_STATUSES' in backend
           assert "import('./browser-auto-boq-hybrid.mjs')" in poc
           assert 'Python v8.19 backend' in poc
           assert 'Browser Runtime Alpha' in poc
@@ -79,7 +81,7 @@ jobs:
           assert len(pipe)==8
           assert abs(sum(float(r['quantity']) for r in pipe)-92.5)<1e-6
           assert auto['source_policy']['reference_used_for_generation'] is False
-          print('HYBRID_RUNTIME_PACKAGE_PASS', {'rows':27,'pipe_total_m':92.5,'default_backend':info['default_backend_url'],'busy_retry':True})
+          print('HYBRID_RUNTIME_PACKAGE_PASS', {'rows':27,'pipe_total_m':92.5,'default_backend':info['default_backend_url'],'busy_retry':True,'edge_retry':True})
           PY
       - name: Compile live/browser QA scripts
         run: python -m py_compile web/opentakeoff-poc/runtime_smoke.py web/opentakeoff-poc/live_smoke.py

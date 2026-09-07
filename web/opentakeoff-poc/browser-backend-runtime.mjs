@@ -1,7 +1,8 @@
 const STORAGE_KEY = 'blender3d.auto_boq_backend_url';
-const TIMEOUT_MS = 240000;
-const BUSY_RETRY_ATTEMPTS = 24;
+const TIMEOUT_MS = 300000;
+const BUSY_RETRY_ATTEMPTS = 45;
 const BUSY_RETRY_DELAY_MS = 3000;
+const RETRYABLE_EDGE_STATUSES = new Set([502, 503, 504]);
 export const DEFAULT_BACKEND_URL = 'https://blender3d-auto-boq.onrender.com/api/auto-boq';
 
 function cleanEndpoint(raw) {
@@ -75,6 +76,11 @@ export async function tryPythonAutoBoq({
           ? retryAfter * 1000
           : Math.max(0, Number(busyRetryDelayMs) || 0);
         await sleepImpl(delay);
+        continue;
+      }
+      if (RETRYABLE_EDGE_STATUSES.has(response.status)) {
+        if (attempt >= maxAttempts) throw new Error(`Python backend edge HTTP ${response.status} after ${attempt} attempts`);
+        await sleepImpl(Math.max(0, Number(busyRetryDelayMs) || 0));
         continue;
       }
       if (!response.ok) throw new Error(`Python backend HTTP ${response.status}`);
