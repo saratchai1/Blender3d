@@ -141,10 +141,16 @@ jobs:
         run: |
           pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
+      - name: Fetch verified Family4 PDF for live user-upload acceptance
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
       - name: Verify public Automatic BOQ and leak-proof evidence JSON
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: python web/opentakeoff-poc/live_smoke.py --url "${PAGE_URL%/}/takeoff/" --output .generated/takeoff-live-qa
+      - name: Verify public user PDF Browser Automatic Alpha
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: python web/opentakeoff-poc/runtime_live_smoke.py --url "${PAGE_URL%/}/takeoff/" --sample .generated/samples/family4.pdf --output .generated/user-runtime-live-qa
       - name: Verify public HTTPS animated WebGL remains intact
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
@@ -163,6 +169,7 @@ jobs:
           name: automatic-boq-and-cinematic-live-qa
           path: |
             .generated/takeoff-live-qa/
+            .generated/user-runtime-live-qa/
             .generated/cinematic-live-qa/
             .generated/film-live-qa/
           if-no-files-found: warn
