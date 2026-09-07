@@ -67,6 +67,7 @@ def main() -> None:
         "worker": "vendor/pdf.worker.mjs",
         "backend_policy": "PYTHON_VALIDATED_PROFILE_FIRST_BROWSER_FAIL_CLOSED_FALLBACK",
         "backend_configuration": "?boq_backend=https://.../api/auto-boq or localStorage/global runtime value",
+        "network_dependency": False,
         "reference_data_dependency": False,
     }
     (output / "browser-runtime-info.json").write_text(
