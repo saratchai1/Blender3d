@@ -56,14 +56,15 @@ export async function tryPythonAutoBoq({ endpoint, bytes, name, fetchImpl = glob
     if (result?.source_policy?.reference_used_for_generation !== false) {
       throw new Error('Python backend reference isolation failed');
     }
-    if (result?.runtime_status === 'WITHHELD_UNREGISTERED_DRAWING_PROFILE') {
-      return { status: 'WITHHELD_UNREGISTERED_DRAWING_PROFILE', result: null, backend_result: result };
+    const status = String(result?.runtime_status || 'WITHHELD_BACKEND_RESULT');
+    if (status === 'WITHHELD_UNREGISTERED_DRAWING_PROFILE' || status === 'WITHHELD_GENERIC_INFERENCE') {
+      return { status, result: null, backend_result: result };
     }
-    if (result?.runtime_status !== 'PUBLISHED_VALIDATED_PROFILE_BOQ') {
-      return { status: String(result?.runtime_status || 'WITHHELD_BACKEND_RESULT'), result: null, backend_result: result };
+    if (!['PUBLISHED_VALIDATED_PROFILE_BOQ', 'PUBLISHED_GENERIC_INFERRED_BOQ'].includes(status)) {
+      return { status, result: null, backend_result: result };
     }
     if (!Array.isArray(result.rows) || !result.rows.length) throw new Error('Python backend published status without BOQ rows');
-    return { status: 'PUBLISHED_VALIDATED_PROFILE_BOQ', result };
+    return { status, result };
   } finally {
     clearTimeout(timer);
   }
