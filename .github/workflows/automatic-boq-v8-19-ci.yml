@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/auto-boq-v8-pipe-network
+      - feat/exact-pipe-segment-evidence
     paths:
       - 'integrations/opentakeoff/auto_boq_v8_19.py'
       - 'integrations/opentakeoff/equipment_valve_corroboration_v8.py'
@@ -12,7 +13,9 @@ on:
       - 'integrations/opentakeoff/probe_cw_valve_leaders_v8.py'
       - 'integrations/opentakeoff/vertical_valve_leader_reconcile_v8.py'
       - 'integrations/opentakeoff/pipe_release_reconcile_v8.py'
+      - 'integrations/opentakeoff/pipe_segment_evidence_v8.py'
       - 'integrations/opentakeoff/pipe_publish_v8.py'
+      - 'integrations/opentakeoff/test_pipe_publish_v8.py'
       - 'integrations/opentakeoff/auto_boq_v8_15.py'
       - 'integrations/opentakeoff/profiles/family4_roof_level_evidence.json'
       - 'integrations/opentakeoff/profiles/family4.json'
@@ -59,7 +62,7 @@ jobs:
           --profile integrations/opentakeoff/profiles/family4.json
           --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
           --output .generated/v8-18-control.json
-      - name: Generate v8.19 cross-sheet corroborated BOQ
+      - name: Generate v8.19 cross-sheet corroborated BOQ with exact geometry
         run: >-
           python integrations/opentakeoff/auto_boq_v8_19.py
           --pdf .generated/samples/family4.pdf
@@ -67,7 +70,7 @@ jobs:
           --roof-evidence integrations/opentakeoff/profiles/family4_roof_level_evidence.json
           --equipment-evidence integrations/opentakeoff/profiles/family4_equipment_vertical_evidence.json
           --output .generated/v8-19.json
-      - name: Assert same quantity with stronger independent evidence
+      - name: Assert same quantity with stronger independent and exact geometry evidence
         run: |
           python - <<'PY'
           import json
@@ -88,6 +91,38 @@ jobs:
           assert set(np['SAN-PIPE-CW-DN15']['source_pages'])=={57,58},np['SAN-PIPE-CW-DN15']
           assert 13 in np['SAN-PIPE-V-DN50']['source_pages'],np['SAN-PIPE-V-DN50']
           assert all(max(r['source_pages'])<=71 for r in n['rows'])
+
+          for row_id,row in np.items():
+              e=row['evidence']
+              assert e['exact_segment_evidence_status']=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED',(row_id,e)
+              assert abs(float(e['exact_horizontal_length_m'])-float(e['horizontal_length_m']))<=0.001,(row_id,e)
+              assert abs(float(e['exact_vertical_length_m'])-float(e['vertical_length_m']))<=0.001,(row_id,e)
+              if float(e['horizontal_length_m'])>0:
+                  assert e['published_segments'],(row_id,e)
+              if float(e['vertical_length_m'])>0:
+                  assert e['published_vertical_runs'],(row_id,e)
+              for seg in e['published_segments']:
+                  assert int(seg['page'])<=71,(row_id,seg)
+                  assert seg['source_role']=='PRIMARY_PLAN_HORIZONTAL',(row_id,seg)
+                  assert float(seg['segment_length_m'])>0,(row_id,seg)
+                  for key in ('x0_pt','y0_pt','x1_pt','y1_pt','segment_index','publish_reason'):
+                      assert key in seg,(row_id,key,seg)
+              for run in e['published_vertical_runs']:
+                  assert float(run['published_vertical_length_m'])>0,(row_id,run)
+                  assert run['quantity_basis']=='RUN_LEVEL_CALIBRATED_PHYSICAL_SPAN_NOT_SUM_OF_DRAWN_STROKES',(row_id,run)
+                  assert run['source_segments'],(row_id,run)
+                  for seg in run['source_segments']:
+                      assert int(seg['page'])<=71,(row_id,seg)
+                      assert seg['source_role']=='SN-04_VERTICAL_SCHEMATIC_SOURCE_STROKE',(row_id,seg)
+                      for key in ('x0_pt','y0_pt','x1_pt','y1_pt','segment_index','publish_reason'):
+                          assert key in seg,(row_id,key,seg)
+
+          cw20=np['SAN-PIPE-CW-DN20']['evidence']
+          assert abs(float(cw20['exact_horizontal_length_m'])-19.812)<1e-9,cw20
+          assert abs(float(cw20['exact_vertical_length_m'])-6.300)<1e-9,cw20
+          assert any(int(seg['page'])==58 for seg in cw20['published_segments']),cw20
+          assert any(int(seg['page'])==57 for run in cw20['published_vertical_runs'] for seg in run['source_segments']),cw20
+
           d=next(x for x in n['diagnostics'] if x.get('detector')=='sanitary_pipe_network_v8_19')
           corroboration=d['equipment_valve_corroboration']
           assert corroboration['status']=='CORROBORATED_EQUIPMENT_VALVE_CLASS',corroboration
@@ -98,14 +133,17 @@ jobs:
           assert corroboration['nearby_main_label']=='Ø3/4"CW',corroboration
           assert corroboration['nearby_main_role']=='AUDIT_ONLY_NOT_BRANCH_SIZING_EVIDENCE',corroboration
           assert corroboration['accepted_valve_leader']['target_segment_index']==183,corroboration
-          assert d['pipe_release_candidate']['status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',d['pipe_release_candidate']
-          assert d['pipe_release_candidate']['release_blocker_count']==0,d['pipe_release_candidate']
+          release=d['pipe_release_candidate']
+          assert release['status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',release
+          assert release['release_blocker_count']==0,release
+          assert release['exact_segment_evidence_status']=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED',release
+          assert release['exact_segment_evidence_errors']==[],release
           assert d['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',d['reconciliation']
           v=d['vertical_level_bounded_reconciliation']
           promoted=v['valve_leader_promoted_runs']
           assert len(promoted)==1 and promoted[0]['segment_indexes']==[182,183,184,185,186,187],promoted
           assert promoted[0]['diameter_key']=='DN15' and promoted[0]['vertical_length_m_candidate']==1.228,promoted
-          print('AUTO_BOQ_V8_19_CROSS_SHEET_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5,'tank_branch':'DN15 1.228m','sources':[57,58]})
+          print('AUTO_BOQ_V8_19_EXACT_GEOMETRY_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5,'cw20':'19.812+6.300=26.112','exact_geometry':release['exact_segment_evidence_status']})
           PY
       - uses: actions/upload-artifact@v4
         if: always()
