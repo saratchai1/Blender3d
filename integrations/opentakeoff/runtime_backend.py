@@ -49,27 +49,31 @@ def registered_profile(path: Path) -> RuntimeProfile | None:
     return PROFILE_REGISTRY.get(sha256_path(path))
 
 
-def _withheld_unregistered(path: Path, digest: str) -> dict[str, Any]:
+def _run_generic(path: Path, digest: str) -> dict[str, Any]:
+    import generic_profile_inference as generic
+
+    result = generic.infer_generic_pdf(path)
+    if result.get('source_policy', {}).get('reference_used_for_generation') is not False:
+        raise RuntimeError('generic reference-generation isolation regression')
+    if result.get('runtime_status') == 'PUBLISHED_GENERIC_INFERRED_BOQ':
+        rows = list(result.get('rows') or [])
+        if not rows:
+            raise RuntimeError('generic runtime published status without rows')
+        return {
+            **result,
+            'runtime_engine': 'generic-vector-sanitary-v0',
+            'runtime_profile': 'generic-inferred-vector-sanitary-v0',
+            'runtime_profile_sha256_gate': None,
+            'runtime_document_sha256': digest,
+            'runtime_pipe_summary': {
+                'published_rows': len(rows),
+                'published_total_m': round(sum(float(r.get('quantity') or 0.0) for r in rows if r.get('unit') == 'm'), 3),
+            },
+        }
     return {
-        'schema': 'blender3d.auto_boq.runtime.v1',
-        'runtime_status': 'WITHHELD_UNREGISTERED_DRAWING_PROFILE',
-        'engine': None,
-        'profile': None,
-        'document': {
-            'name': path.name,
-            'sha256': digest,
-            'bytes': path.stat().st_size,
-        },
-        'rows': [],
-        'source_policy': {
-            'reference_used_for_generation': False,
-            'profile_hash_gate': True,
-            'unknown_profile_fallback': 'BROWSER_FAIL_CLOSED_RUNTIME',
-        },
-        'limitations': [
-            'No validated Python drawing profile matches this exact PDF, so the backend does not borrow Family4 page roles, detail links, roof levels, equipment evidence, or reference quantities.',
-            'Client may continue with the browser fail-closed detector; full Python pipe publication remains withheld until a drawing profile is validated or inferred and gated.',
-        ],
+        **result,
+        'runtime_document_sha256': digest,
+        'runtime_profile_sha256_gate': None,
     }
 
 
@@ -86,7 +90,7 @@ def run_registered_pdf(path: Path) -> dict[str, Any]:
     digest = sha256_path(path)
     profile = PROFILE_REGISTRY.get(digest)
     if profile is None:
-        return _withheld_unregistered(path, digest)
+        return _run_generic(path, digest)
 
     import auto_boq_v8_19 as engine
 
