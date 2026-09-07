@@ -81,14 +81,35 @@ jobs:
       - name: POST Family4 through public Render endpoint with exact source geometry
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error \
-            -X POST \
-            -H 'Content-Type: application/pdf' \
-            -H 'X-File-Name: family4.pdf' \
-            -H 'Origin: https://saratchai1.github.io' \
-            --data-binary @.generated/samples/family4.pdf \
-            "$BACKEND_BASE/api/auto-boq" \
-            > .generated/render-live-qa/family4.json
+          output=.generated/render-live-qa/family4.json
+          code=''
+          for attempt in $(seq 1 30); do
+            code=$(curl --silent --show-error \
+              --output "$output" \
+              --write-out '%{http_code}' \
+              -X POST \
+              -H 'Content-Type: application/pdf' \
+              -H 'X-File-Name: family4.pdf' \
+              -H 'Origin: https://saratchai1.github.io' \
+              --data-binary @.generated/samples/family4.pdf \
+              "$BACKEND_BASE/api/auto-boq" || true)
+            if [ "$code" = '200' ]; then
+              break
+            fi
+            if [ "$code" = '429' ]; then
+              echo "Render Automatic BOQ busy; retrying Family4 attempt $attempt/30" >&2
+              sleep 3
+              continue
+            fi
+            echo "non-retryable Render Automatic BOQ HTTP $code" >&2
+            cat "$output" >&2 || true
+            exit 1
+          done
+          if [ "$code" != '200' ]; then
+            echo "Render Automatic BOQ remained busy after 30 attempts" >&2
+            cat "$output" >&2 || true
+            exit 1
+          fi
           python - <<'PY'
           import json
           from pathlib import Path
