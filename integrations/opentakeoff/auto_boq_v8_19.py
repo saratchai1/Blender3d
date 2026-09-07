@@ -16,8 +16,10 @@ from pathlib import Path
 import fitz
 
 import auto_boq as base
+import auto_boq_v8 as v8
 import auto_boq_v8_15 as v815
 import equipment_valve_corroboration_v8 as equipment_corroboration
+import layer_topology_v8 as layer_topology
 import pipe_publish_v8 as publish
 import pipe_release_reconcile_v8 as release
 import probe_cw_valve_leaders_v8 as valve_probe
@@ -57,6 +59,90 @@ def _attach_cross_sheet_provenance(vertical: dict, corroboration: dict) -> dict:
         'valve_leader_promoted_runs':promoted,
         'equipment_valve_corroboration':corroboration,
     }
+
+
+def _attach_pipe_segment_geometry(pdf_path: Path, profile: dict, diag: dict) -> None:
+    """Attach exact source-PDF endpoints for only the segments that can support rows.
+
+    This is audit evidence, not a second takeoff calculation. Segment indexes are
+    reconstructed with the same v8.6 semantic-layer topology used by the validated
+    detector and are accepted only when segment/component counts match the stored
+    diagnostic exactly. Synthetic connector gaps are never emitted as geometry.
+    """
+    cfg=profile.get('sanitary_pipe_network') or {}
+    specs={int(s['page']):s for s in cfg.get('page_specs') or []}
+    min_segment_pt=float(cfg.get('min_segment_pt',3.0))
+    max_stroke_width_pt=float(cfg.get('max_stroke_width_pt',3.0))
+    endpoint_snap_pt=float(cfg.get('endpoint_snap_pt',1.5))
+    vertical=diag.get('vertical_level_bounded_reconciliation') or {}
+    vertical_indexes:set[int]=set()
+    for key in ('candidate_runs','direct_branch_promoted_runs','valve_leader_promoted_runs','roof_extended_runs'):
+        for run in vertical.get(key) or []:
+            vertical_indexes.update(int(i) for i in run.get('segment_indexes') or [])
+
+    doc=fitz.open(pdf_path)
+    try:
+        guarded=base.GuardedPdf(doc,int(profile['source_page_max']))
+        total_emitted=0
+        for page_diag in diag.get('pages') or []:
+            page_no=int(page_diag['page'])
+            spec=specs.get(page_no,{})
+            segments=v8.line_segments(
+                guarded.page(page_no),
+                bounds=spec.get('bounds_pt'),
+                min_len_pt=min_segment_pt,
+                max_width_pt=max_stroke_width_pt,
+            )
+            components,component_by_segment=layer_topology.layer_components(
+                segments,
+                snap_pt=endpoint_snap_pt,
+            )
+            expected_segments=int(page_diag.get('segment_count',len(segments)))
+            expected_components=int(page_diag.get('component_count',len(components)))
+            if len(segments)!=expected_segments or len(components)!=expected_components:
+                raise ValueError(
+                    f'pipe segment audit reconstruction mismatch p.{page_no}: '
+                    f'segments {len(segments)} != {expected_segments} or '
+                    f'components {len(components)} != {expected_components}'
+                )
+
+            needed:set[int]=set()
+            for assignment in page_diag.get('diameter_assignments') or []:
+                classes=assignment.get('classes') or []
+                if len(classes)==1 and not str(assignment.get('status') or '').startswith('WITHHELD'):
+                    needed.add(int(assignment['segment_index']))
+            if page_no==57:
+                needed.update(vertical_indexes)
+
+            geometry=[]
+            for index in sorted(needed):
+                if index<0 or index>=len(segments):
+                    raise ValueError(f'pipe segment audit index out of range p.{page_no}: {index}')
+                segment=segments[index]
+                geometry.append({
+                    'segment_index':index,
+                    'component_id':component_by_segment.get(index),
+                    'a_pt':[round(float(segment['a'][0]),3),round(float(segment['a'][1]),3)],
+                    'b_pt':[round(float(segment['b'][0]),3),round(float(segment['b'][1]),3)],
+                    'length_pt':round(float(segment['length_pt']),3),
+                    'layer':str(segment.get('layer') or ''),
+                    'path_index':int(segment.get('path_index') or 0),
+                    'source':'PDF_VECTOR_OPEN_STRAIGHT_SEGMENT',
+                })
+            page_diag['segment_geometry_status']='EXACT_RECONSTRUCTION_MATCH'
+            page_diag['segment_geometry']=geometry
+            page_diag['segment_geometry_count']=len(geometry)
+            total_emitted+=len(geometry)
+        diag['segment_geometry_evidence']={
+            'status':'EXACT_RECONSTRUCTION_MATCH',
+            'source':'SOURCE_PDF_VECTOR_GEOMETRY_ONLY',
+            'topology':'SEMANTIC_LAYER_ENDPOINT_T_JUNCTION',
+            'synthetic_gap_geometry_emitted':False,
+            'emitted_segment_count':total_emitted,
+            'purpose':'AUDIT_OVERLAY_ONLY_QUANTITY_UNCHANGED',
+        }
+    finally:
+        doc.close()
 
 
 def extract(
@@ -141,6 +227,7 @@ def extract(
         'The nearby Ø3/4 CW main is explicitly audit-only and cannot size the vertical valve branch. The branch length remains the SN-04 calibrated span; no plan, leader, gap, schematic-offset or detail length is added. '
         'All previous horizontal, roof, non-additive, residual-run and reference-page-fence guards remain active.'
     )
+    _attach_pipe_segment_geometry(pdf_path,profile,diag)
 
     published=publish.publish_validated_pipe_rows(result,final)
     pdiag=next((d for d in published.get('diagnostics',[]) if d.get('detector')=='sanitary_pipe_network_v8_19'),None)
@@ -170,6 +257,8 @@ def main()->None:
         'release_blockers':((diag or {}).get('pipe_release_candidate') or {}).get('release_blocker_count'),
         'published_pipe_rows':len(pipes),
         'published_pipe_total_m':round(sum(float(r.get('quantity') or 0.0) for r in pipes),3),
+        'segment_geometry_status':((diag or {}).get('segment_geometry_evidence') or {}).get('status'),
+        'segment_geometry_count':((diag or {}).get('segment_geometry_evidence') or {}).get('emitted_segment_count'),
         'output':str(args.output),
     },ensure_ascii=False))
 
