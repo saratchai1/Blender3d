@@ -97,6 +97,31 @@ test('Retry-After header controls busy delay without weakening the response chec
   assert.deepEqual(sleeps, [3000]);
 });
 
+test('transient Render edge 502/503/504 responses are retried but still require a valid final BOQ', async () => {
+  const statuses = [502, 503, 504, 200];
+  const sleeps = [];
+  let calls = 0;
+  const result = await tryPythonAutoBoq({
+    endpoint: 'https://boq.example/api/auto-boq',
+    bytes: new Uint8Array([1]),
+    busyRetryAttempts: 5,
+    busyRetryDelayMs: 11,
+    sleepImpl: async ms => { sleeps.push(ms); },
+    fetchImpl: async () => {
+      const status = statuses[calls++];
+      if (status !== 200) return response(status, { status: 'edge_error' });
+      return response(200, {
+        runtime_status: 'PUBLISHED_VALIDATED_PROFILE_BOQ',
+        source_policy: { reference_used_for_generation: false },
+        rows: [{ id: 'ok' }],
+      });
+    },
+  });
+  assert.equal(calls, 4);
+  assert.deepEqual(sleeps, [11, 11, 11]);
+  assert.equal(result.status, 'PUBLISHED_VALIDATED_PROFILE_BOQ');
+});
+
 test('non-retryable backend 500 fails immediately instead of being hidden by retry', async () => {
   let calls = 0;
   await assert.rejects(() => tryPythonAutoBoq({
