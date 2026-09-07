@@ -6,6 +6,7 @@ on:
       - feat/auto-boq-live-backend
       - ci/render-exact-evidence-gate
       - ci/render-single-flight-production-gate
+      - fix/render-edge-transient-retry
     paths:
       - '.github/workflows/automatic-boq-render-live-ci.yml'
       - 'integrations/opentakeoff/**'
@@ -86,7 +87,7 @@ jobs:
           set -euo pipefail
           output=.generated/render-live-qa/family4.json
           code=''
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 45); do
             code=$(curl --silent --show-error \
               --output "$output" \
               --write-out '%{http_code}' \
@@ -99,17 +100,24 @@ jobs:
             if [ "$code" = '200' ]; then
               break
             fi
-            if [ "$code" = '429' ]; then
-              echo "Render Automatic BOQ busy; retrying Family4 attempt $attempt/30" >&2
-              sleep 3
-              continue
-            fi
+            case "$code" in
+              429)
+                echo "Render Automatic BOQ busy; retrying Family4 attempt $attempt/45" >&2
+                sleep 3
+                continue
+                ;;
+              502|503|504)
+                echo "Render edge HTTP $code; retrying Family4 attempt $attempt/45" >&2
+                sleep 3
+                continue
+                ;;
+            esac
             echo "non-retryable Render Automatic BOQ HTTP $code" >&2
             cat "$output" >&2 || true
             exit 1
           done
           if [ "$code" != '200' ]; then
-            echo "Render Automatic BOQ remained busy after 30 attempts" >&2
+            echo "Render Automatic BOQ remained unavailable after 45 bounded attempts" >&2
             cat "$output" >&2 || true
             exit 1
           fi
