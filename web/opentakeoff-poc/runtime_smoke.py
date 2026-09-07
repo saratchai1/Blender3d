@@ -7,8 +7,8 @@ from playwright.sync_api import sync_playwright
 EXPECTED_SHA256='f6db0f85e12113b31a545a5e881a75173938e011908ba1a4491016f77b302175'
 EXPECTED_SIZE=13_058_241
 EXPECTED={
-    'Floor Cleanout Ø4"':2,
-    'Cleanout Ø2½"':1,
+    'Floor Cleanout (FCO) — size WITHHELD':2,
+    'Cleanout (CO) — size WITHHELD':1,
     'Roof Floor Drain Ø2½"':2,
     'Air Vent Cap Ø2"':2,
 }
@@ -62,13 +62,15 @@ def main():
                 cells=row.locator('td')
                 assert cells.nth(1).inner_text().strip()==str(qty),(label,cells.nth(1).inner_text())
                 assert cells.nth(6).inner_text().strip()=='—',label
+            assert 'Floor Cleanout Ø4"' not in text and 'Cleanout Ø2½"' not in text
             note=page.locator('#auto-note').inner_text()
             assert 'Browser Runtime Alpha' in note and 'reference isolation = true' in note,note
             withheld=page.locator('#withheld-list .withheld')
-            assert withheld.count()==3
+            assert withheld.count()==4
             withheld_text=page.locator('#withheld-list').inner_text()
             assert 'SAN-PIPE-LENGTH' in withheld_text
             assert 'SAN-FLOOR-DRAIN-2' in withheld_text
+            assert 'SAN-FCO/CO-SIZE' in withheld_text
             assert 'NON-EXPLICIT-BOQ' in withheld_text
             hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))')
             pages=[]
@@ -76,13 +78,14 @@ def main():
                 m=re.search(r'%23(\d+)',href)
                 if m: pages.append(int(m.group(1)))
             assert pages and max(pages)<=71,pages
+            assert set(pages).issubset({59,60}),pages
             assert not page.locator('#user-auto-json').is_disabled()
             assert page.locator('#accuracy-download').is_hidden()
             assert page.locator('#auto-json-download').is_hidden()
             page.screenshot(path=str(a.out/'user-runtime-alpha.png'),full_page=True)
-            report['checks'].append('User-uploaded Family4 is processed client-side with pinned PDF.js and returns only four explicit-tag BOQ classes: FCO/CO/RFD/AVC')
-            report['checks'].append('Floor Drain, pipe length and non-explicit BOQ remain WITHHELD; no reference quantity is loaded in user runtime')
-            report['checks'].append('All runtime evidence links remain on drawing pages <=71')
+            report['checks'].append('User-uploaded Family4 is processed client-side with pinned PDF.js: RFD/AVC retain explicit sizes while FCO/CO counts publish only with size WITHHELD')
+            report['checks'].append('Schematic/detail duplicate AVC evidence is reconciled non-additively; Floor Drain, pipe length, FCO/CO size and non-explicit BOQ remain WITHHELD')
+            report['checks'].append('No reference quantity is loaded in user runtime; all published runtime evidence links resolve only to drawing-like pages 59/60')
             report['status']='PASS'
             assert not report['page_errors'],report['page_errors']
         except Exception as exc:
