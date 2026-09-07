@@ -7,6 +7,8 @@ import os
 import threading
 from pathlib import Path
 
+import fitz
+
 import runtime_backend
 import runtime_server
 
@@ -116,9 +118,13 @@ def main() -> None:
         runtime_backend.run_registered_pdf = original_run
         with __import__("tempfile").TemporaryDirectory() as tmp:
             unknown = Path(tmp) / "unknown.pdf"
-            unknown.write_bytes(b"%PDF-1.4\n% deliberately unregistered\n")
+            doc = fitz.open()
+            page = doc.new_page()
+            page.insert_text((72, 72), "GENERAL NOTES ONLY")
+            doc.save(unknown)
+            doc.close()
             direct = runtime_backend.run_registered_pdf(unknown)
-            assert direct["runtime_status"] == "WITHHELD_UNREGISTERED_DRAWING_PROFILE"
+            assert direct["runtime_status"] == "WITHHELD_GENERIC_INFERENCE"
             assert direct["rows"] == []
             assert direct["source_policy"]["reference_used_for_generation"] is False
 
