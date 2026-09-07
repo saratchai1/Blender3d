@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - feat/auto-boq-backend-client
+      - feat/auto-boq-live-backend
     paths:
       - 'web/opentakeoff-poc/browser-auto-boq-hybrid*'
       - 'web/opentakeoff-poc/browser-backend-runtime*'
+      - 'web/opentakeoff-poc/runtime_smoke.py'
+      - 'web/opentakeoff-poc/index.html'
       - 'integrations/opentakeoff/install_browser_runtime.py'
       - '.github/workflows/automatic-boq-backend-client-ci.yml'
   workflow_dispatch:
@@ -45,7 +48,7 @@ jobs:
         run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff --demo-pdf .generated/samples/family4.pdf
       - name: Install hybrid runtime
         run: python integrations/opentakeoff/install_browser_runtime.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff
-      - name: Assert hybrid package and demo isolation
+      - name: Assert backend-first package and demo isolation
         run: |
           python - <<'PY'
           import json
@@ -54,20 +57,27 @@ jobs:
           info=json.loads((root/'browser-runtime-info.json').read_text())
           auto=json.loads((root/'auto-boq.json').read_text())
           pipe=[r for r in auto['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')]
+          html=(root/'index.html').read_text()
+          backend=(root/'browser-backend-runtime.mjs').read_text()
           assert info['runtime']=='browser-auto-boq-hybrid.mjs',info
+          assert info['network_dependency'] is True,info
+          assert info['offline_browser_fallback'] is True,info
           assert info['reference_data_dependency'] is False,info
+          assert info['default_backend_url']=='https://blender3d-auto-boq.onrender.com/api/auto-boq',info
+          assert 'https://blender3d-auto-boq.onrender.com' in html,html[:1000]
+          assert 'DEFAULT_BACKEND_URL' in backend
           assert "import('./browser-auto-boq-hybrid.mjs')" in (root/'poc.js').read_text()
           assert len(auto['rows'])==27
           assert len(pipe)==8
           assert abs(sum(float(r['quantity']) for r in pipe)-92.5)<1e-6
           assert auto['source_policy']['reference_used_for_generation'] is False
-          print('HYBRID_RUNTIME_PACKAGE_PASS', {'rows':27,'pipe_total_m':92.5})
+          print('HYBRID_RUNTIME_PACKAGE_PASS', {'rows':27,'pipe_total_m':92.5,'default_backend':info['default_backend_url']})
           PY
       - name: Install Chromium QA runtime
         run: |
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Run browser fallback QA with no backend configured
+      - name: Run deterministic browser fallback QA with backend explicitly disabled
         run: python web/opentakeoff-poc/runtime_smoke.py --root .generated/pages --out .generated/hybrid-runtime-qa
       - name: Retain evidence
         if: always()
