@@ -1,3 +1,5 @@
+import { analyzeBrowserPipeGeometry } from './browser-pipe-geometry.mjs';
+
 const TAG_RULES = [
   {
     id: 'SAN-FCO-4',
@@ -292,6 +294,17 @@ export function parseSanitaryLines(pages) {
   };
 }
 
+function pipeGeometryWithheldReason(pipeGeometry, pipeTagCount) {
+  const pages = pipeGeometry?.pages || [];
+  if (!pages.length) return `พบ explicit pipe-size/system tags ${pipeTagCount} จุด แต่ยังไม่มี primary-plan page ที่มี OCG/CAD pipe layer + scale + tag geometry ครบ จึง WITHHELD pipe length`;
+  const details = pages.map(page => {
+    const pct = Math.round(Number(page?.diameter_coverage?.assigned_fraction || 0) * 10000) / 100;
+    const scale = page?.scale?.unique_ratio ? `1:${page.scale.unique_ratio}` : page?.scale?.status || 'NO_SCALE';
+    return `p.${page.page} coverage ${pct}% / ${scale}`;
+  }).join('; ');
+  return `Browser Alpha2 trace OCG/vector pipe network แล้ว (${details}) แต่ generic pipe release ยัง WITHHELD จน primary diameter coverage ≥95%, scale ชัดเจน, tag association ไม่กำกวม และ unsupported geometry = 0`;
+}
+
 export async function extractBrowserAutoBoq({ bytes, name = 'uploaded.pdf', pdfjs, maxPages = 150 }) {
   if (!pdfjs?.getDocument) throw new Error('PDF.js runtime unavailable');
   const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
@@ -307,12 +320,25 @@ export async function extractBrowserAutoBoq({ bytes, name = 'uploaded.pdf', pdfj
     page.cleanup?.();
   }
   const parsed = parseSanitaryLines(pages);
+  let pipeGeometry;
+  try {
+    pipeGeometry = await analyzeBrowserPipeGeometry({ doc, pdfjs, pages, pageRoles: parsed.pageRoles, pipeTags: parsed.pipeTags });
+  } catch (error) {
+    pipeGeometry = {
+      detector: 'browser_pipe_geometry_alpha2',
+      status: 'WITHHELD_GEOMETRY_ANALYZER_ERROR',
+      release_status: 'WITHHELD_ALPHA2_DIAGNOSTIC_ONLY',
+      error: String(error?.message || error),
+      pages: [],
+      reference_used_for_generation: false,
+    };
+  }
   await doc.destroy?.();
 
   const withheld = [
     {
       name: 'SAN-PIPE-LENGTH',
-      reason: `พบ explicit pipe-size/system tags ${parsed.pipeTags.length} จุด แต่ Browser Runtime Alpha ยังไม่ trace vector network/scale เพื่อคำนวณความยาว จึง WITHHELD`,
+      reason: pipeGeometryWithheldReason(pipeGeometry, parsed.pipeTags.length),
     },
     {
       name: 'SAN-FLOOR-DRAIN-2',
@@ -338,6 +364,8 @@ export async function extractBrowserAutoBoq({ bytes, name = 'uploaded.pdf', pdfj
       generation_source: 'USER_UPLOADED_PDF_BROWSER_ONLY',
       release_requires_drawing_context: true,
       non_additive_cross_view_reconciliation: true,
+      generic_pipe_length_min_primary_diameter_coverage: 0.95,
+      generic_pipe_length_release_status: pipeGeometry?.release_status || 'WITHHELD',
       max_pages: maxPages,
       scanned_pages: pagesToScan,
     },
@@ -350,10 +378,11 @@ export async function extractBrowserAutoBoq({ bytes, name = 'uploaded.pdf', pdfj
       standalone_device_tokens_withheld_outside_plan_detail: parsed.withheldStandalone,
       floor_drain_detections_withheld: parsed.floorDrainEvidence,
       pipe_size_system_tags_evidence_only: parsed.pipeTags,
+      pipe_geometry_alpha2: pipeGeometry,
     },
     limitations: [
       'No OCR in Browser Runtime Alpha.',
-      'No vector-network length release yet for arbitrary user PDFs.',
+      'Alpha2 traces OCG/CAD pipe vectors on primary plan pages for diagnostics, but no arbitrary-user pipe-length row is released until the generic 95% diameter/scale/ambiguity gates pass.',
       'Standalone FCO/CO device labels do not prove a diameter; size remains WITHHELD.',
       'No benchmark quantity is imported into or available to this runtime.',
       'Rows are preliminary and require drawing review before procurement.',
