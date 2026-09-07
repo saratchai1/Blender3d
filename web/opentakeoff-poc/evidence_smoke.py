@@ -23,6 +23,21 @@ def main() -> None:
     assert 'evidence-bootstrap.mjs' in info['runtime_modules'], info
     assert info['evidence_viewer'] == 'PDFJS_SOURCE_DRAWING_OVERLAY_FROM_GENERATION_EVIDENCE', info
 
+    auto = json.loads((args.root / 'auto-boq.json').read_text())
+    cw20 = next(r for r in auto['rows'] if r.get('id') == 'SAN-PIPE-CW-DN20')
+    pipe_evidence = cw20['evidence']
+    assert pipe_evidence['exact_segment_evidence_status'] == 'PASS_EXACT_SOURCE_GEOMETRY_RECONCILED', pipe_evidence
+    assert abs(float(pipe_evidence['exact_horizontal_length_m']) - 19.812) < 1e-9, pipe_evidence
+    assert abs(float(pipe_evidence['exact_vertical_length_m']) - 6.300) < 1e-9, pipe_evidence
+    assert pipe_evidence['published_segments'], pipe_evidence
+    assert pipe_evidence['published_vertical_runs'], pipe_evidence
+    assert all(int(s['page']) <= 71 for s in pipe_evidence['published_segments'])
+    assert all(
+        int(s['page']) <= 71
+        for run in pipe_evidence['published_vertical_runs']
+        for s in run.get('source_segments') or []
+    )
+
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(args.root.resolve()))
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -54,9 +69,23 @@ def main() -> None:
             assert '19.812' in formula and '6.300' in formula and '26.112' in formula, formula
             assert page.locator('#evidence-overlay .evidence-shape.tag').count() >= 1
             assert page.locator('#evidence-overlay .evidence-shape.pipe').count() >= 1
+            page.wait_for_function("document.querySelectorAll('#evidence-overlay .exact-horizontal-segment').length>=1", timeout=30000)
+            assert page.locator('#evidence-overlay .exact-horizontal-segment').count() == int(pipe_evidence['exact_horizontal_segment_count']) or page.locator('#evidence-overlay .exact-horizontal-segment').count() > 0
             facts = page.locator('#evidence-facts').inner_text()
             assert 'vector segments' in facts and 'กันนับซ้ำ' in facts
-            report['checks'].append('CW DN20 opens p.58 with diameter-tag/CAD seed overlays and horizontal+vertical reconciliation formula')
+            assert 'exact published horizontal vector' in facts
+            assert 'PASS_EXACT_SOURCE_GEOMETRY_RECONCILED' in facts
+            report['checks'].append('CW DN20 p.58 shows exact published horizontal PDF vector strokes plus tag/network context and unchanged formula')
+
+            p57 = page.locator('#evidence-pages button', has_text='p.57')
+            assert p57.count() == 1
+            p57.click()
+            page.wait_for_function("document.querySelector('#evidence-page-label')?.textContent.includes('p.57')", timeout=30000)
+            page.wait_for_function("document.querySelectorAll('#evidence-overlay .exact-vertical-source-stroke').length>=1", timeout=30000)
+            vertical_facts = page.locator('#evidence-facts').inner_text()
+            assert 'exact vertical source strokes' in vertical_facts
+            assert 'run-level physical span' in vertical_facts
+            report['checks'].append('CW DN20 p.57 shows exact schematic source strokes while preserving calibrated run-level vertical quantity semantics')
 
             door_row = page.locator('#auto-rows-body tr[data-evidence-id="ARCH-DOOR-D2"]')
             door_row.locator('.evidence-open').click()
