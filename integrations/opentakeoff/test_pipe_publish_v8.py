@@ -17,6 +17,7 @@ def main() -> None:
         'status':'PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',
         'publication_policy':'READY_FOR_PIPE_ROW_PUBLICATION',
         'release_blocker_count':0,
+        'exact_segment_evidence_required':True,
         'exact_segment_evidence_status':'PASS_EXACT_SOURCE_GEOMETRY_RECONCILED',
         'exact_segment_evidence_contract':'test exact geometry contract',
         'excluded_non_quantity_run_count':2,
@@ -82,8 +83,17 @@ def main() -> None:
     except ValueError:
         pass
     else:
-        raise AssertionError('publisher must fail closed when exact geometry gate is absent')
-    print('PIPE_PUBLISH_V8_TEST_PASS',{'published':2,'release_fail_closed':True,'exact_geometry_fail_closed':True})
+        raise AssertionError('publisher must fail closed when required exact geometry gate is absent')
+
+    legacy_release = dict(release)
+    legacy_release.pop('exact_segment_evidence_required')
+    legacy_release.pop('exact_segment_evidence_status')
+    legacy_release['candidate_rows'] = [
+        {'system':'CW','diameter_key':'DN20','dn':20,'horizontal_length_m':1.0,'vertical_length_m':0.0,'total_length_m':1.0,'source_pages':[58],'evidence_roles':['PRIMARY_PLAN_HORIZONTAL']},
+    ]
+    legacy = publish.publish_validated_pipe_rows(base, legacy_release)
+    assert any(r.get('id')=='SAN-PIPE-CW-DN20' for r in legacy['rows']),legacy
+    print('PIPE_PUBLISH_V8_TEST_PASS',{'published':2,'release_fail_closed':True,'exact_geometry_fail_closed':True,'legacy_control_compatible':True})
 
 
 if __name__=='__main__':
