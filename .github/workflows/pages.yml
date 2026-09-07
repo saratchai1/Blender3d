@@ -46,8 +46,12 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
       - name: Fetch verified real Thai BOQ benchmark PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Test fail-closed browser parser
+        run: node --test web/opentakeoff-poc/browser-auto-boq.test.mjs
       - name: Build real OpenTakeoff plus leak-proof Automatic BOQ
         run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff --demo-pdf .generated/samples/family4.pdf
+      - name: Install pinned PDF.js user runtime
+        run: python integrations/opentakeoff/install_browser_runtime.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff
       - name: Install browser QA runtime
         run: |
           python -m pip install playwright==1.57.0
@@ -56,6 +60,8 @@ jobs:
         run: python web/office_10000sqm/tools/pages_smoke.py --root .generated/pages
       - name: Check Automatic BOQ, reference fence, native PDF review and no double counting
         run: python web/opentakeoff-poc/smoke.py --root .generated/pages
+      - name: Check focused user PDF Browser Automatic Alpha
+        run: python web/opentakeoff-poc/runtime_smoke.py --root .generated/pages --out .generated/user-runtime-qa
       - name: Check actual moving cinematic cameras, six scenes, controls and mobile WebGL
         run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
       - name: Check the completed offline MP4 player when present
@@ -68,10 +74,12 @@ jobs:
           path: |
             .generated/pages-qa/
             .generated/takeoff-qa/
+            .generated/user-runtime-qa/
             .generated/cinematic-qa/
             .generated/film-player-qa/
             .generated/pages/takeoff/auto-boq.json
             .generated/pages/takeoff/auto-boq-benchmark.json
+            .generated/pages/takeoff/browser-runtime-info.json
             .generated/pages/takeoff/build-info.json
           if-no-files-found: warn
       - name: Retain portable Automatic BOQ POC build
@@ -121,10 +129,16 @@ jobs:
         run: |
           pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
+      - name: Fetch verified Family4 PDF for live user-upload acceptance
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
       - name: Verify public Automatic BOQ and leak-proof evidence JSON
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: python web/opentakeoff-poc/live_smoke.py --url "${PAGE_URL%/}/takeoff/" --output .generated/takeoff-live-qa
+      - name: Verify public user PDF Browser Automatic Alpha
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: python web/opentakeoff-poc/runtime_live_smoke.py --url "${PAGE_URL%/}/takeoff/" --sample .generated/samples/family4.pdf --output .generated/user-runtime-live-qa
       - name: Verify public HTTPS animated WebGL remains intact
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
@@ -143,6 +157,7 @@ jobs:
           name: automatic-boq-and-cinematic-live-qa
           path: |
             .generated/takeoff-live-qa/
+            .generated/user-runtime-live-qa/
             .generated/cinematic-live-qa/
             .generated/film-live-qa/
           if-no-files-found: warn
