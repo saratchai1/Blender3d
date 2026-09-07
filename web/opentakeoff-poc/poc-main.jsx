@@ -31,6 +31,16 @@ localStore.saveAnnotations = async (payload) => {
   report(payload);
 };
 
+function transferableArrayBuffer(value) {
+  if (value instanceof ArrayBuffer) return value;
+  if (ArrayBuffer.isView(value)) {
+    const start = value.byteOffset;
+    const end = start + value.byteLength;
+    return value.buffer.slice(start, end);
+  }
+  throw new Error(`Unsupported stored PDF byte type: ${Object.prototype.toString.call(value)}`);
+}
+
 async function postCurrentPdf() {
   if (workspace !== 'user') return;
   const annotations = await localStore.loadAnnotations();
@@ -39,15 +49,16 @@ async function postCurrentPdf() {
     post('ot-poc:pdf', { pdf: null });
     return;
   }
-  const tabNames = (annotations.sheet_tabs || [])
+  const tabNames = (annotations?.sheet_tabs || [])
     .map(tab => String(tab || '').split('#')[0])
     .filter(Boolean);
   const available = new Set(sheets.map(s => s.name));
   const selectedName = [...tabNames].reverse().find(name => available.has(name)) || sheets[sheets.length - 1].name;
-  const data = await localStore.loadPdfData(selectedName);
+  const stored = await localStore.loadPdfData(selectedName);
+  const bytes = transferableArrayBuffer(stored);
   post('ot-poc:pdf', {
-    pdf: { name: selectedName, bytes: data, byteLength: data.byteLength },
-  }, [data.buffer]);
+    pdf: { name: selectedName, bytes, byteLength: bytes.byteLength },
+  }, [bytes]);
 }
 
 window.addEventListener('message', async (event) => {
