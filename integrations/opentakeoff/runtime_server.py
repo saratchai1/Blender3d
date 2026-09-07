@@ -16,7 +16,12 @@ import runtime_backend
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8080
 DEFAULT_ALLOWED_ORIGINS = "https://saratchai1.github.io"
-DEFAULT_MAX_CONCURRENT_JOBS = 2
+# PyMuPDF/OpenCV-heavy detector execution is intentionally single-flight.
+# Concurrent v8.19 runs in one Python process can corrupt detector state and have
+# previously produced a validated-profile regression (19 rows / 0 pipe rows).
+# Accuracy is more important than parallel throughput, so additional requests
+# fail closed as retryable 429 instead of entering the engine concurrently.
+DEFAULT_MAX_CONCURRENT_JOBS = 1
 PDF_CONTENT_TYPES = {"application/pdf", "application/octet-stream"}
 _FILENAME_RX = re.compile(r"[^A-Za-z0-9._()\- ]+")
 
@@ -43,8 +48,9 @@ class AutoBoqServer(ThreadingHTTPServer):
 
     def __init__(self, server_address: tuple[str, int], handler_cls: type[BaseHTTPRequestHandler]):
         super().__init__(server_address, handler_cls)
-        max_jobs = int(os.environ.get("BOQ_MAX_CONCURRENT_JOBS", DEFAULT_MAX_CONCURRENT_JOBS))
-        self.job_slots = threading.BoundedSemaphore(max(1, max_jobs))
+        max_jobs = max(1, int(os.environ.get("BOQ_MAX_CONCURRENT_JOBS", DEFAULT_MAX_CONCURRENT_JOBS)))
+        self.max_concurrent_jobs = max_jobs
+        self.job_slots = threading.BoundedSemaphore(max_jobs)
         self.allowed_origins = _allowed_origins()
 
 
@@ -69,6 +75,8 @@ class AutoBoqHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if status == HTTPStatus.TOO_MANY_REQUESTS:
+            self.send_header("Retry-After", "3")
         if cors:
             origin = self._origin()
             if origin and origin in self.server.allowed_origins:
@@ -118,6 +126,8 @@ class AutoBoqHandler(BaseHTTPRequestHandler):
                 "registered_profiles": len(runtime_backend.PROFILE_REGISTRY),
                 "generic_inference": "vector-sanitary-v0",
                 "max_upload_bytes": runtime_backend.MAX_UPLOAD_BYTES,
+                "max_concurrent_jobs": self.server.max_concurrent_jobs,
+                "concurrency_policy": "SINGLE_FLIGHT_FAIL_CLOSED_RETRYABLE_429",
                 "fail_closed_unknown_profiles": True,
             },
         )
@@ -163,7 +173,13 @@ class AutoBoqHandler(BaseHTTPRequestHandler):
         if not self.server.job_slots.acquire(blocking=False):
             self._send_json(
                 HTTPStatus.TOO_MANY_REQUESTS,
-                {"status": "error", "error": "server_busy", "retryable": True},
+                {
+                    "status": "error",
+                    "error": "server_busy",
+                    "retryable": True,
+                    "retry_after_seconds": 3,
+                    "concurrency_policy": "SINGLE_FLIGHT_FAIL_CLOSED_RETRYABLE_429",
+                },
             )
             return
 
@@ -214,6 +230,8 @@ def main() -> None:
                 "port": server.server_port,
                 "allowed_origins": sorted(server.allowed_origins),
                 "max_upload_bytes": runtime_backend.MAX_UPLOAD_BYTES,
+                "max_concurrent_jobs": server.max_concurrent_jobs,
+                "concurrency_policy": "SINGLE_FLIGHT_FAIL_CLOSED_RETRYABLE_429",
             },
             ensure_ascii=False,
         ),
