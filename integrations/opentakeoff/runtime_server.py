@@ -114,8 +114,9 @@ class AutoBoqHandler(BaseHTTPRequestHandler):
             {
                 "status": "ok",
                 "service": "blender3d-auto-boq",
-                "engine": "v8.19-profile-gated",
+                "engine": "v8.19-profile+generic-vector-v0",
                 "registered_profiles": len(runtime_backend.PROFILE_REGISTRY),
+                "generic_inference": "vector-sanitary-v0",
                 "max_upload_bytes": runtime_backend.MAX_UPLOAD_BYTES,
                 "fail_closed_unknown_profiles": True,
             },
