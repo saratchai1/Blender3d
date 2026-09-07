@@ -1,0 +1,7 @@
+{
+  "schema": "blender3d.auto_boq.runtime_contract.v1",
+  "request": "POST application/pdf /api/auto-boq",
+  "validated_profile_engine": "auto_boq_v8_19",
+  "unknown_profile_policy": "WITHHELD_UNREGISTERED_DRAWING_PROFILE",
+  "reference_used_for_generation": false
+}
