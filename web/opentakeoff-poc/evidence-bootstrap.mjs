@@ -113,10 +113,22 @@ async function drawExactPipeEvidence(controller) {
   if (label && segments.length) label.textContent += ` · exact ${segments.length} source segments`;
 }
 
+// PDF.js rejects concurrent render() operations that target the same canvas.
+// bindRows auto-opens the first evidence row, while a user may click that row
+// before the first render completes. Serialize those renders so every request
+// uses the canvas only after the previous render has settled.
 const originalRender = evidenceController.render.bind(evidenceController);
-evidenceController.render = async function patchedEvidenceRender() {
-  await originalRender();
-  await drawExactPipeEvidence(this);
+let evidenceRenderQueue = Promise.resolve();
+evidenceController.render = function patchedEvidenceRender() {
+  const controller = this;
+  const queued = evidenceRenderQueue
+    .catch(() => {})
+    .then(async () => {
+      await originalRender();
+      await drawExactPipeEvidence(controller);
+    });
+  evidenceRenderQueue = queued;
+  return queued;
 };
 
 function tableRowIds(tbody) {
@@ -168,6 +180,11 @@ async function main() {
     host.hidden = false;
   };
 
+  const refreshBindings = (data, context, expected) => {
+    const buttonCount = tbody.querySelectorAll('.evidence-open').length;
+    if (buttonCount !== expected.length) evidenceController.bindRows(tbody, data, context);
+  };
+
   const sync = () => {
     const host = evidenceController.ensureHost();
     const ids = tableRowIds(tbody);
@@ -181,11 +198,13 @@ async function main() {
         host.hidden = true;
         return;
       }
+      const context = { workspace: 'demo', pdfUrl: './demo/family4.pdf' };
       if (next === signature) {
         host.hidden = false;
+        refreshBindings(demoAuto, context, expected);
         return;
       }
-      bind(demoAuto, { workspace: 'demo', pdfUrl: './demo/family4.pdf' }, next);
+      bind(demoAuto, context, next);
       return;
     }
 
@@ -206,15 +225,19 @@ async function main() {
       return;
     }
     const next = `user:${pendingUserEvidence.fingerprint}:${ids.join('|')}`;
-    if (next === signature) {
-      host.hidden = false;
-      return;
-    }
-    bind(pendingUserEvidence.data, {
+    const context = {
       workspace: 'user',
       pdfBytes: pendingUserEvidence.pdfBytes,
       pdfName: pendingUserEvidence.name,
-    }, next);
+    };
+    if (next === signature) {
+      host.hidden = false;
+      // The POC refreshes the user BOQ table on repeated PDF state messages.
+      // Re-attach row evidence controls without resetting the selected evidence.
+      refreshBindings(pendingUserEvidence.data, context, expected);
+      return;
+    }
+    bind(pendingUserEvidence.data, context, next);
   };
 
   globalThis.addEventListener(EVIDENCE_RUNTIME_EVENT, event => {
