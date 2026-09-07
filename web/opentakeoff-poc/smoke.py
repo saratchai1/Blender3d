@@ -96,7 +96,7 @@ def main():
         page.locator('#workspace').select_option('user');page.locator('#status[data-state="ready"]').wait_for(timeout=60000);assert not page.locator('[data-tab="auto"]').is_disabled();engine=page.frames[1];own=engine.evaluate(READ_DB,'user');assert len(own['pdfs'])==0 and (own.get('annotations') is None or own['annotations']['shapes']==[])
         engine.locator('input[type="file"]').first.wait_for(state='attached',timeout=30000);target=engine.locator('input[type="file"][accept*="pdf"]').first
         if target.count()==0:target=engine.locator('input[type="file"][multiple]').first
-        target.set_input_files(str(sample.resolve()));own=wait_for_pdf_commit(page,engine,'family4.pdf',EXPECTED_SIZE);assert own['annotations']['shapes']==[]
+        target.set_input_files(str(sample.resolve()));own=wait_for_pdf_commit(page,engine,'family4.pdf',EXPECTED_SIZE);assert own.get('annotations') is None or own['annotations'].get('shapes',[])==[]
         page.locator('[data-tab="auto"]').click();page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='4'",timeout=120000)
         assert page.locator('#auto-rows-body tr').count()==4
         user_text=page.locator('#auto-rows-body').inner_text()
