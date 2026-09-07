@@ -13,6 +13,8 @@ RUNTIME_MODULES = (
     "browser-auto-boq.mjs",
     "browser-auto-boq-hybrid.mjs",
     "browser-backend-runtime.mjs",
+    "evidence-viewer.mjs",
+    "evidence-bootstrap.mjs",
 )
 
 
@@ -100,6 +102,9 @@ def main() -> None:
         : `Browser Automatic Alpha เสร็จ · ${result.rows.length} รายการปลอดภัย`, 'ready');
 """
     text = replace_once(text, old_status, new_status, "user runtime status block")
+    bootstrap = "\nimport('./evidence-bootstrap.mjs').catch(error => console.error('BOQ_EVIDENCE_BOOTSTRAP_ERROR', error));\n"
+    if bootstrap.strip() not in text:
+        text += bootstrap
     poc.write_text(text, encoding="utf-8")
 
     vendor = output / "vendor"
@@ -123,6 +128,7 @@ def main() -> None:
         "network_dependency": True,
         "offline_browser_fallback": True,
         "reference_data_dependency": False,
+        "evidence_viewer": "PDFJS_SOURCE_DRAWING_OVERLAY_FROM_GENERATION_EVIDENCE",
     }
     (output / "browser-runtime-info.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
