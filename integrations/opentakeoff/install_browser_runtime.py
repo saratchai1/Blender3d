@@ -8,7 +8,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_PDFJS_MAJOR_MINOR = "4.10."
-RUNTIME_MODULES = ("browser-auto-boq.mjs", "browser-pipe-geometry.mjs")
+RUNTIME_MODULES = (
+    "browser-auto-boq.mjs",
+    "browser-auto-boq-alpha2.mjs",
+    "browser-pipe-geometry.mjs",
+    "browser-pipe-geometry-safe.mjs",
+)
 
 
 def main() -> None:
@@ -36,6 +41,16 @@ def main() -> None:
             raise SystemExit(f"{name} is missing")
         shutil.copy2(runtime, output / name)
 
+    poc = output / "poc.js"
+    if not poc.is_file():
+        raise SystemExit("generated poc.js is missing; build the OpenTakeoff POC before installing runtime")
+    text = poc.read_text(encoding="utf-8")
+    needle = "import('./browser-auto-boq.mjs')"
+    replacement = "import('./browser-auto-boq-alpha2.mjs')"
+    if text.count(needle) != 1:
+        raise SystemExit(f"expected exactly one user runtime import in generated poc.js, found {text.count(needle)}")
+    poc.write_text(text.replace(needle, replacement), encoding="utf-8")
+
     vendor = output / "vendor"
     vendor.mkdir(parents=True, exist_ok=True)
     for name in ("pdf.mjs", "pdf.worker.mjs"):
@@ -48,12 +63,13 @@ def main() -> None:
         "schema": "blender3d.browser_auto_boq_runtime.v1",
         "pdfjs_version": version,
         "source": "pinned Kentucky-ai/opentakeoff web dependency",
-        "runtime": "browser-auto-boq.mjs",
+        "runtime": "browser-auto-boq-alpha2.mjs",
         "runtime_modules": list(RUNTIME_MODULES),
         "worker": "vendor/pdf.worker.mjs",
         "network_dependency": False,
         "reference_data_dependency": False,
         "pipe_geometry_release": "DIAGNOSTIC_ONLY_UNTIL_GENERIC_GATES_PASS",
+        "pipe_geometry_normalization": "SAFE_VISIBLE_STRAIGHT_SEMANTIC_V1",
     }
     (output / "browser-runtime-info.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
