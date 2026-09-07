@@ -15,7 +15,9 @@ function cleanEndpoint(raw) {
 }
 
 export function configuredBackendUrl({ search = '', storage = null, globalValue = '', defaultValue = DEFAULT_BACKEND_URL } = {}) {
-  const query = new URLSearchParams(String(search || '').replace(/^\?/, '')).get('boq_backend');
+  const params = new URLSearchParams(String(search || '').replace(/^\?/, ''));
+  const query = params.get('boq_backend');
+  if (query && /^(?:off|none|disabled)$/i.test(String(query).trim())) return '';
   const fromQuery = cleanEndpoint(query);
   if (fromQuery) {
     try { storage?.setItem?.(STORAGE_KEY, fromQuery); } catch {}
