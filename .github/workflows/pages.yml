@@ -48,21 +48,25 @@ jobs:
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
       - name: Build real OpenTakeoff plus leak-proof Automatic BOQ
         run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff --demo-pdf .generated/samples/family4.pdf
-      - name: Install pinned PDF.js user Automatic BOQ runtime
+      - name: Install backend-first hybrid Automatic BOQ runtime
         run: python integrations/opentakeoff/install_browser_runtime.py --upstream .external/opentakeoff-poc --output .generated/pages/takeoff
-      - name: Assert user runtime assets are packaged without reference dependency
+      - name: Assert live backend package, offline fallback and reference isolation
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           root=Path('.generated/pages/takeoff')
           info=json.loads((root/'browser-runtime-info.json').read_text())
-          assert info['network_dependency'] is False, info
+          html=(root/'index.html').read_text()
+          assert info['network_dependency'] is True, info
+          assert info['offline_browser_fallback'] is True, info
           assert info['reference_data_dependency'] is False, info
+          assert info['default_backend_url']=='https://blender3d-auto-boq.onrender.com/api/auto-boq', info
           assert info['pdfjs_version'].startswith('4.10.'), info
-          for rel in ('browser-auto-boq.mjs','vendor/pdf.mjs','vendor/pdf.worker.mjs'):
+          assert 'https://blender3d-auto-boq.onrender.com' in html, html[:1000]
+          for rel in ('browser-auto-boq.mjs','browser-auto-boq-hybrid.mjs','browser-backend-runtime.mjs','vendor/pdf.mjs','vendor/pdf.worker.mjs'):
               assert (root/rel).is_file(), rel
-          print('PAGES_USER_RUNTIME_ASSETS_PASS', {'pdfjs':info['pdfjs_version']})
+          print('PAGES_USER_RUNTIME_ASSETS_PASS', {'pdfjs':info['pdfjs_version'],'backend':info['default_backend_url'],'offline_fallback':True})
           PY
       - name: Install browser QA runtime
         run: |
@@ -72,7 +76,7 @@ jobs:
         run: python web/office_10000sqm/tools/pages_smoke.py --root .generated/pages
       - name: Check Automatic BOQ, reference fence, native PDF review and no double counting
         run: python web/opentakeoff-poc/smoke.py --root .generated/pages
-      - name: Check focused user PDF Browser Runtime Alpha
+      - name: Check deterministic browser-only fallback with backend explicitly disabled
         run: python web/opentakeoff-poc/runtime_smoke.py --root .generated/pages
       - name: Check actual moving cinematic cameras, six scenes, controls and mobile WebGL
         run: python web/office_10000sqm/cinematic/smoke.py --root .generated/pages
@@ -141,7 +145,7 @@ jobs:
         run: |
           pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Verify public Automatic BOQ and leak-proof evidence JSON
+      - name: Verify public Pages → Render Automatic BOQ backend and leak-proof evidence
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: python web/opentakeoff-poc/live_smoke.py --url "${PAGE_URL%/}/takeoff/" --output .generated/takeoff-live-qa
