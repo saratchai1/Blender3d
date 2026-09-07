@@ -16,7 +16,7 @@ PIPE_EXPECTED={
     'SAN-PIPE-W-DN50':10.746,
     'SAN-PIPE-W-DN65':7.158,
 }
-USER_RUNTIME_EXPECTED={'Floor Cleanout Ø4"':2,'Cleanout Ø2½"':1,'Roof Floor Drain Ø2½"':2,'Air Vent Cap Ø2"':2}
+USER_RUNTIME_EXPECTED={'Floor Cleanout (FCO) — size WITHHELD':2,'Cleanout (CO) — size WITHHELD':1,'Roof Floor Drain Ø2½"':2,'Air Vent Cap Ø2"':2}
 READ_DB='''async (kind) => { const name=kind==='demo'?'blender3d-opentakeoff-poc-v2-demo':'blender3d-opentakeoff-poc-v1-user'; const db=await new Promise((yes,no)=>{const r=indexedDB.open(name);r.onsuccess=()=>yes(r.result);r.onerror=()=>no(r.error)}); try{return await new Promise((yes,no)=>{const t=db.transaction(['meta','pdfs'],'readonly');const a=t.objectStore('meta').get('annotations');const p=t.objectStore('pdfs').getAll();t.oncomplete=()=>yes({annotations:a.result,pdfs:p.result.map(x=>({name:x.name,size:x.bytes.byteLength,head:Array.from(new Uint8Array(x.bytes.slice(0,5)))}))});t.onerror=()=>no(t.error)})}finally{db.close()}}'''
 
 def large_canvas(frame):
@@ -102,10 +102,11 @@ def main():
         user_text=page.locator('#auto-rows-body').inner_text()
         for label,qty in USER_RUNTIME_EXPECTED.items():
             row=page.locator('#auto-rows-body tr').filter(has_text=label);assert row.count()==1,(label,user_text);assert row.locator('td').nth(1).inner_text().strip()==str(qty)
+        assert 'Floor Cleanout Ø4"' not in user_text and 'Cleanout Ø2½"' not in user_text
         assert 'Browser Runtime Alpha' in page.locator('#auto-note').inner_text()
-        withheld_text=page.locator('#withheld-list').inner_text();assert 'SAN-PIPE-LENGTH' in withheld_text and 'SAN-FLOOR-DRAIN-2' in withheld_text and 'NON-EXPLICIT-BOQ' in withheld_text
+        withheld_text=page.locator('#withheld-list').inner_text();assert 'SAN-PIPE-LENGTH' in withheld_text and 'SAN-FLOOR-DRAIN-2' in withheld_text and 'SAN-FCO/CO-SIZE' in withheld_text and 'NON-EXPLICIT-BOQ' in withheld_text
         assert not page.locator('#user-auto-json').is_disabled();assert page.locator('#auto-json-download').is_hidden();assert page.locator('#accuracy-download').is_hidden()
-        evidence['checks'].append('Arbitrary-user workspace now runs local Browser Automatic Alpha after upload; Family4-as-user-input yields only safe FCO/CO/RFD/AVC rows while FD and pipe length stay WITHHELD')
+        evidence['checks'].append('Arbitrary-user workspace runs Browser Automatic Alpha after upload; RFD/AVC keep explicit sizes, FCO/CO counts publish with size WITHHELD, and cross-view duplicates are not added')
 
         page.locator('#workspace').select_option('demo');page.locator('[data-tab="auto"]').click();page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='27'");page.set_viewport_size({'width':390,'height':844});page.screenshot(path=str(a.out/'02-automatic-boq-mobile.png'),full_page=True);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2');assert not evidence['page_errors'],evidence['page_errors'];evidence['status']='passed'
       except Exception as e:
