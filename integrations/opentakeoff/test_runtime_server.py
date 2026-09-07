@@ -36,7 +36,8 @@ def main() -> None:
         status, headers, payload = request(server, "GET", "/health")
         assert status == 200, (status, payload)
         assert payload["status"] == "ok"
-        assert payload["engine"] == "v8.19-profile-gated"
+        assert payload["engine"] == "v8.19-profile+generic-vector-v0"
+        assert payload["generic_inference"] == "vector-sanitary-v0"
         assert payload["registered_profiles"] >= 1
         assert payload["fail_closed_unknown_profiles"] is True
         assert int(headers["Content-Length"]) > 0
