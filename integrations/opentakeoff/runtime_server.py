@@ -76,6 +76,12 @@ class AutoBoqHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         if status == HTTPStatus.TOO_MANY_REQUESTS:
+            # The busy path intentionally does not consume the potentially large
+            # PDF request body. HTTP/1.1 keep-alive would otherwise parse those
+            # unread PDF bytes as the next request line (e.g. "%PDF-1.6"), so the
+            # connection must be closed after the retryable 429 response.
+            self.close_connection = True
+            self.send_header("Connection", "close")
             self.send_header("Retry-After", "3")
         if cors:
             origin = self._origin()

@@ -6,6 +6,7 @@ on:
       - feat/auto-boq-live-backend
       - main
       - ci/render-exact-evidence-gate
+      - ci/render-single-flight-production-gate
     paths:
       - 'integrations/opentakeoff/runtime_backend.py'
       - 'integrations/opentakeoff/runtime_server.py'

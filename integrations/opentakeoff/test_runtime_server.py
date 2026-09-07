@@ -168,6 +168,7 @@ def main() -> None:
         assert payload["retryable"] is True, payload
         assert payload["concurrency_policy"] == "SINGLE_FLIGHT_FAIL_CLOSED_RETRYABLE_429", payload
         assert headers["Retry-After"] == "3", headers
+        assert headers["Connection"].lower() == "close", headers
         assert engine_entries == 1, engine_entries
         release_first.set()
         first_thread.join(timeout=5)
@@ -190,7 +191,7 @@ def main() -> None:
             assert direct["rows"] == []
             assert direct["source_policy"]["reference_used_for_generation"] is False
 
-        print("AUTO_BOQ_RUNTIME_SERVER_TEST_PASS", {"single_flight": True, "busy_status": 429})
+        print("AUTO_BOQ_RUNTIME_SERVER_TEST_PASS", {"single_flight": True, "busy_status": 429, "busy_connection": "close"})
     finally:
         runtime_backend.run_registered_pdf = original_run
         server.shutdown()
