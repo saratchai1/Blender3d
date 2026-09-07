@@ -21,9 +21,20 @@ export async function extractBrowserAutoBoq({ bytes, name = 'uploaded.pdf', pdfj
           },
         };
       }
+      if (backend.status === 'PUBLISHED_GENERIC_INFERRED_BOQ' && backend.result) {
+        return {
+          ...backend.result,
+          runtime_execution: {
+            engine: 'python-generic-vector-sanitary-v0',
+            mode: 'BACKEND_GENERIC_INFERRED',
+            backend_endpoint_configured: true,
+            browser_fallback_used: false,
+          },
+        };
+      }
     } catch (error) {
-      // Fail open only to the existing fail-closed browser detector. No backend
-      // quantity is retained after any transport/schema/reference-isolation error.
+      // Any backend transport/schema/reference-isolation failure discards all
+      // backend quantities and continues only with the fail-closed browser path.
     }
   }
   const result = await extractBrowser({ bytes, name, pdfjs, maxPages });
