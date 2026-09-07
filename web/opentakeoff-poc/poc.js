@@ -177,7 +177,7 @@ function renderDemoAuto() {
   renderWithheld(autoData.coverage.withheld_detectors || []);
 }
 
-function renderUserPlaceholder(message = 'อัปโหลด PDF ในแท็บ แบบ / ตรวจ แล้วระบบจะเริ่ม Browser Automatic Alpha ให้เอง') {
+function renderUserPlaceholder(message = 'อัปโหลด PDF ในแท็บ แบบ / ตรวจ แล้วระบบจะเริ่ม Automatic Runtime ให้เอง') {
   const tr = document.createElement('tr');
   const td = document.createElement('td');
   td.colSpan = 7;
@@ -189,7 +189,7 @@ function renderUserPlaceholder(message = 'อัปโหลด PDF ในแท
   $('#auto-coverage').textContent = '—';
   $('#auto-accuracy').textContent = '—';
   $('#auto-mae').textContent = '—';
-  $('#auto-note').textContent = 'User PDF Runtime Alpha ไม่อ่าน BOQ/reference และจะปล่อยเฉพาะ explicit sanitary tags ที่หลักฐานชัดเจน';
+  $('#auto-note').textContent = 'User PDF Runtime จะลอง Python validated-profile backend ก่อน แล้ว fallback Browser Alpha แบบ fail-closed หาก profile ยังไม่รองรับ';
   renderWithheld([]);
 }
 
@@ -262,8 +262,16 @@ function renderUserAuto(data) {
   $('#auto-coverage').textContent = '—';
   $('#auto-accuracy').textContent = '—';
   $('#auto-mae').textContent = '—';
-  const d = data.document;
-  $('#auto-note').textContent = `Browser Runtime Alpha · ${d.name} · อ่าน ${d.scanned_pages}/${d.pages} หน้า · reference isolation = true · pipe length ยัง WITHHELD`;
+  const d = data.document || {};
+  const backend = data.runtime_execution?.mode === 'BACKEND_VALIDATED_PROFILE';
+  if (backend) {
+    const pipeRows = (data.rows || []).filter(r => String(r.id || '').startsWith('SAN-PIPE-'));
+    const pipeTotal = pipeRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+    $('#auto-note').textContent = `Python v8.19 backend · ${d.name || 'PDF'} · validated profile ${data.runtime_profile || 'validated'} · ${data.rows.length} รายการ · pipe ${fmt(pipeTotal, 3)} m · reference isolation = true`;
+  } else {
+    const scanned = d.scanned_pages != null && d.pages != null ? ` · อ่าน ${d.scanned_pages}/${d.pages} หน้า` : '';
+    $('#auto-note').textContent = `Browser Runtime Alpha · ${d.name || 'PDF'}${scanned} · reference isolation = true · fail-closed fallback`;
+  }
   renderWithheld(data.coverage?.withheld_detectors || []);
   const runtimeDownload = $('#user-auto-json');
   if (runtimeDownload) runtimeDownload.disabled = false;
@@ -302,8 +310,8 @@ async function runUserPdfRuntime(pdf) {
     return;
   }
   userRuntimeBusy = true;
-  setStatus('กำลังถอด Automatic Alpha จาก PDF ของคุณ…', 'loading');
-  renderUserPlaceholder(`กำลังอ่าน ${pdf.name} ด้วย PDF.js ใน browser…`);
+  setStatus('กำลังตรวจ PDF: Python validated-profile ก่อน แล้ว fallback browser ถ้าจำเป็น…', 'loading');
+  renderUserPlaceholder(`กำลังตรวจ ${pdf.name} ด้วย Automatic Runtime…`);
   try {
     const [runtime, pdfjs] = await Promise.all([
       import('./browser-auto-boq.mjs'),
@@ -315,11 +323,14 @@ async function runUserPdfRuntime(pdf) {
     userRuntimeData = result;
     userRuntimeFingerprint = fingerprint;
     renderUserAuto(result);
-    setStatus(`Automatic Alpha เสร็จ · ${result.rows.length} รายการปลอดภัย`, 'ready');
+    const backend = result.runtime_execution?.mode === 'BACKEND_VALIDATED_PROFILE';
+    setStatus(backend
+      ? `Python v8.19 backend เสร็จ · ${result.rows.length} รายการ validated`
+      : `Browser Automatic Alpha เสร็จ · ${result.rows.length} รายการปลอดภัย`, 'ready');
   } catch (error) {
     userRuntimeData = null;
-    renderUserPlaceholder(`Automatic Alpha ยังรันไม่สำเร็จ: ${error.message}`);
-    setStatus('Automatic Alpha ต้องตรวจแก้', 'error');
+    renderUserPlaceholder(`Automatic Runtime ยังรันไม่สำเร็จ: ${error.message}`);
+    setStatus('Automatic Runtime ต้องตรวจแก้', 'error');
   } finally {
     userRuntimeBusy = false;
   }
@@ -381,7 +392,7 @@ $('#workspace').addEventListener('change', e => {
   autoButton.disabled = false;
   $('#workspace-note').textContent = workspace === 'demo'
     ? 'Automatic detector อ่านเฉพาะหน้ารูปแบบ 1–71; BOQ หน้า 72+ ใช้ตรวจคะแนนภายหลังเท่านั้น'
-    : 'PDF ของคุณจะรัน Browser Automatic Alpha หลังอัปโหลด: ปล่อยเฉพาะ explicit sanitary tags ที่ชัดเจน และ WITHHOLD สิ่งที่ยังพิสูจน์ไม่ได้';
+    : 'PDF ของคุณจะลอง Python validated-profile backend ก่อน; ถ้า profile ยังไม่รองรับจะ fallback Browser Alpha แบบ fail-closed และไม่ยืม logic จาก Family4';
   const url = `./engine/?workspace=${workspace}`;
   frame.src = url;
   $('#full-engine').href = url;
