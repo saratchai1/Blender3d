@@ -2,6 +2,7 @@
 from __future__ import annotations
 import argparse, functools, hashlib, http.server, json, re, threading
 from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 EXPECTED_SHA256='f6db0f85e12113b31a545a5e881a75173938e011908ba1a4491016f77b302175'
@@ -28,9 +29,12 @@ def main():
     assert manifest['reference_data_dependency'] is False
     assert manifest['default_backend_url']=='https://blender3d-auto-boq.onrender.com/api/auto-boq'
     assert manifest['pdfjs_version'].startswith('4.10.')
+    assert manifest['evidence_viewer']=='PDFJS_SOURCE_DRAWING_OVERLAY_FROM_GENERATION_EVIDENCE'
     assert (root/'takeoff/browser-auto-boq.mjs').is_file()
     assert (root/'takeoff/browser-auto-boq-hybrid.mjs').is_file()
     assert (root/'takeoff/browser-backend-runtime.mjs').is_file()
+    assert (root/'takeoff/evidence-viewer.mjs').is_file()
+    assert (root/'takeoff/evidence-bootstrap.mjs').is_file()
     assert (root/'takeoff/vendor/pdf.mjs').is_file()
     assert (root/'takeoff/vendor/pdf.worker.mjs').is_file()
 
@@ -89,6 +93,29 @@ def main():
             assert not page.locator('#user-auto-json').is_disabled()
             assert page.locator('#accuracy-download').is_hidden()
             assert page.locator('#auto-json-download').is_hidden()
+
+            # User-uploaded runtime evidence must bind to the same PDF bytes and
+            # rows; this is the end-to-end gap that the demo-only viewer did not cover.
+            page.locator('#evidence-lab').wait_for(state='visible',timeout=60000)
+            page.wait_for_function("document.querySelectorAll('#auto-rows-body .evidence-open').length===4",timeout=60000)
+            first_row=page.locator('#auto-rows-body tr.evidence-row').first
+            evidence_id=first_row.get_attribute('data-evidence-id')
+            assert evidence_id,evidence_id
+            first_row.locator('.evidence-open').click()
+            page.wait_for_function(
+                "document.querySelector('#evidence-canvas') && !document.querySelector('#evidence-canvas').hidden",
+                timeout=60000,
+            )
+            page.wait_for_function(
+                "document.querySelector('#evidence-id')?.textContent && document.querySelector('#evidence-id').textContent!=='—'",
+                timeout=30000,
+            )
+            assert page.locator('#evidence-id').inner_text().strip()==evidence_id
+            page_label=page.locator('#evidence-page-label').inner_text()
+            assert 'p.59' in page_label or 'p.60' in page_label,page_label
+            assert page.locator('#evidence-proof-badge').inner_text().strip()=='SOURCE DRAWING ONLY'
+            report['checks'].append('User-uploaded PDF runtime rows bind to the inline PDF.js evidence viewer; clicking a BOQ row renders the same source PDF page instead of the demo-only viewer')
+
             page.screenshot(path=str(a.out/'user-runtime-alpha.png'),full_page=True)
             report['checks'].append('boq_backend=off forces the deterministic browser-only fallback even though production has a default live backend')
             report['checks'].append('User-uploaded Family4 is processed client-side with pinned PDF.js: RFD/AVC retain explicit sizes while FCO/CO counts publish only with size WITHHELD')
