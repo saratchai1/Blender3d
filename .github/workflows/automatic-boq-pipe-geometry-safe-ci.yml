@@ -1,0 +1,35 @@
+name: Automatic BOQ Browser Pipe Geometry Safe CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-user-pipe-geometry-alpha
+    paths:
+      - 'web/opentakeoff-poc/browser-pipe-geometry*.mjs'
+      - 'web/opentakeoff-poc/browser-pipe-geometry*.test.mjs'
+      - 'web/opentakeoff-poc/browser-auto-boq-alpha2.mjs'
+      - 'integrations/opentakeoff/install_browser_runtime.py'
+      - '.github/workflows/automatic-boq-pipe-geometry-safe-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automatic-boq-browser-pipe-safe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pure-geometry-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test base and safe pipe geometry contracts
+        run: >-
+          node --test
+          web/opentakeoff-poc/browser-pipe-geometry.test.mjs
+          web/opentakeoff-poc/browser-pipe-geometry-safe.test.mjs
