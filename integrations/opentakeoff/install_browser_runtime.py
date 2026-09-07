@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_PDFJS_MAJOR_MINOR = "4.10."
+RUNTIME_MODULES = ("browser-auto-boq.mjs", "browser-pipe-geometry.mjs")
 
 
 def main() -> None:
@@ -28,11 +29,12 @@ def main() -> None:
         raise SystemExit(f"unexpected pdfjs-dist version {version!r}; expected pinned 4.10.x runtime")
 
     src = ROOT / "web" / "opentakeoff-poc"
-    runtime = src / "browser-auto-boq.mjs"
-    if not runtime.is_file():
-        raise SystemExit("browser-auto-boq.mjs is missing")
     output.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(runtime, output / runtime.name)
+    for name in RUNTIME_MODULES:
+        runtime = src / name
+        if not runtime.is_file():
+            raise SystemExit(f"{name} is missing")
+        shutil.copy2(runtime, output / name)
 
     vendor = output / "vendor"
     vendor.mkdir(parents=True, exist_ok=True)
@@ -47,9 +49,11 @@ def main() -> None:
         "pdfjs_version": version,
         "source": "pinned Kentucky-ai/opentakeoff web dependency",
         "runtime": "browser-auto-boq.mjs",
+        "runtime_modules": list(RUNTIME_MODULES),
         "worker": "vendor/pdf.worker.mjs",
         "network_dependency": False,
         "reference_data_dependency": False,
+        "pipe_geometry_release": "DIAGNOSTIC_ONLY_UNTIL_GENERIC_GATES_PASS",
     }
     (output / "browser-runtime-info.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
