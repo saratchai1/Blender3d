@@ -1,4 +1,7 @@
 import { evidenceController } from './evidence-viewer.mjs';
+import { installPipeSegmentOverlay } from './evidence-pipe-segments.mjs';
+
+installPipeSegmentOverlay(evidenceController);
 
 async function main() {
   const tbody = document.querySelector('#auto-rows-body');
