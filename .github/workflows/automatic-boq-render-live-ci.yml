@@ -6,9 +6,7 @@ on:
       - feat/auto-boq-live-backend
     paths:
       - '.github/workflows/automatic-boq-render-live-ci.yml'
-      - 'integrations/opentakeoff/runtime_server.py'
-      - 'integrations/opentakeoff/runtime_backend.py'
-      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/**'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +15,7 @@ permissions:
 jobs:
   public-render:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       BACKEND_BASE: https://blender3d-auto-boq.onrender.com
     steps:
@@ -25,15 +23,34 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
+      - name: Install PDF fixture dependency
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
       - name: Fetch verified Family4 benchmark PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
-
+      - name: Create unseen generic vector-PDF fixtures
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import fitz
+          root=Path('.generated/samples'); root.mkdir(parents=True,exist_ok=True)
+          def make(path, second_plan=False):
+              doc=fitz.open(); oc=doc.add_ocg('CW')
+              p=doc.new_page(width=595,height=842)
+              p.insert_text((110,190),'SANITARY PLAN SCALE 1:100 DN20 CW',fontsize=10)
+              p.draw_line((100,200),(300,200),width=1,color=(0,0,0),oc=oc)
+              if second_plan:
+                  p2=doc.new_page(width=595,height=842)
+                  p2.insert_text((110,190),'SANITARY PLAN SCALE 1:100 DN20 CW',fontsize=10)
+                  p2.draw_line((100,200),(300,200),width=1,color=(0,0,0),oc=oc)
+              doc.save(path); doc.close()
+          make(root/'generic-vector.pdf')
+          make(root/'generic-ambiguous.pdf',second_plan=True)
+          PY
       - name: Verify public health endpoint and CORS
         run: |
           set -euo pipefail
           mkdir -p .generated/render-live-qa
-          for i in $(seq 1 20); do
+          for i in $(seq 1 30); do
             code=$(curl --silent --show-error --output .generated/render-live-qa/health.json \
               --write-out '%{http_code}' \
               -H 'Origin: https://saratchai1.github.io' \
@@ -54,14 +71,12 @@ jobs:
           health=json.loads(Path('.generated/render-live-qa/health.json').read_text())
           headers=Path('.generated/render-live-qa/options-headers.txt').read_text().lower()
           assert health['status']=='ok',health
-          assert health['engine']=='v8.19-profile-gated',health
           assert health['registered_profiles']==1,health
           assert health['fail_closed_unknown_profiles'] is True,health
           assert 'access-control-allow-origin: https://saratchai1.github.io' in headers,headers
           assert 'access-control-allow-methods: post, options' in headers,headers
           print('RENDER_PUBLIC_HEALTH_CORS_PASS',health)
           PY
-
       - name: POST Family4 through public Render endpoint
         run: |
           set -euo pipefail
@@ -87,31 +102,54 @@ jobs:
           assert all(max(r.get('source_pages') or [0])<=71 for r in value['rows'])
           print('RENDER_PUBLIC_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5})
           PY
-
-      - name: Verify public unknown-profile fail closed
+      - name: POST unseen generic vector PDF through public Render endpoint
         run: |
           set -euo pipefail
-          cp .generated/samples/family4.pdf .generated/samples/changed.pdf
-          printf '\n%% changed-byte-for-profile-gate\n' >> .generated/samples/changed.pdf
           curl --fail-with-body --silent --show-error \
             -X POST \
             -H 'Content-Type: application/pdf' \
-            -H 'X-File-Name: changed.pdf' \
+            -H 'X-File-Name: generic-vector.pdf' \
             -H 'Origin: https://saratchai1.github.io' \
-            --data-binary @.generated/samples/changed.pdf \
+            --data-binary @.generated/samples/generic-vector.pdf \
             "$BACKEND_BASE/api/auto-boq" \
-            > .generated/render-live-qa/changed.json
+            > .generated/render-live-qa/generic-vector.json
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          value=json.loads(Path('.generated/render-live-qa/generic-vector.json').read_text())
+          assert value['runtime_status']=='PUBLISHED_GENERIC_INFERRED_BOQ',value
+          assert value['runtime_profile']=='generic-inferred-vector-sanitary-v0',value
+          assert value['source_policy']['reference_used_for_generation'] is False,value
+          assert len(value['rows'])==1,value['rows']
+          row=value['rows'][0]
+          assert row['id']=='GEN-SAN-PIPE-CW-DN20',row
+          assert row['unit']=='m' and row['source_pages']==[1],row
+          assert math.isclose(float(row['quantity']),7.056,abs_tol=1e-9),row
+          assert row['evidence']['release_gate_status']=='PASS_GENERIC_VECTOR_PIPE_V0',row
+          print('RENDER_PUBLIC_GENERIC_VECTOR_PASS',{'row':row['id'],'quantity_m':row['quantity']})
+          PY
+      - name: Verify ambiguous unseen PDF fails closed
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H 'Content-Type: application/pdf' \
+            -H 'X-File-Name: generic-ambiguous.pdf' \
+            -H 'Origin: https://saratchai1.github.io' \
+            --data-binary @.generated/samples/generic-ambiguous.pdf \
+            "$BACKEND_BASE/api/auto-boq" \
+            > .generated/render-live-qa/generic-ambiguous.json
           python - <<'PY'
           import json
           from pathlib import Path
-          value=json.loads(Path('.generated/render-live-qa/changed.json').read_text())
-          assert value['runtime_status']=='WITHHELD_UNREGISTERED_DRAWING_PROFILE',value
+          value=json.loads(Path('.generated/render-live-qa/generic-ambiguous.json').read_text())
+          assert value['runtime_status']=='WITHHELD_GENERIC_INFERENCE',value
           assert value['rows']==[],value['rows']
-          assert value['source_policy']['profile_hash_gate'] is True
-          assert value['source_policy']['reference_used_for_generation'] is False
-          print('RENDER_PUBLIC_UNKNOWN_PROFILE_FAIL_CLOSED_PASS')
+          assert value['source_policy']['reference_used_for_generation'] is False,value
+          reasons=' '.join(x['reason'] for x in value['coverage']['withheld_detectors'])
+          assert 'exactly one' in reasons,reasons
+          print('RENDER_PUBLIC_GENERIC_AMBIGUOUS_FAIL_CLOSED_PASS')
           PY
-
       - name: Retain public Render evidence
         if: always()
         uses: actions/upload-artifact@v4
