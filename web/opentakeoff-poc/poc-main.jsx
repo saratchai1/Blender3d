@@ -18,8 +18,8 @@ const workspace = new URLSearchParams(location.search).get('workspace') === 'dem
 const UPSTREAM = '7a3c8eb44252d0d9083157ad9677866f92f711bb';
 const DEMO_NAME = 'family4.pdf';
 const DEMO_START_PAGE = 11; // Original PDF: architectural ground-floor plan, 1:100.
-function post(type, data) {
-  if (parent !== window) parent.postMessage({type, workspace, ...data}, location.origin);
+function post(type, data, transfer = []) {
+  if (parent !== window) parent.postMessage({type, workspace, ...data}, location.origin, transfer);
 }
 function report(payload) {
   const result = toMetricReport(payload, conditionTotals);
@@ -30,10 +30,37 @@ localStore.saveAnnotations = async (payload) => {
   await originalSave(payload);
   report(payload);
 };
+
+async function postCurrentPdf() {
+  if (workspace !== 'user') return;
+  const annotations = await localStore.loadAnnotations();
+  const sheets = await localStore.listSheets();
+  if (!sheets.length) {
+    post('ot-poc:pdf', { pdf: null });
+    return;
+  }
+  const tabNames = (annotations.sheet_tabs || [])
+    .map(tab => String(tab || '').split('#')[0])
+    .filter(Boolean);
+  const available = new Set(sheets.map(s => s.name));
+  const selectedName = [...tabNames].reverse().find(name => available.has(name)) || sheets[sheets.length - 1].name;
+  const data = await localStore.loadPdfData(selectedName);
+  post('ot-poc:pdf', {
+    pdf: { name: selectedName, bytes: data, byteLength: data.byteLength },
+  }, [data.buffer]);
+}
+
 window.addEventListener('message', async (event) => {
-  if (event.origin !== location.origin || event.source !== parent || event.data?.type !== 'ot-poc:refresh') return;
-  try { report(await localStore.loadAnnotations()); }
-  catch (error) { post('ot-poc:error', {message: String(error.message || error)}); }
+  if (event.origin !== location.origin || event.source !== parent) return;
+  try {
+    if (event.data?.type === 'ot-poc:refresh') {
+      report(await localStore.loadAnnotations());
+    } else if (event.data?.type === 'ot-poc:get-pdf') {
+      await postCurrentPdf();
+    }
+  } catch (error) {
+    post('ot-poc:error', {message: String(error.message || error)});
+  }
 });
 
 async function seedDemo() {
