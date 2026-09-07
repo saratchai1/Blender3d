@@ -1,0 +1,74 @@
+name: Automatic BOQ Python Runtime Backend CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-python-runtime-backend
+    paths:
+      - 'api/auto-boq.py'
+      - 'requirements.txt'
+      - '.python-version'
+      - 'integrations/opentakeoff/**'
+      - '.github/workflows/automatic-boq-python-runtime-backend-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automatic-boq-python-runtime-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install runtime dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Compile API and runtime
+        run: |
+          python -m py_compile api/auto-boq.py integrations/opentakeoff/runtime_backend.py
+      - name: Test profile isolation
+        working-directory: integrations/opentakeoff
+        run: python test_runtime_backend.py
+      - name: Fetch verified Family4 PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Run registered Python v8.19 runtime
+        run: >-
+          python integrations/opentakeoff/runtime_backend.py
+          --pdf .generated/samples/family4.pdf
+          --output .generated/runtime-backend/family4.json
+      - name: Assert runtime publication and provenance gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out=json.loads(Path('.generated/runtime-backend/family4.json').read_text())
+          pipe=[r for r in out['rows'] if str(r.get('id','')).startswith('SAN-PIPE-')]
+          assert out['runtime_status']=='PUBLISHED_VALIDATED_PROFILE_BOQ',out['runtime_status']
+          assert out['runtime_engine']=='auto_boq_v8_19',out.get('runtime_engine')
+          assert out['runtime_profile']=='family4-v8.19',out.get('runtime_profile')
+          assert out['runtime_profile_sha256_gate']=='f6db0f85e12113b31a545a5e881a75173938e011908ba1a4491016f77b302175'
+          assert len(out['rows'])==27,len(out['rows'])
+          assert len(pipe)==8,len(pipe)
+          assert abs(sum(float(r['quantity']) for r in pipe)-92.5)<1e-6,pipe
+          assert out['source_policy']['reference_used_for_generation'] is False
+          assert max(p for r in out['rows'] for p in r.get('source_pages',[]))<=71
+          assert out['runtime_pipe_summary']=={'published_rows':8,'published_total_m':92.5}
+          print('AUTO_BOQ_RUNTIME_BACKEND_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5,'max_source_page':71})
+          PY
+      - name: Retain backend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automatic-boq-python-runtime-backend
+          path: .generated/runtime-backend/
+          if-no-files-found: warn
+          retention-days: 30
