@@ -113,7 +113,7 @@ def main():
             assert page.locator('#evidence-id').inner_text().strip()==evidence_id
             page_label=page.locator('#evidence-page-label').inner_text()
             assert 'p.59' in page_label or 'p.60' in page_label,page_label
-            assert page.locator('#evidence-proof-badge').inner_text().strip()=='SOURCE DRAWING ONLY'
+            assert page.locator('.evidence-proof-badge').inner_text().strip()=='SOURCE DRAWING ONLY'
             report['checks'].append('User-uploaded PDF runtime rows bind to the inline PDF.js evidence viewer; clicking a BOQ row renders the same source PDF page instead of the demo-only viewer')
 
             page.screenshot(path=str(a.out/'user-runtime-alpha.png'),full_page=True)
