@@ -1,0 +1,2105 @@
+{
+  "schemaVersion": "pascal-house-poc-1",
+  "nodes": {
+    "site_house_200sqm": {
+      "object": "node",
+      "id": "site_house_200sqm",
+      "type": "site",
+      "name": "Modern Tropical House 200 sqm Site",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "project": "house_200sqm",
+        "units": "m"
+      },
+      "polygon": {
+        "type": "polygon",
+        "points": [
+          [
+            -5,
+            -5
+          ],
+          [
+            15,
+            -5
+          ],
+          [
+            15,
+            15
+          ],
+          [
+            -5,
+            15
+          ]
+        ]
+      },
+      "children": [
+        "building_house_200sqm"
+      ]
+    },
+    "building_house_200sqm": {
+      "object": "node",
+      "id": "building_house_200sqm",
+      "type": "building",
+      "name": "Modern Tropical House 200 sqm",
+      "parentId": "site_house_200sqm",
+      "visible": true,
+      "metadata": {
+        "gross_floor_area_sqm": 200.0,
+        "footprint_sqm": 100.0,
+        "style": "modern_tropical",
+        "bedrooms": 4,
+        "bathrooms": 3
+      },
+      "children": [
+        "level_ground_200sqm",
+        "level_upper_200sqm"
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "level_ground_200sqm": {
+      "object": "node",
+      "id": "level_ground_200sqm",
+      "type": "level",
+      "name": "Ground Floor",
+      "parentId": "building_house_200sqm",
+      "visible": true,
+      "metadata": {
+        "gross_area_sqm": 100.0,
+        "floor_to_floor_m": 3.2
+      },
+      "children": [
+        "slab_g_200sqm",
+        "ceiling_g_200sqm",
+        "wall_g_south",
+        "wall_g_east",
+        "wall_g_north",
+        "wall_g_west",
+        "wall_g_mid_south",
+        "wall_g_v_south",
+        "wall_g_v_north",
+        "wall_g_mid_north",
+        "zone_g_living",
+        "zone_g_dining_stair",
+        "zone_g_kitchen",
+        "zone_g_guest",
+        "zone_g_service"
+      ],
+      "level": 0,
+      "camera": {
+        "position": [
+          14,
+          11.0,
+          14
+        ],
+        "target": [
+          5,
+          0.0,
+          5
+        ],
+        "mode": "perspective"
+      }
+    },
+    "slab_g_200sqm": {
+      "object": "node",
+      "id": "slab_g_200sqm",
+      "type": "slab",
+      "name": "Ground Floor Slab",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {
+        "gross_area_sqm": 100.0
+      },
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          10.0,
+          0
+        ],
+        [
+          10.0,
+          10.0
+        ],
+        [
+          0,
+          10.0
+        ]
+      ],
+      "holes": [
+        [
+          [
+            6.7,
+            0.2
+          ],
+          [
+            9.5,
+            0.2
+          ],
+          [
+            9.5,
+            4.5
+          ],
+          [
+            6.7,
+            4.5
+          ]
+        ]
+      ],
+      "elevation": 0.18,
+      "material": {
+        "preset": "concrete"
+      }
+    },
+    "ceiling_g_200sqm": {
+      "object": "node",
+      "id": "ceiling_g_200sqm",
+      "type": "ceiling",
+      "name": "Ground Floor Ceiling",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          10.0,
+          0
+        ],
+        [
+          10.0,
+          10.0
+        ],
+        [
+          0,
+          10.0
+        ]
+      ],
+      "holes": [
+        [
+          [
+            6.7,
+            0.2
+          ],
+          [
+            9.5,
+            0.2
+          ],
+          [
+            9.5,
+            4.5
+          ],
+          [
+            6.7,
+            4.5
+          ]
+        ]
+      ],
+      "height": 3.0,
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_south": {
+      "object": "node",
+      "id": "wall_g_south",
+      "type": "wall",
+      "name": "Ground South Exterior",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_g_main",
+        "window_g_south_living"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        0,
+        0
+      ],
+      "end": [
+        10,
+        0
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_east": {
+      "object": "node",
+      "id": "wall_g_east",
+      "type": "wall",
+      "name": "Ground East Exterior",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_g_east_dining",
+        "window_g_east_guest"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        10,
+        0
+      ],
+      "end": [
+        10,
+        10
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_north": {
+      "object": "node",
+      "id": "wall_g_north",
+      "type": "wall",
+      "name": "Ground North Exterior",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_g_kitchen_back",
+        "window_g_north_kitchen",
+        "window_g_north_service"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        10,
+        10
+      ],
+      "end": [
+        0,
+        10
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_west": {
+      "object": "node",
+      "id": "wall_g_west",
+      "type": "wall",
+      "name": "Ground West Exterior",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_g_west_living",
+        "window_g_west_kitchen"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        0,
+        10
+      ],
+      "end": [
+        0,
+        0
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_mid_south": {
+      "object": "node",
+      "id": "wall_g_mid_south",
+      "type": "wall",
+      "name": "Ground Partition South",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_g_living_kitchen",
+        "door_g_dining_guest"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        0,
+        4.6
+      ],
+      "end": [
+        10,
+        4.6
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_v_south": {
+      "object": "node",
+      "id": "wall_g_v_south",
+      "type": "wall",
+      "name": "Ground Partition South Vertical",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        6,
+        0
+      ],
+      "end": [
+        6,
+        4.6
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_v_north": {
+      "object": "node",
+      "id": "wall_g_v_north",
+      "type": "wall",
+      "name": "Ground Partition North Vertical",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        4,
+        4.6
+      ],
+      "end": [
+        4,
+        10
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_g_mid_north": {
+      "object": "node",
+      "id": "wall_g_mid_north",
+      "type": "wall",
+      "name": "Ground Partition North",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_g_guest_service"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        4,
+        7.3
+      ],
+      "end": [
+        10,
+        7.3
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "zone_g_living": {
+      "object": "node",
+      "id": "zone_g_living",
+      "type": "zone",
+      "name": "Living Room",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 27.6,
+        "room_type": "living"
+      },
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          4.6
+        ],
+        [
+          0,
+          4.6
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_g_dining_stair": {
+      "object": "node",
+      "id": "zone_g_dining_stair",
+      "type": "zone",
+      "name": "Dining + Stair",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 18.4,
+        "room_type": "dining_stair",
+        "contains_stair": true
+      },
+      "polygon": [
+        [
+          6,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          10,
+          4.6
+        ],
+        [
+          6,
+          4.6
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_g_kitchen": {
+      "object": "node",
+      "id": "zone_g_kitchen",
+      "type": "zone",
+      "name": "Kitchen",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 21.6,
+        "room_type": "kitchen"
+      },
+      "polygon": [
+        [
+          0,
+          4.6
+        ],
+        [
+          4,
+          4.6
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          0,
+          10
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_g_guest": {
+      "object": "node",
+      "id": "zone_g_guest",
+      "type": "zone",
+      "name": "Guest / Office",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 16.2,
+        "room_type": "guest_bedroom"
+      },
+      "polygon": [
+        [
+          4,
+          4.6
+        ],
+        [
+          10,
+          4.6
+        ],
+        [
+          10,
+          7.3
+        ],
+        [
+          4,
+          7.3
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_g_service": {
+      "object": "node",
+      "id": "zone_g_service",
+      "type": "zone",
+      "name": "Bath + Laundry",
+      "parentId": "level_ground_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 16.2,
+        "room_type": "bath_laundry"
+      },
+      "polygon": [
+        [
+          4,
+          7.3
+        ],
+        [
+          10,
+          7.3
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          4,
+          10
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "door_g_main": {
+      "object": "node",
+      "id": "door_g_main",
+      "type": "door",
+      "name": "Main Entrance",
+      "parentId": "wall_g_south",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_g_dining_stair",
+          "outside"
+        ]
+      },
+      "position": [
+        7.7,
+        1.15,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_south",
+      "width": 1.2,
+      "height": 2.3,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_g_kitchen_back": {
+      "object": "node",
+      "id": "door_g_kitchen_back",
+      "type": "door",
+      "name": "Kitchen Back Door",
+      "parentId": "wall_g_north",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_g_kitchen",
+          "outside"
+        ]
+      },
+      "position": [
+        8.4,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_north",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_g_living_kitchen": {
+      "object": "node",
+      "id": "door_g_living_kitchen",
+      "type": "door",
+      "name": "Living to Kitchen",
+      "parentId": "wall_g_mid_south",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_g_living",
+          "zone_g_kitchen"
+        ]
+      },
+      "position": [
+        2.6,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_mid_south",
+      "width": 1.0,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_g_dining_guest": {
+      "object": "node",
+      "id": "door_g_dining_guest",
+      "type": "door",
+      "name": "Dining to Guest",
+      "parentId": "wall_g_mid_south",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_g_dining_stair",
+          "zone_g_guest"
+        ]
+      },
+      "position": [
+        7.6,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_mid_south",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_g_guest_service": {
+      "object": "node",
+      "id": "door_g_guest_service",
+      "type": "door",
+      "name": "Guest to Service",
+      "parentId": "wall_g_mid_north",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_g_guest",
+          "zone_g_service"
+        ]
+      },
+      "position": [
+        2.0,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_mid_north",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "window_g_south_living": {
+      "object": "node",
+      "id": "window_g_south_living",
+      "type": "window",
+      "name": "Living South Window",
+      "parentId": "wall_g_south",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.5,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_south",
+      "width": 2.4,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_g_east_dining": {
+      "object": "node",
+      "id": "window_g_east_dining",
+      "type": "window",
+      "name": "Dining East Window",
+      "parentId": "wall_g_east",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.4,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_east",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_g_east_guest": {
+      "object": "node",
+      "id": "window_g_east_guest",
+      "type": "window",
+      "name": "Guest East Window",
+      "parentId": "wall_g_east",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        6.0,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_east",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_g_north_kitchen": {
+      "object": "node",
+      "id": "window_g_north_kitchen",
+      "type": "window",
+      "name": "Kitchen North Window",
+      "parentId": "wall_g_north",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        7.1,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_north",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_g_north_service": {
+      "object": "node",
+      "id": "window_g_north_service",
+      "type": "window",
+      "name": "Service North Window",
+      "parentId": "wall_g_north",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.2,
+        2.0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_north",
+      "width": 1.2,
+      "height": 1.0,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_g_west_living": {
+      "object": "node",
+      "id": "window_g_west_living",
+      "type": "window",
+      "name": "Living West Window",
+      "parentId": "wall_g_west",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        7.5,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_west",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_g_west_kitchen": {
+      "object": "node",
+      "id": "window_g_west_kitchen",
+      "type": "window",
+      "name": "Kitchen West Window",
+      "parentId": "wall_g_west",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.6,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_g_west",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "level_upper_200sqm": {
+      "object": "node",
+      "id": "level_upper_200sqm",
+      "type": "level",
+      "name": "Upper Floor",
+      "parentId": "building_house_200sqm",
+      "visible": true,
+      "metadata": {
+        "gross_area_sqm": 100.0,
+        "floor_to_floor_m": 3.2
+      },
+      "children": [
+        "slab_u_200sqm",
+        "ceiling_u_200sqm",
+        "wall_u_south",
+        "wall_u_east",
+        "wall_u_north",
+        "wall_u_west",
+        "wall_u_mid_south",
+        "wall_u_v_south",
+        "wall_u_v_north",
+        "wall_u_mid_north",
+        "zone_u_master",
+        "zone_u_bed2",
+        "zone_u_bed3",
+        "zone_u_family",
+        "zone_u_bath",
+        "roof_house_200sqm"
+      ],
+      "level": 1,
+      "camera": {
+        "position": [
+          14,
+          14.2,
+          14
+        ],
+        "target": [
+          5,
+          3.2,
+          5
+        ],
+        "mode": "perspective"
+      }
+    },
+    "slab_u_200sqm": {
+      "object": "node",
+      "id": "slab_u_200sqm",
+      "type": "slab",
+      "name": "Upper Floor Slab",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "gross_area_sqm": 100.0
+      },
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          10.0,
+          0
+        ],
+        [
+          10.0,
+          10.0
+        ],
+        [
+          0,
+          10.0
+        ]
+      ],
+      "holes": [
+        [
+          [
+            6.7,
+            0.2
+          ],
+          [
+            9.5,
+            0.2
+          ],
+          [
+            9.5,
+            4.5
+          ],
+          [
+            6.7,
+            4.5
+          ]
+        ]
+      ],
+      "elevation": 0.18,
+      "material": {
+        "preset": "concrete"
+      }
+    },
+    "ceiling_u_200sqm": {
+      "object": "node",
+      "id": "ceiling_u_200sqm",
+      "type": "ceiling",
+      "name": "Upper Floor Ceiling",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          10.0,
+          0
+        ],
+        [
+          10.0,
+          10.0
+        ],
+        [
+          0,
+          10.0
+        ]
+      ],
+      "holes": [],
+      "height": 3.0,
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_south": {
+      "object": "node",
+      "id": "wall_u_south",
+      "type": "wall",
+      "name": "Upper South Exterior",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_u_south_master",
+        "window_u_south_bed2"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        0,
+        0
+      ],
+      "end": [
+        10,
+        0
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_east": {
+      "object": "node",
+      "id": "wall_u_east",
+      "type": "wall",
+      "name": "Upper East Exterior",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_u_east_bed2",
+        "window_u_east_family"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        10,
+        0
+      ],
+      "end": [
+        10,
+        10
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_north": {
+      "object": "node",
+      "id": "wall_u_north",
+      "type": "wall",
+      "name": "Upper North Exterior",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_u_north_bed3",
+        "window_u_north_bath"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        10,
+        10
+      ],
+      "end": [
+        0,
+        10
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_west": {
+      "object": "node",
+      "id": "wall_u_west",
+      "type": "wall",
+      "name": "Upper West Exterior",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_u_west_master",
+        "window_u_west_bed3"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        0,
+        10
+      ],
+      "end": [
+        0,
+        0
+      ],
+      "frontSide": "exterior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_mid_south": {
+      "object": "node",
+      "id": "wall_u_mid_south",
+      "type": "wall",
+      "name": "Upper Partition South",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_u_master_family",
+        "door_u_bed2_family"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        0,
+        5
+      ],
+      "end": [
+        10,
+        5
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_v_south": {
+      "object": "node",
+      "id": "wall_u_v_south",
+      "type": "wall",
+      "name": "Upper Partition South Vertical",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        5,
+        0
+      ],
+      "end": [
+        5,
+        5
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_v_north": {
+      "object": "node",
+      "id": "wall_u_v_north",
+      "type": "wall",
+      "name": "Upper Partition North Vertical",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_u_bed3_family"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        4,
+        5
+      ],
+      "end": [
+        4,
+        10
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "wall_u_mid_north": {
+      "object": "node",
+      "id": "wall_u_mid_north",
+      "type": "wall",
+      "name": "Upper Partition North",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_u_family_bath"
+      ],
+      "thickness": 0.15,
+      "height": 3.0,
+      "start": [
+        4,
+        7.5
+      ],
+      "end": [
+        10,
+        7.5
+      ],
+      "frontSide": "interior",
+      "backSide": "interior",
+      "material": {
+        "preset": "plaster"
+      }
+    },
+    "zone_u_master": {
+      "object": "node",
+      "id": "zone_u_master",
+      "type": "zone",
+      "name": "Master Bedroom",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 25.0,
+        "room_type": "master_bedroom"
+      },
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_u_bed2": {
+      "object": "node",
+      "id": "zone_u_bed2",
+      "type": "zone",
+      "name": "Bedroom 2",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 25.0,
+        "room_type": "bedroom"
+      },
+      "polygon": [
+        [
+          5,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          5,
+          5
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_u_bed3": {
+      "object": "node",
+      "id": "zone_u_bed3",
+      "type": "zone",
+      "name": "Bedroom 3",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 20.0,
+        "room_type": "bedroom"
+      },
+      "polygon": [
+        [
+          0,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          0,
+          10
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_u_family": {
+      "object": "node",
+      "id": "zone_u_family",
+      "type": "zone",
+      "name": "Family Hall",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 15.0,
+        "room_type": "family"
+      },
+      "polygon": [
+        [
+          4,
+          5
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          7.5
+        ],
+        [
+          4,
+          7.5
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "zone_u_bath": {
+      "object": "node",
+      "id": "zone_u_bath",
+      "type": "zone",
+      "name": "Bath + Wardrobe",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "area_sqm": 15.0,
+        "room_type": "bath_wardrobe"
+      },
+      "polygon": [
+        [
+          4,
+          7.5
+        ],
+        [
+          10,
+          7.5
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          4,
+          10
+        ]
+      ],
+      "color": "#3b82f6"
+    },
+    "door_u_master_family": {
+      "object": "node",
+      "id": "door_u_master_family",
+      "type": "door",
+      "name": "Master to Hall",
+      "parentId": "wall_u_mid_south",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_u_master",
+          "zone_u_family"
+        ]
+      },
+      "position": [
+        2.2,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_mid_south",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_u_bed2_family": {
+      "object": "node",
+      "id": "door_u_bed2_family",
+      "type": "door",
+      "name": "Bedroom 2 to Hall",
+      "parentId": "wall_u_mid_south",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_u_bed2",
+          "zone_u_family"
+        ]
+      },
+      "position": [
+        7.2,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_mid_south",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_u_bed3_family": {
+      "object": "node",
+      "id": "door_u_bed3_family",
+      "type": "door",
+      "name": "Bedroom 3 to Hall",
+      "parentId": "wall_u_v_north",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_u_bed3",
+          "zone_u_family"
+        ]
+      },
+      "position": [
+        1.2,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_v_north",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "door_u_family_bath": {
+      "object": "node",
+      "id": "door_u_family_bath",
+      "type": "door",
+      "name": "Hall to Bath",
+      "parentId": "wall_u_mid_north",
+      "visible": true,
+      "metadata": {
+        "connects": [
+          "zone_u_family",
+          "zone_u_bath"
+        ]
+      },
+      "position": [
+        2.0,
+        1.1,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_mid_north",
+      "width": 0.9,
+      "height": 2.2,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "threshold": false,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "material": {
+        "preset": "wood"
+      }
+    },
+    "window_u_south_master": {
+      "object": "node",
+      "id": "window_u_south_master",
+      "type": "window",
+      "name": "Master South Window",
+      "parentId": "wall_u_south",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.4,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_south",
+      "width": 2.2,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_south_bed2": {
+      "object": "node",
+      "id": "window_u_south_bed2",
+      "type": "window",
+      "name": "Bedroom 2 South Window",
+      "parentId": "wall_u_south",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        7.6,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_south",
+      "width": 2.2,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_east_bed2": {
+      "object": "node",
+      "id": "window_u_east_bed2",
+      "type": "window",
+      "name": "Bedroom 2 East Window",
+      "parentId": "wall_u_east",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.4,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_east",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_east_family": {
+      "object": "node",
+      "id": "window_u_east_family",
+      "type": "window",
+      "name": "Family East Window",
+      "parentId": "wall_u_east",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        6.2,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_east",
+      "width": 1.6,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_north_bed3": {
+      "object": "node",
+      "id": "window_u_north_bed3",
+      "type": "window",
+      "name": "Bedroom 3 North Window",
+      "parentId": "wall_u_north",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        7.5,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_north",
+      "width": 2.0,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_north_bath": {
+      "object": "node",
+      "id": "window_u_north_bath",
+      "type": "window",
+      "name": "Bath North Window",
+      "parentId": "wall_u_north",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.2,
+        2.0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_north",
+      "width": 1.2,
+      "height": 1.0,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_west_master": {
+      "object": "node",
+      "id": "window_u_west_master",
+      "type": "window",
+      "name": "Master West Window",
+      "parentId": "wall_u_west",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        7.3,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_west",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "window_u_west_bed3": {
+      "object": "node",
+      "id": "window_u_west_bed3",
+      "type": "window",
+      "name": "Bedroom 3 West Window",
+      "parentId": "wall_u_west",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        2.5,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "side": "front",
+      "wallId": "wall_u_west",
+      "width": 1.8,
+      "height": 1.5,
+      "frameThickness": 0.05,
+      "frameDepth": 0.08,
+      "columnRatios": [
+        1,
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.1,
+      "sillThickness": 0.03,
+      "material": {
+        "preset": "glass"
+      }
+    },
+    "roof_house_200sqm": {
+      "object": "node",
+      "id": "roof_house_200sqm",
+      "type": "roof",
+      "name": "Main Gable Roof",
+      "parentId": "level_upper_200sqm",
+      "visible": true,
+      "metadata": {
+        "style": "modern_tropical"
+      },
+      "position": [
+        5,
+        3.0,
+        5
+      ],
+      "rotation": 0,
+      "children": [
+        "rseg_house_200sqm"
+      ],
+      "material": {
+        "preset": "concrete"
+      }
+    },
+    "rseg_house_200sqm": {
+      "object": "node",
+      "id": "rseg_house_200sqm",
+      "type": "roof-segment",
+      "name": "Main Gable Roof Segment",
+      "parentId": "roof_house_200sqm",
+      "visible": true,
+      "metadata": {},
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": 0,
+      "roofType": "gable",
+      "width": 10.0,
+      "depth": 10.0,
+      "wallHeight": 0.2,
+      "roofHeight": 2.0,
+      "wallThickness": 0.1,
+      "deckThickness": 0.1,
+      "overhang": 0.8,
+      "shingleThickness": 0.05,
+      "material": {
+        "preset": "tile"
+      }
+    }
+  },
+  "rootNodeIds": [
+    "site_house_200sqm"
+  ],
+  "metadata": {
+    "title": "Modern Tropical House 200 sqm",
+    "gross_floor_area_sqm": 200.0,
+    "levels": 2,
+    "source": "saratchai1/Blender3d",
+    "pascal_schema_reference": "pascalorg/pascal-blender@feca6f28cec9378123240115d20c6cf3971588c9"
+  }
+}
