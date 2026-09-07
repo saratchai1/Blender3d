@@ -20,6 +20,8 @@ def publish_validated_pipe_rows(result: dict[str, Any], release: dict[str, Any])
         raise ValueError('pipe publication policy is not ready')
     if int(release.get('release_blocker_count') or 0) != 0:
         raise ValueError('pipe release still has blockers')
+    if release.get('exact_segment_evidence_status') != 'PASS_EXACT_SOURCE_GEOMETRY_RECONCILED':
+        raise ValueError('exact pipe segment evidence gate is not PASS')
 
     out = deepcopy(result)
     existing_ids = {str(row.get('id') or '') for row in out.get('rows', [])}
@@ -53,6 +55,14 @@ def publish_validated_pipe_rows(result: dict[str, Any], release: dict[str, Any])
                 'evidence_roles': list(candidate.get('evidence_roles') or []),
                 'release_gate_status': release.get('status'),
                 'non_additive_contract': release.get('non_additive_contract'),
+                'exact_segment_evidence_status': release.get('exact_segment_evidence_status'),
+                'exact_segment_evidence_contract': release.get('exact_segment_evidence_contract'),
+                'exact_horizontal_length_m': candidate.get('exact_horizontal_length_m'),
+                'exact_vertical_length_m': candidate.get('exact_vertical_length_m'),
+                'exact_horizontal_segment_count': int(candidate.get('exact_horizontal_segment_count') or 0),
+                'exact_vertical_run_count': int(candidate.get('exact_vertical_run_count') or 0),
+                'published_segments': deepcopy(list(candidate.get('published_segments') or [])),
+                'published_vertical_runs': deepcopy(list(candidate.get('published_vertical_runs') or [])),
             },
         })
         existing_ids.add(row_id)
@@ -73,6 +83,9 @@ def publish_validated_pipe_rows(result: dict[str, Any], release: dict[str, Any])
         'published_pipe_row_count': len(pipe_rows),
         'published_pipe_ids': [row['id'] for row in pipe_rows],
         'release_gate_status': release.get('status'),
+        'exact_segment_evidence_status': release.get('exact_segment_evidence_status'),
+        'published_horizontal_segment_count': sum(int((row.get('evidence') or {}).get('exact_horizontal_segment_count') or 0) for row in pipe_rows),
+        'published_vertical_run_count': sum(int((row.get('evidence') or {}).get('exact_vertical_run_count') or 0) for row in pipe_rows),
         'excluded_non_quantity_run_count': release.get('excluded_non_quantity_run_count', 0),
         'release_blocker_count': release.get('release_blocker_count', 0),
     })
