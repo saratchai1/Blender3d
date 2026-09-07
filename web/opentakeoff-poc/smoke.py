@@ -25,6 +25,16 @@ def large_canvas(frame):
         if b and b['width']>=500 and b['height']>=300:return True
     return False
 
+def wait_for_pdf_commit(page, frame, name, size, attempts=240):
+    """Wait for IndexedDB addPdf() transaction itself, not a pre-existing canvas."""
+    last=None
+    for _ in range(attempts):
+        last=frame.evaluate(READ_DB,'user')
+        if any(x['name']==name and x['size']==size for x in last['pdfs']):
+            return last
+        page.wait_for_timeout(250)
+    raise AssertionError(f'PDF record did not commit to user workspace: {name} size={size}; last={last}')
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--root',type=Path,required=True);ap.add_argument('--out',type=Path,default=Path('.generated/takeoff-qa'));a=ap.parse_args();a.out.mkdir(parents=True,exist_ok=True)
     sample=a.root/'takeoff/demo/family4.pdf'; auto=json.loads((a.root/'takeoff/auto-boq.json').read_text()); bench=json.loads((a.root/'takeoff/auto-boq-benchmark.json').read_text())
@@ -86,7 +96,7 @@ def main():
         page.locator('#workspace').select_option('user');page.locator('#status[data-state="ready"]').wait_for(timeout=60000);assert not page.locator('[data-tab="auto"]').is_disabled();engine=page.frames[1];own=engine.evaluate(READ_DB,'user');assert len(own['pdfs'])==0 and (own.get('annotations') is None or own['annotations']['shapes']==[])
         engine.locator('input[type="file"]').first.wait_for(state='attached',timeout=30000);target=engine.locator('input[type="file"][accept*="pdf"]').first
         if target.count()==0:target=engine.locator('input[type="file"][multiple]').first
-        target.set_input_files(str(sample.resolve()));engine.locator('canvas').first.wait_for(timeout=120000);own=engine.evaluate(READ_DB,'user');assert any(x['name']=='family4.pdf' and x['size']==EXPECTED_SIZE for x in own['pdfs']);assert own['annotations']['shapes']==[]
+        target.set_input_files(str(sample.resolve()));own=wait_for_pdf_commit(page,engine,'family4.pdf',EXPECTED_SIZE);assert own['annotations']['shapes']==[]
         page.locator('[data-tab="auto"]').click();page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='4'",timeout=120000)
         assert page.locator('#auto-rows-body tr').count()==4
         user_text=page.locator('#auto-rows-body').inner_text()
