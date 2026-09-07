@@ -1,6 +1,7 @@
 import { evidenceController } from './evidence-viewer.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const EVIDENCE_RUNTIME_EVENT = 'boq-evidence:runtime-result';
 
 function svgEl(tag, attrs = {}) {
   const node = document.createElementNS(SVG_NS, tag);
@@ -117,30 +118,99 @@ evidenceController.render = async function patchedEvidenceRender() {
   await drawExactPipeEvidence(this);
 };
 
+function tableRowIds(tbody) {
+  return Array.from(tbody.querySelectorAll('td:first-child small'))
+    .map(x => x.textContent || '')
+    .filter(Boolean);
+}
+
+function resultRowIds(data) {
+  return (data?.rows || []).map(row => String(row.id || '')).filter(Boolean);
+}
+
+function sameIds(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 async function main() {
   const tbody = document.querySelector('#auto-rows-body');
   const workspace = document.querySelector('#workspace');
   if (!tbody || !workspace) return;
+
   const response = await fetch('./auto-boq.json', { cache: 'no-store' });
   if (!response.ok) throw new Error('auto-boq.json unavailable for evidence viewer');
-  const auto = await response.json();
-  if (auto.source_policy?.reference_used_for_generation !== false) throw new Error('evidence viewer requires reference-isolated Automatic BOQ');
+  const demoAuto = await response.json();
+  if (demoAuto.source_policy?.reference_used_for_generation !== false) throw new Error('evidence viewer requires reference-isolated Automatic BOQ');
 
   let signature = '';
-  const sync = () => {
+  let pendingUserEvidence = null;
+
+  const bind = (data, context, key) => {
     const host = evidenceController.ensureHost();
-    const demo = workspace.value === 'demo';
-    host.hidden = !demo;
-    if (!demo) { signature = ''; return; }
-    const ids = Array.from(tbody.querySelectorAll('td:first-child small')).map(x => x.textContent || '').filter(Boolean);
-    const next = ids.join('|');
-    if (!ids.length || next === signature) return;
-    signature = next;
-    evidenceController.bindRows(tbody, auto, { workspace: 'demo', pdfUrl: './demo/family4.pdf' });
+    signature = key;
+    evidenceController.resetPdf();
+    evidenceController.bindRows(tbody, data, context);
+    host.hidden = false;
   };
 
+  const sync = () => {
+    const host = evidenceController.ensureHost();
+    const ids = tableRowIds(tbody);
+    const demo = workspace.value === 'demo';
+
+    if (demo) {
+      const expected = resultRowIds(demoAuto);
+      const next = `demo:${ids.join('|')}`;
+      if (!ids.length || !sameIds(ids, expected) || next === signature) return;
+      bind(demoAuto, { workspace: 'demo', pdfUrl: './demo/family4.pdf' }, next);
+      return;
+    }
+
+    if (!pendingUserEvidence) {
+      host.hidden = true;
+      return;
+    }
+
+    const expected = resultRowIds(pendingUserEvidence.data);
+    if (!expected.length) {
+      host.hidden = true;
+      return;
+    }
+    const next = `user:${pendingUserEvidence.fingerprint}:${ids.join('|')}`;
+    if (!ids.length || !sameIds(ids, expected) || next === signature) return;
+    bind(pendingUserEvidence.data, {
+      workspace: 'user',
+      pdfBytes: pendingUserEvidence.pdfBytes,
+      pdfName: pendingUserEvidence.name,
+    }, next);
+  };
+
+  globalThis.addEventListener(EVIDENCE_RUNTIME_EVENT, event => {
+    const detail = event?.detail || {};
+    const data = detail.result;
+    if (!data || data.source_policy?.reference_used_for_generation !== false) return;
+    const bytes = detail.pdfBytes instanceof Uint8Array
+      ? detail.pdfBytes
+      : new Uint8Array(detail.pdfBytes || []);
+    pendingUserEvidence = {
+      data,
+      name: detail.name || data.document?.name || 'uploaded.pdf',
+      pdfBytes: bytes,
+      fingerprint: `${data.document?.sha256 || ''}:${detail.name || data.document?.name || ''}:${bytes.byteLength}`,
+    };
+    signature = '';
+    if (workspace.value === 'user') queueMicrotask(sync);
+  });
+
   new MutationObserver(sync).observe(tbody, { childList: true, subtree: true });
-  workspace.addEventListener('change', () => { signature = ''; queueMicrotask(sync); });
+  workspace.addEventListener('change', () => {
+    signature = '';
+    pendingUserEvidence = null;
+    evidenceController.resetPdf();
+    const host = evidenceController.ensureHost();
+    host.hidden = workspace.value !== 'demo';
+    queueMicrotask(sync);
+  });
   sync();
 }
 
