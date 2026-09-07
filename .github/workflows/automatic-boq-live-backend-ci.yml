@@ -4,22 +4,14 @@ on:
   push:
     branches:
       - feat/auto-boq-live-backend
+      - main
     paths:
       - 'integrations/opentakeoff/runtime_backend.py'
       - 'integrations/opentakeoff/runtime_server.py'
+      - 'integrations/opentakeoff/generic_profile_inference.py'
       - 'integrations/opentakeoff/test_runtime_backend.py'
       - 'integrations/opentakeoff/test_runtime_server.py'
-      - 'integrations/opentakeoff/requirements*.txt'
-      - 'integrations/opentakeoff/auto_boq_v8_*.py'
-      - 'integrations/opentakeoff/*_v8.py'
-      - 'integrations/opentakeoff/profiles/**'
-      - '.github/workflows/automatic-boq-live-backend-ci.yml'
-  pull_request:
-    paths:
-      - 'integrations/opentakeoff/runtime_backend.py'
-      - 'integrations/opentakeoff/runtime_server.py'
-      - 'integrations/opentakeoff/test_runtime_backend.py'
-      - 'integrations/opentakeoff/test_runtime_server.py'
+      - 'integrations/opentakeoff/test_generic_profile_inference.py'
       - 'integrations/opentakeoff/requirements*.txt'
       - 'integrations/opentakeoff/auto_boq_v8_*.py'
       - 'integrations/opentakeoff/*_v8.py'
@@ -29,6 +21,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: automatic-boq-live-backend-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   http-backend:
@@ -45,10 +41,11 @@ jobs:
       - name: Install pinned Automatic BOQ dependencies
         run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements.txt
 
-      - name: Test runtime profile gate and HTTP contract
+      - name: Test profile, generic inference and HTTP contract
         run: |
           python integrations/opentakeoff/test_runtime_backend.py
           python integrations/opentakeoff/test_runtime_server.py
+          python integrations/opentakeoff/test_generic_profile_inference.py
 
       - name: Fetch verified Family4 benchmark PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
@@ -64,9 +61,7 @@ jobs:
           python integrations/opentakeoff/runtime_server.py > .generated/live-backend-qa/server.log 2>&1 &
           echo $! > .generated/live-backend-qa/server.pid
           for i in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8765/health > .generated/live-backend-qa/health.json; then
-              exit 0
-            fi
+            if curl --fail --silent http://127.0.0.1:8765/health > .generated/live-backend-qa/health.json; then exit 0; fi
             sleep 1
           done
           cat .generated/live-backend-qa/server.log
@@ -79,7 +74,8 @@ jobs:
           from pathlib import Path
           value=json.loads(Path('.generated/live-backend-qa/health.json').read_text())
           assert value['status']=='ok',value
-          assert value['engine']=='v8.19-profile-gated',value
+          assert value['engine']=='v8.19-profile+generic-vector-v0',value
+          assert value['generic_inference']=='vector-sanitary-v0',value
           assert value['registered_profiles']==1,value
           assert value['fail_closed_unknown_profiles'] is True,value
           assert value['max_upload_bytes']==30*1024*1024,value
@@ -90,13 +86,10 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error \
-            -X POST \
-            -H 'Content-Type: application/pdf' \
-            -H 'X-File-Name: family4.pdf' \
+            -X POST -H 'Content-Type: application/pdf' -H 'X-File-Name: family4.pdf' \
             -H 'Origin: https://saratchai1.github.io' \
             --data-binary @.generated/samples/family4.pdf \
-            http://127.0.0.1:8765/api/auto-boq \
-            > .generated/live-backend-qa/family4-runtime.json
+            http://127.0.0.1:8765/api/auto-boq > .generated/live-backend-qa/family4-runtime.json
           python - <<'PY'
           import json
           from pathlib import Path
@@ -104,44 +97,39 @@ jobs:
           pipes=[r for r in value.get('rows',[]) if str(r.get('id','')).startswith('SAN-PIPE-')]
           assert value['runtime_status']=='PUBLISHED_VALIDATED_PROFILE_BOQ',value.get('runtime_status')
           assert value['runtime_profile']=='family4-v8.19',value.get('runtime_profile')
-          assert len(value['rows'])==27,len(value['rows'])
-          assert len(pipes)==8,len(pipes)
+          assert len(value['rows'])==27 and len(pipes)==8
           assert abs(sum(float(r['quantity']) for r in pipes)-92.5)<1e-6
           assert value['source_policy']['reference_used_for_generation'] is False
           assert all(max(r.get('source_pages') or [0])<=71 for r in value['rows'])
           print('AUTO_BOQ_HTTP_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5})
           PY
 
-      - name: Verify modified PDF fails closed instead of borrowing Family4 profile
+      - name: Verify modified Family4 cannot borrow validated profile and fails closed through generic inference
         run: |
           set -euo pipefail
           cp .generated/samples/family4.pdf .generated/samples/unregistered-family4-copy.pdf
           printf '\n%% profile-hash-must-change\n' >> .generated/samples/unregistered-family4-copy.pdf
           curl --fail-with-body --silent --show-error \
-            -X POST \
-            -H 'Content-Type: application/pdf' \
-            -H 'X-File-Name: unregistered-family4-copy.pdf' \
+            -X POST -H 'Content-Type: application/pdf' -H 'X-File-Name: unregistered-family4-copy.pdf' \
             -H 'Origin: https://saratchai1.github.io' \
             --data-binary @.generated/samples/unregistered-family4-copy.pdf \
-            http://127.0.0.1:8765/api/auto-boq \
-            > .generated/live-backend-qa/unregistered-runtime.json
+            http://127.0.0.1:8765/api/auto-boq > .generated/live-backend-qa/unregistered-runtime.json
           python - <<'PY'
           import json
           from pathlib import Path
           value=json.loads(Path('.generated/live-backend-qa/unregistered-runtime.json').read_text())
-          assert value['runtime_status']=='WITHHELD_UNREGISTERED_DRAWING_PROFILE',value
+          assert value['runtime_status']=='WITHHELD_GENERIC_INFERENCE',value
           assert value['rows']==[],value['rows']
           assert value['source_policy']['reference_used_for_generation'] is False
-          assert value['source_policy']['profile_hash_gate'] is True
-          print('AUTO_BOQ_HTTP_UNKNOWN_PROFILE_FAIL_CLOSED_PASS')
+          assert value['source_policy']['generic_profile_inference'] is True
+          assert value['runtime_profile_sha256_gate'] is None
+          print('AUTO_BOQ_HTTP_GENERIC_FAIL_CLOSED_PASS')
           PY
 
       - name: Stop HTTP runtime
         if: always()
         run: |
-          if [ -f .generated/live-backend-qa/server.pid ]; then
-            kill "$(cat .generated/live-backend-qa/server.pid)" 2>/dev/null || true
-          fi
+          if [ -f .generated/live-backend-qa/server.pid ]; then kill "$(cat .generated/live-backend-qa/server.pid)" 2>/dev/null || true; fi
 
       - name: Retain HTTP backend evidence
         if: always()
