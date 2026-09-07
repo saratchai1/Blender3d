@@ -12,6 +12,14 @@ on:
       - 'integrations/opentakeoff/pipe_publish_v8.py'
       - 'integrations/opentakeoff/install_browser_runtime.py'
       - '.github/workflows/automatic-boq-evidence-viewer-ci.yml'
+  pull_request:
+    paths:
+      - 'web/opentakeoff-poc/**'
+      - 'integrations/opentakeoff/auto_boq_v8_19.py'
+      - 'integrations/opentakeoff/pipe_segment_evidence_v8.py'
+      - 'integrations/opentakeoff/pipe_publish_v8.py'
+      - 'integrations/opentakeoff/install_browser_runtime.py'
+      - '.github/workflows/automatic-boq-evidence-viewer-ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -74,11 +82,18 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Verify PDF evidence overlays, exact pipe vectors and audit formulas
         run: python web/opentakeoff-poc/evidence_smoke.py --root .generated/evidence-pages --out .generated/evidence-qa
+      - name: Verify user-uploaded PDF binds to the evidence viewer
+        run: |
+          mkdir -p .generated/user-evidence-root/takeoff
+          cp -a .generated/evidence-pages/. .generated/user-evidence-root/takeoff/
+          python web/opentakeoff-poc/runtime_smoke.py --root .generated/user-evidence-root --out .generated/user-evidence-qa
       - name: Retain evidence viewer QA
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: automatic-boq-evidence-viewer-qa
-          path: .generated/evidence-qa/
+          path: |
+            .generated/evidence-qa/
+            .generated/user-evidence-qa/
           if-no-files-found: warn
           retention-days: 30
