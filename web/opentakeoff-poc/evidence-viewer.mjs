@@ -1,4 +1,5 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const DN_TO_INCH = new Map([[15,0.5],[20,0.75],[25,1],[32,1.25],[40,1.5],[50,2],[65,2.5],[80,3],[100,4],[125,5],[150,6]]);
 
 const fmt = (n, d = 3) => Number(n).toLocaleString('th-TH', {
   minimumFractionDigits: d,
@@ -115,13 +116,16 @@ function collectOverlay(row, data, pageNo) {
     const page = (diag?.pages || []).find(x => x.page === pageNo);
     const system = String(e.system || '');
     const diameter = String(e.diameter_key || '');
+    const targetInch = DN_TO_INCH.get(Number(e.dn));
     for (const tag of page?.tags || []) {
       if (tag.system === system && tag.diameter_key === diameter && tag.bbox_pt) {
         out.push({ type: 'rect', rect: tag.bbox_pt, kind: 'tag', label: tag.text || `${system} ${diameter}` });
       }
     }
     for (const comp of page?.candidate_components || []) {
-      const matches = (comp.classes || []).some(c => c.system === system && (`DN${c.dn}` === diameter || c.diameter_key === diameter));
+      const matches = targetInch != null && (comp.classes || []).some(c =>
+        c.system === system && Number.isFinite(Number(c.diameter_in)) && Math.abs(Number(c.diameter_in) - targetInch) < 1e-6
+      );
       if (matches && comp.bbox_pt) {
         out.push({ type: 'rect', rect: comp.bbox_pt, kind: 'pipe', label: `${system} ${diameter} · ${fmt(comp.length_m_candidate || 0)} m seed` });
       }
