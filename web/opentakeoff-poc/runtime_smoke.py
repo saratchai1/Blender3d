@@ -27,6 +27,9 @@ def main():
     assert manifest['reference_data_dependency'] is False
     assert manifest['pdfjs_version'].startswith('4.10.')
     assert (root/'takeoff/browser-auto-boq.mjs').is_file()
+    assert (root/'takeoff/browser-pipe-geometry.mjs').is_file()
+    assert 'browser-pipe-geometry.mjs' in manifest.get('runtime_modules',[])
+    assert manifest.get('pipe_geometry_release')=='DIAGNOSTIC_ONLY_UNTIL_GENERIC_GATES_PASS'
     assert (root/'takeoff/vendor/pdf.mjs').is_file()
     assert (root/'takeoff/vendor/pdf.worker.mjs').is_file()
 
@@ -37,7 +40,7 @@ def main():
     report={'status':'IN_PROGRESS','checks':[],'page_errors':[]}
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True)
-        page=browser.new_page(viewport={'width':1440,'height':960})
+        page=browser.new_page(viewport={'width':1440,'height':960},accept_downloads=True)
         page.on('pageerror',lambda e:report['page_errors'].append(str(e)))
         try:
             page.goto(url,wait_until='domcontentloaded',timeout=60000)
@@ -82,9 +85,38 @@ def main():
             assert not page.locator('#user-auto-json').is_disabled()
             assert page.locator('#accuracy-download').is_hidden()
             assert page.locator('#auto-json-download').is_hidden()
+
+            with page.expect_download(timeout=30000) as dl_info:
+                page.locator('#user-auto-json').click()
+            dl=dl_info.value
+            runtime_path=Path(dl.path())
+            runtime=json.loads(runtime_path.read_text(encoding='utf-8'))
+            assert runtime['source_policy']['reference_used_for_generation'] is False
+            assert runtime['source_policy']['generic_pipe_length_min_primary_diameter_coverage']==0.95
+            assert runtime['source_policy']['generic_pipe_length_release_status']=='WITHHELD_ALPHA2_DIAGNOSTIC_ONLY'
+            geometry=runtime['diagnostics']['pipe_geometry_alpha2']
+            assert geometry['detector']=='browser_pipe_geometry_alpha2'
+            assert geometry['release_status']=='WITHHELD_ALPHA2_DIAGNOSTIC_ONLY'
+            assert geometry['reference_used_for_generation'] is False
+            assert all(int(p)<=71 for p in geometry.get('analyzed_primary_pages',[]))
+            metrics=[{
+                'page':p.get('page'),
+                'segments':p.get('vector_segment_count'),
+                'components':p.get('component_count'),
+                'coverage':(p.get('diameter_coverage') or {}).get('assigned_fraction'),
+                'scale':(p.get('scale') or {}).get('unique_ratio'),
+                'accepted_tags':len(((p.get('tag_associations') or {}).get('accepted') or [])),
+                'withheld_tags':len(((p.get('tag_associations') or {}).get('withheld') or [])),
+                'blockers':p.get('blockers') or [],
+            } for p in geometry.get('pages',[])]
+            report['pipe_geometry_alpha2']=metrics
+            (a.out/'user-runtime-alpha.json').write_text(json.dumps(runtime,ensure_ascii=False,indent=2),encoding='utf-8')
+            print('USER_PIPE_GEOMETRY_ALPHA2',json.dumps(metrics,ensure_ascii=False))
+
             page.screenshot(path=str(a.out/'user-runtime-alpha.png'),full_page=True)
             report['checks'].append('User-uploaded Family4 is processed client-side with pinned PDF.js: RFD/AVC retain explicit sizes while FCO/CO counts publish only with size WITHHELD')
             report['checks'].append('Schematic/detail duplicate AVC evidence is reconciled non-additively; Floor Drain, pipe length, FCO/CO size and non-explicit BOQ remain WITHHELD')
+            report['checks'].append('Alpha2 emits OCG/vector pipe-network, scale, component, tag-association and diameter-coverage diagnostics but cannot publish a pipe row until the generic 95% release gate passes')
             report['checks'].append('No reference quantity is loaded in user runtime; all published runtime evidence links resolve only to drawing-like pages 59/60')
             report['status']='PASS'
             assert not report['page_errors'],report['page_errors']
