@@ -4,8 +4,12 @@ on:
   push:
     branches:
       - feat/boq-evidence-viewer
+      - feat/exact-pipe-segment-evidence
     paths:
       - 'web/opentakeoff-poc/**'
+      - 'integrations/opentakeoff/auto_boq_v8_19.py'
+      - 'integrations/opentakeoff/pipe_segment_evidence_v8.py'
+      - 'integrations/opentakeoff/pipe_publish_v8.py'
       - 'integrations/opentakeoff/install_browser_runtime.py'
       - '.github/workflows/automatic-boq-evidence-viewer-ci.yml'
   workflow_dispatch:
@@ -41,7 +45,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
       - name: Fetch verified Family4 PDF
         run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
-      - name: Build Automatic BOQ POC
+      - name: Build Automatic BOQ POC with exact pipe evidence
         run: python integrations/opentakeoff/build.py --upstream .external/opentakeoff-poc --output .generated/evidence-pages --demo-pdf .generated/samples/family4.pdf
       - name: Install hybrid runtime and evidence viewer
         run: python integrations/opentakeoff/install_browser_runtime.py --upstream .external/opentakeoff-poc --output .generated/evidence-pages
@@ -55,15 +59,20 @@ jobs:
           assert info['evidence_viewer']=='PDFJS_SOURCE_DRAWING_OVERLAY_FROM_GENERATION_EVIDENCE',info
           assert (root/'evidence-viewer.mjs').is_file()
           assert (root/'evidence-bootstrap.mjs').is_file()
+          auto=json.loads((root/'auto-boq.json').read_text())
+          pipe=next(r for r in auto['rows'] if r.get('id')=='SAN-PIPE-CW-DN20')
+          e=pipe['evidence']
+          assert e['exact_segment_evidence_status']=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED',e
+          assert e['published_segments'] and e['published_vertical_runs'],e
           poc=(root/'poc.js').read_text()
           assert "evidence-bootstrap.mjs" in poc,poc[-500:]
-          print('EVIDENCE_PACKAGE_PASS',info['runtime_modules'])
+          print('EVIDENCE_PACKAGE_PASS',{'modules':info['runtime_modules'],'exact_horizontal_segments':len(e['published_segments']),'exact_vertical_runs':len(e['published_vertical_runs'])})
           PY
       - name: Install Chromium QA runtime
         run: |
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Verify PDF evidence overlays and audit formulas
+      - name: Verify PDF evidence overlays, exact pipe vectors and audit formulas
         run: python web/opentakeoff-poc/evidence_smoke.py --root .generated/evidence-pages --out .generated/evidence-qa
       - name: Retain evidence viewer QA
         if: always()

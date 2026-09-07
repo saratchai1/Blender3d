@@ -20,6 +20,7 @@ import auto_boq_v8_15 as v815
 import equipment_valve_corroboration_v8 as equipment_corroboration
 import pipe_publish_v8 as publish
 import pipe_release_reconcile_v8 as release
+import pipe_segment_evidence_v8 as segment_evidence
 import probe_cw_valve_leaders_v8 as valve_probe
 import vertical_valve_leader_reconcile_v8 as valve_reconcile
 
@@ -125,6 +126,16 @@ def extract(
         roof_source_page=int(roof_evidence['source_page']),
         max_excludable_cw_offset_m=0.5,
     )
+    if final.get('status')=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE':
+        final['exact_segment_evidence_required']=True
+        final=segment_evidence.attach_exact_pipe_segment_evidence(
+            pdf_path,
+            profile_path,
+            diag,
+            vertical,
+            final,
+        )
+
     diag['vertical_level_bounded_reconciliation']=vertical
     diag['cw_valve_leader_evidence']=probe
     diag['equipment_valve_corroboration']=corroboration
@@ -133,14 +144,22 @@ def extract(
     diag['status']=(
         'VALIDATED_CROSS_SHEET_VALVE_PIPE_RELEASE_READY'
         if final.get('status')=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE'
+        and final.get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED'
         else 'WITHHELD_CROSS_SHEET_VALVE_PIPE_RELEASE_BLOCKERS'
     )
     diag['reconciliation']['full_pipe_boq_publication_status']=final.get('status')
     diag['note_v8_19']=(
         'v8.19 requires SN-04 BALL VALVE Ø1/2 leader evidence and SN-05 FLOAT VALVE Ø1/2 equipment-plan evidence to agree before the 1.228 m tank-side CW run may be classified DN15. '
         'The nearby Ø3/4 CW main is explicitly audit-only and cannot size the vertical valve branch. The branch length remains the SN-04 calibrated span; no plan, leader, gap, schematic-offset or detail length is added. '
+        'Before publication, exact source PDF vector coordinates are rehydrated by detector segment_index and must reconcile to the already-computed horizontal and vertical quantities; any identity or quantity mismatch withholds all pipe rows. '
         'All previous horizontal, roof, non-additive, residual-run and reference-page-fence guards remain active.'
     )
+
+    if not (
+        final.get('status')=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE'
+        and final.get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED'
+    ):
+        return result
 
     published=publish.publish_validated_pipe_rows(result,final)
     pdiag=next((d for d in published.get('diagnostics',[]) if d.get('detector')=='sanitary_pipe_network_v8_19'),None)
@@ -168,6 +187,7 @@ def main()->None:
         'corroboration_status':((diag or {}).get('equipment_valve_corroboration') or {}).get('status'),
         'release_status':((diag or {}).get('pipe_release_candidate') or {}).get('status'),
         'release_blockers':((diag or {}).get('pipe_release_candidate') or {}).get('release_blocker_count'),
+        'exact_segment_evidence_status':((diag or {}).get('pipe_release_candidate') or {}).get('exact_segment_evidence_status'),
         'published_pipe_rows':len(pipes),
         'published_pipe_total_m':round(sum(float(r.get('quantity') or 0.0) for r in pipes),3),
         'output':str(args.output),

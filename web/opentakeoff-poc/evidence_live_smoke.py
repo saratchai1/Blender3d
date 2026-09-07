@@ -54,10 +54,22 @@ def main() -> None:
             formula = page.locator('#evidence-formula').inner_text()
             assert '19.812' in formula and '6.300' in formula and '26.112' in formula, formula
             assert page.locator('#evidence-overlay .evidence-shape.tag').count() >= 1
-            assert page.locator('#evidence-overlay .evidence-shape.pipe').count() >= 1
+            page.wait_for_function("document.querySelectorAll('#evidence-overlay .exact-horizontal-segment').length>=1", timeout=30000)
             pipe_facts = page.locator('#evidence-facts').inner_text()
             assert 'vector segments' in pipe_facts and 'กันนับซ้ำ' in pipe_facts
-            report['checks'].append('CW DN20 p.58 visibly shows drawing tag/CAD network seed plus 19.812 m horizontal + 6.300 m vertical = 26.112 m')
+            assert 'exact published horizontal vector' in pipe_facts
+            assert 'PASS_EXACT_SOURCE_GEOMETRY_RECONCILED' in pipe_facts
+            report['checks'].append('CW DN20 p.58 visibly shows exact published source vectors plus 19.812 m horizontal + 6.300 m vertical = 26.112 m')
+
+            p57 = page.locator('#evidence-pages button', has_text='p.57')
+            assert p57.count() == 1
+            p57.click()
+            page.wait_for_function("document.querySelector('#evidence-page-label')?.textContent.includes('p.57')", timeout=30000)
+            page.wait_for_function("document.querySelectorAll('#evidence-overlay .exact-vertical-source-stroke').length>=1", timeout=30000)
+            vertical_facts = page.locator('#evidence-facts').inner_text()
+            assert 'exact vertical source strokes' in vertical_facts
+            assert 'run-level physical span' in vertical_facts
+            report['checks'].append('CW DN20 p.57 visibly shows exact schematic source strokes without pretending raw stroke length equals calibrated vertical quantity')
 
             door_row = page.locator('#auto-rows-body tr[data-evidence-id="ARCH-DOOR-D2"]')
             door_row.locator('.evidence-open').click()
