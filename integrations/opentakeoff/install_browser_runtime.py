@@ -61,6 +61,27 @@ def main() -> None:
         "browser runtime import",
     )
 
+    old_handoff = """    const result = await runtime.extractBrowserAutoBoq({ bytes, name: pdf.name, pdfjs });
+    if (result.source_policy?.reference_used_for_generation !== false) throw new Error('reference isolation failed');
+    userRuntimeData = result;
+"""
+    new_handoff = """    // PDF.js may transfer/detach the ArrayBuffer supplied to its worker. Preserve
+    // a separate evidence copy before extraction so it survives that transfer.
+    const evidenceBytes = bytes.slice();
+    const result = await runtime.extractBrowserAutoBoq({ bytes, name: pdf.name, pdfjs });
+    if (result.source_policy?.reference_used_for_generation !== false) throw new Error('reference isolation failed');
+    const evidenceDetail = {
+      result,
+      name: pdf.name,
+      pdfBytes: evidenceBytes,
+      fingerprint: `${result.document?.sha256 || ''}:${pdf.name}:${evidenceBytes.byteLength}`,
+    };
+    globalThis.__BOQ_EVIDENCE_RUNTIME__ = evidenceDetail;
+    globalThis.dispatchEvent(new CustomEvent('boq-evidence:runtime-result', { detail: evidenceDetail }));
+    userRuntimeData = result;
+"""
+    text = replace_once(text, old_handoff, new_handoff, "user PDF evidence handoff")
+
     old_note = """  const backend = data.runtime_execution?.mode === 'BACKEND_VALIDATED_PROFILE';
   if (backend) {
     const pipeRows = (data.rows || []).filter(r => String(r.id || '').startsWith('SAN-PIPE-'));

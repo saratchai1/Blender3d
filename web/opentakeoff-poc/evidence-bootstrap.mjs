@@ -1,6 +1,8 @@
 import { evidenceController } from './evidence-viewer.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const EVIDENCE_RUNTIME_EVENT = 'boq-evidence:runtime-result';
+const EVIDENCE_RUNTIME_STATE = '__BOQ_EVIDENCE_RUNTIME__';
 
 function svgEl(tag, attrs = {}) {
   const node = document.createElementNS(SVG_NS, tag);
@@ -111,36 +113,149 @@ async function drawExactPipeEvidence(controller) {
   if (label && segments.length) label.textContent += ` · exact ${segments.length} source segments`;
 }
 
+// PDF.js rejects concurrent render() operations that target the same canvas.
+// bindRows auto-opens the first evidence row, while a user may click that row
+// before the first render completes. Serialize those renders so every request
+// uses the canvas only after the previous render has settled.
 const originalRender = evidenceController.render.bind(evidenceController);
-evidenceController.render = async function patchedEvidenceRender() {
-  await originalRender();
-  await drawExactPipeEvidence(this);
+let evidenceRenderQueue = Promise.resolve();
+evidenceController.render = function patchedEvidenceRender() {
+  const controller = this;
+  const queued = evidenceRenderQueue
+    .catch(() => {})
+    .then(async () => {
+      await originalRender();
+      await drawExactPipeEvidence(controller);
+    });
+  evidenceRenderQueue = queued;
+  return queued;
 };
+
+function tableRowIds(tbody) {
+  return Array.from(tbody.querySelectorAll('td:first-child small'))
+    .map(x => x.textContent || '')
+    .filter(Boolean);
+}
+
+function resultRowIds(data) {
+  return (data?.rows || []).map(row => String(row.id || '')).filter(Boolean);
+}
+
+function sameIds(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function normalizedRuntimeEvidence(detail) {
+  const data = detail?.result;
+  if (!data || data.source_policy?.reference_used_for_generation !== false) return null;
+  const bytes = detail.pdfBytes instanceof Uint8Array
+    ? detail.pdfBytes
+    : new Uint8Array(detail.pdfBytes || []);
+  return {
+    data,
+    name: detail.name || data.document?.name || 'uploaded.pdf',
+    pdfBytes: bytes,
+    fingerprint: detail.fingerprint || `${data.document?.sha256 || ''}:${detail.name || data.document?.name || ''}:${bytes.byteLength}`,
+  };
+}
 
 async function main() {
   const tbody = document.querySelector('#auto-rows-body');
   const workspace = document.querySelector('#workspace');
   if (!tbody || !workspace) return;
+
   const response = await fetch('./auto-boq.json', { cache: 'no-store' });
   if (!response.ok) throw new Error('auto-boq.json unavailable for evidence viewer');
-  const auto = await response.json();
-  if (auto.source_policy?.reference_used_for_generation !== false) throw new Error('evidence viewer requires reference-isolated Automatic BOQ');
+  const demoAuto = await response.json();
+  if (demoAuto.source_policy?.reference_used_for_generation !== false) throw new Error('evidence viewer requires reference-isolated Automatic BOQ');
 
   let signature = '';
-  const sync = () => {
+  let pendingUserEvidence = normalizedRuntimeEvidence(globalThis[EVIDENCE_RUNTIME_STATE]);
+
+  const bind = (data, context, key) => {
     const host = evidenceController.ensureHost();
-    const demo = workspace.value === 'demo';
-    host.hidden = !demo;
-    if (!demo) { signature = ''; return; }
-    const ids = Array.from(tbody.querySelectorAll('td:first-child small')).map(x => x.textContent || '').filter(Boolean);
-    const next = ids.join('|');
-    if (!ids.length || next === signature) return;
-    signature = next;
-    evidenceController.bindRows(tbody, auto, { workspace: 'demo', pdfUrl: './demo/family4.pdf' });
+    signature = key;
+    evidenceController.resetPdf();
+    evidenceController.bindRows(tbody, data, context);
+    host.hidden = false;
   };
 
+  const refreshBindings = (data, context, expected) => {
+    const buttonCount = tbody.querySelectorAll('.evidence-open').length;
+    if (buttonCount !== expected.length) evidenceController.bindRows(tbody, data, context);
+  };
+
+  const sync = () => {
+    const host = evidenceController.ensureHost();
+    const ids = tableRowIds(tbody);
+    const demo = workspace.value === 'demo';
+
+    if (demo) {
+      const expected = resultRowIds(demoAuto);
+      const next = `demo:${ids.join('|')}`;
+      if (!ids.length || !sameIds(ids, expected)) {
+        signature = '';
+        host.hidden = true;
+        return;
+      }
+      const context = { workspace: 'demo', pdfUrl: './demo/family4.pdf' };
+      if (next === signature) {
+        host.hidden = false;
+        refreshBindings(demoAuto, context, expected);
+        return;
+      }
+      bind(demoAuto, context, next);
+      return;
+    }
+
+    // Extraction may publish its evidence state before the BOQ table mutation is
+    // observed. Recover from the page-level state on every sync so event ordering
+    // cannot leave the viewer permanently hidden.
+    pendingUserEvidence = normalizedRuntimeEvidence(globalThis[EVIDENCE_RUNTIME_STATE]) || pendingUserEvidence;
+    if (!pendingUserEvidence) {
+      signature = '';
+      host.hidden = true;
+      return;
+    }
+
+    const expected = resultRowIds(pendingUserEvidence.data);
+    if (!expected.length || !ids.length || !sameIds(ids, expected)) {
+      signature = '';
+      host.hidden = true;
+      return;
+    }
+    const next = `user:${pendingUserEvidence.fingerprint}:${ids.join('|')}`;
+    const context = {
+      workspace: 'user',
+      pdfBytes: pendingUserEvidence.pdfBytes,
+      pdfName: pendingUserEvidence.name,
+    };
+    if (next === signature) {
+      host.hidden = false;
+      // The POC refreshes the user BOQ table on repeated PDF state messages.
+      // Re-attach row evidence controls without resetting the selected evidence.
+      refreshBindings(pendingUserEvidence.data, context, expected);
+      return;
+    }
+    bind(pendingUserEvidence.data, context, next);
+  };
+
+  globalThis.addEventListener(EVIDENCE_RUNTIME_EVENT, event => {
+    const latest = normalizedRuntimeEvidence(event?.detail || {});
+    if (!latest) return;
+    pendingUserEvidence = latest;
+    signature = '';
+    if (workspace.value === 'user') queueMicrotask(sync);
+  });
+
   new MutationObserver(sync).observe(tbody, { childList: true, subtree: true });
-  workspace.addEventListener('change', () => { signature = ''; queueMicrotask(sync); });
+  workspace.addEventListener('change', () => {
+    signature = '';
+    evidenceController.resetPdf();
+    const host = evidenceController.ensureHost();
+    host.hidden = true;
+    queueMicrotask(sync);
+  });
   sync();
 }
 

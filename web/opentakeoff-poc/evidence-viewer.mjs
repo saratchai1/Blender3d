@@ -62,6 +62,9 @@ function evidenceFormula(row) {
     const v = Number(e.vertical_length_m || 0);
     return `${fmt(h)} m horizontal + ${fmt(v)} m vertical = ${fmt(row.quantity)} m`;
   }
+  if (String(row.id || '').startsWith('GEN-SAN-PIPE-')) {
+    return `${fmt(row.quantity)} m จาก semantic CAD pipe vectors ที่ผ่าน explicit scale + system/diameter tag assignment`;
+  }
   const detections = e.detections || e.matched_tokens || [];
   if (Array.isArray(detections) && detections.length) {
     return `${detections.length} จุดหลักฐานที่ไม่ซ้ำ × 1 = ${fmt(row.quantity, row.unit === 'ea' ? 0 : 3)} ${row.unit}`;
@@ -92,6 +95,11 @@ function evidenceFacts(row, data, pageNo) {
     if (dr) facts.push(`หน้า p.${pageNo} trace ได้ ${fmt(dr.length_m_candidate)} m จาก ${dr.segment_count} vector segments ที่ผ่าน diameter assignment`);
     if (e.non_additive_contract) facts.push(`กันนับซ้ำ: ${e.non_additive_contract}`);
   }
+  if (String(row.id || '').startsWith('GEN-SAN-PIPE-')) {
+    if (e.scale_ratio != null) facts.push(`Scale ที่อ่านจากแบบ: 1:${e.scale_ratio}`);
+    if (e.assigned_fraction != null) facts.push(`Semantic pipe linework ที่ classify system/diameter ได้: ${fmt(Number(e.assigned_fraction) * 100, 1)}%`);
+    if (e.segment_count != null) facts.push(`Vector segments ที่นำมารวม: ${e.segment_count}`);
+  }
   return facts;
 }
 
@@ -110,6 +118,15 @@ function collectOverlay(row, data, pageNo) {
     count += 1;
     if (hit.bbox_pt) out.push({ type: 'rect', rect: hit.bbox_pt, kind: 'detection', label: `${count}` });
     else if (hit.x_norm != null && hit.y_norm != null) out.push({ type: 'point', x: hit.x_norm, y: hit.y_norm, kind: 'detection', label: `${count}` });
+    else if (Array.isArray(hit.position_pt) && hit.position_pt.length >= 2) {
+      out.push({ type: 'pdf_point', x: Number(hit.position_pt[0]), y: Number(hit.position_pt[1]), kind: 'detection', label: `${count}` });
+    }
+  }
+  for (const segment of e.published_segments || []) {
+    if (Number(segment.page) !== pageNo) continue;
+    if ([segment.x0_pt, segment.y0_pt, segment.x1_pt, segment.y1_pt].every(Number.isFinite)) {
+      out.push({ type: 'line', x0: Number(segment.x0_pt), y0: Number(segment.y0_pt), x1: Number(segment.x1_pt), y1: Number(segment.y1_pt), kind: 'pipe', label: segment.publish_reason || 'published vector segment' });
+    }
   }
   if (String(row.id || '').startsWith('SAN-PIPE-')) {
     const diag = pipeDiag(data);
@@ -319,6 +336,14 @@ class EvidenceController {
           const circle = svgEl('circle', { cx: x, cy: y, r: 10, class: `evidence-point ${item.kind}` });
           const title = svgEl('title'); title.textContent = item.label || `detection ${index + 1}`; circle.append(title); overlay.append(circle);
           const text = svgEl('text', { x: x + 13, y: y + 4, class: `evidence-label ${item.kind}` }); text.textContent = item.label || String(index + 1); overlay.append(text);
+        } else if (item.type === 'pdf_point') {
+          const [x, y] = viewport.convertToViewportPoint(Number(item.x), Number(item.y));
+          const circle = svgEl('circle', { cx: x, cy: y, r: 10, class: `evidence-point ${item.kind}` });
+          const title = svgEl('title'); title.textContent = item.label || `detection ${index + 1}`; circle.append(title); overlay.append(circle);
+          const text = svgEl('text', { x: x + 13, y: y + 4, class: `evidence-label ${item.kind}` }); text.textContent = item.label || String(index + 1); overlay.append(text);
+        } else if (item.type === 'line') {
+          const line = svgEl('line', { x1: Number(item.x0) * sx, y1: Number(item.y0) * sy, x2: Number(item.x1) * sx, y2: Number(item.y1) * sy, class: `evidence-shape ${item.kind}`, 'stroke-linecap': 'round' });
+          const title = svgEl('title'); title.textContent = item.label || `vector ${index + 1}`; line.append(title); overlay.append(line);
         }
       });
       empty.hidden = true; canvas.hidden = false; overlay.hidden = false;
@@ -346,8 +371,17 @@ class EvidenceController {
     }
     const facts = host.querySelector('#evidence-facts'); facts.replaceChildren();
     for (const fact of evidenceFacts(row, this.data, this.pageNo)) facts.append(el('li', null, fact));
-    const sourceOnly = row.source_pages?.every(p => Number(p) <= 71);
-    facts.append(el('li', sourceOnly ? 'proof-pass' : 'proof-fail', sourceOnly ? 'PASS: หลักฐานทั้งหมดอยู่ใน drawing pages ≤ 71' : 'WARNING: พบ source page เกิน generation fence'));
+    const family4Fence = this.context?.workspace === 'demo' || this.data?.runtime_profile === 'family4-v8.19';
+    const referenceIsolated = this.data?.source_policy?.reference_used_for_generation === false;
+    const badge = host.querySelector('.evidence-proof-badge');
+    if (family4Fence) {
+      const sourceOnly = row.source_pages?.every(p => Number(p) <= 71);
+      facts.append(el('li', sourceOnly ? 'proof-pass' : 'proof-fail', sourceOnly ? 'PASS: หลักฐานทั้งหมดอยู่ใน Family4 drawing pages ≤ 71' : 'WARNING: พบ source page เกิน Family4 generation fence'));
+      if (badge) badge.textContent = sourceOnly ? 'FAMILY4 DRAWING PAGES ≤ 71' : 'SOURCE FENCE WARNING';
+    } else {
+      facts.append(el('li', referenceIsolated ? 'proof-pass' : 'proof-fail', referenceIsolated ? 'PASS: quantity นี้สร้างจาก PDF ที่อัปโหลดโดย reference_used_for_generation = false' : 'WARNING: ไม่สามารถยืนยัน reference isolation ของ quantity นี้ได้'));
+      if (badge) badge.textContent = referenceIsolated ? 'UPLOADED PDF · REFERENCE ISOLATED' : 'EVIDENCE REVIEW';
+    }
     const p = [...new Set((row.source_pages || []).map(Number))];
     host.querySelector('#evidence-prev').disabled = p.indexOf(this.pageNo) <= 0;
     host.querySelector('#evidence-next').disabled = p.indexOf(this.pageNo) >= p.length - 1;
