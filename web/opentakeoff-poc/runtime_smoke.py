@@ -113,8 +113,11 @@ def main():
             assert page.locator('#evidence-id').inner_text().strip()==evidence_id
             page_label=page.locator('#evidence-page-label').inner_text()
             assert 'p.59' in page_label or 'p.60' in page_label,page_label
-            assert page.locator('.evidence-proof-badge').inner_text().strip()=='SOURCE DRAWING ONLY'
-            report['checks'].append('User-uploaded PDF runtime rows bind to the inline PDF.js evidence viewer; clicking a BOQ row renders the same source PDF page instead of the demo-only viewer')
+            assert page.locator('.evidence-proof-badge').inner_text().strip()=='UPLOADED PDF · REFERENCE ISOLATED'
+            assert page.locator('#evidence-overlay .evidence-point').count()>=1,page_label
+            facts=page.locator('#evidence-facts').inner_text()
+            assert 'reference_used_for_generation = false' in facts,facts
+            report['checks'].append('User-uploaded PDF runtime rows bind to the inline PDF.js evidence viewer; clicking a BOQ row renders the same source PDF page and detector-position marker instead of the demo-only viewer')
 
             page.screenshot(path=str(a.out/'user-runtime-alpha.png'),full_page=True)
             report['checks'].append('boq_backend=off forces the deterministic browser-only fallback even though production has a default live backend')
