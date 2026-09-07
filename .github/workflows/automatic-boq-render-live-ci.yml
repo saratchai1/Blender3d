@@ -5,6 +5,7 @@ on:
     branches:
       - feat/auto-boq-live-backend
       - ci/render-exact-evidence-gate
+      - ci/render-single-flight-production-gate
     paths:
       - '.github/workflows/automatic-boq-render-live-ci.yml'
       - 'integrations/opentakeoff/**'
@@ -47,7 +48,7 @@ jobs:
           make(root/'generic-vector.pdf')
           make(root/'generic-ambiguous.pdf',second_plan=True)
           PY
-      - name: Verify public health endpoint and CORS
+      - name: Verify public health, CORS and single-flight policy
         run: |
           set -euo pipefail
           mkdir -p .generated/render-live-qa
@@ -74,9 +75,11 @@ jobs:
           assert health['status']=='ok',health
           assert health['registered_profiles']==1,health
           assert health['fail_closed_unknown_profiles'] is True,health
+          assert health['max_concurrent_jobs']==1,health
+          assert health['concurrency_policy']=='SINGLE_FLIGHT_FAIL_CLOSED_RETRYABLE_429',health
           assert 'access-control-allow-origin: https://saratchai1.github.io' in headers,headers
           assert 'access-control-allow-methods: post, options' in headers,headers
-          print('RENDER_PUBLIC_HEALTH_CORS_PASS',health)
+          print('RENDER_PUBLIC_HEALTH_CORS_SINGLE_FLIGHT_PASS',health)
           PY
       - name: POST Family4 through public Render endpoint with exact source geometry
         run: |
