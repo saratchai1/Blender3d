@@ -58,12 +58,15 @@ jobs:
           root=Path('.generated/pages/takeoff')
           info=json.loads((root/'browser-runtime-info.json').read_text())
           html=(root/'index.html').read_text()
+          poc=(root/'poc.js').read_text()
           assert info['network_dependency'] is True, info
           assert info['offline_browser_fallback'] is True, info
           assert info['reference_data_dependency'] is False, info
           assert info['default_backend_url']=='https://blender3d-auto-boq.onrender.com/api/auto-boq', info
           assert info['pdfjs_version'].startswith('4.10.'), info
           assert 'https://blender3d-auto-boq.onrender.com' in html, html[:1000]
+          assert 'Python v8.19 backend' in poc
+          assert 'Browser Runtime Alpha' in poc
           for rel in ('browser-auto-boq.mjs','browser-auto-boq-hybrid.mjs','browser-backend-runtime.mjs','vendor/pdf.mjs','vendor/pdf.worker.mjs'):
               assert (root/rel).is_file(), rel
           print('PAGES_USER_RUNTIME_ASSETS_PASS', {'pdfjs':info['pdfjs_version'],'backend':info['default_backend_url'],'offline_fallback':True})
