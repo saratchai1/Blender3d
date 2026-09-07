@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_PDFJS_MAJOR_MINOR = "4.10."
+DEFAULT_BACKEND_URL = "https://blender3d-auto-boq.onrender.com/api/auto-boq"
 RUNTIME_MODULES = (
     "browser-auto-boq.mjs",
     "browser-auto-boq-hybrid.mjs",
@@ -66,8 +67,10 @@ def main() -> None:
         "runtime_modules": list(RUNTIME_MODULES),
         "worker": "vendor/pdf.worker.mjs",
         "backend_policy": "PYTHON_VALIDATED_PROFILE_FIRST_BROWSER_FAIL_CLOSED_FALLBACK",
-        "backend_configuration": "?boq_backend=https://.../api/auto-boq or localStorage/global runtime value",
-        "network_dependency": False,
+        "default_backend_url": DEFAULT_BACKEND_URL,
+        "backend_configuration": "default Render backend; override with ?boq_backend=https://.../api/auto-boq, localStorage/global runtime value; use ?boq_backend=off for deterministic offline/browser-only mode",
+        "network_dependency": True,
+        "offline_browser_fallback": True,
         "reference_data_dependency": False,
     }
     (output / "browser-runtime-info.json").write_text(
