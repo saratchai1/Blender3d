@@ -1,0 +1,97 @@
+name: Automatic BOQ v8.6 composition CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/auto_boq_v8_6.py'
+      - 'integrations/opentakeoff/strict_pipe_tags_v8.py'
+      - 'integrations/opentakeoff/test_strict_pipe_tags_v8.py'
+      - 'integrations/opentakeoff/layer_topology_v8.py'
+      - 'integrations/opentakeoff/test_layer_topology_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_3.py'
+      - 'integrations/opentakeoff/auto_boq_v8_5.py'
+      - 'integrations/opentakeoff/leader_association_v8.py'
+      - 'integrations/opentakeoff/detail_view_transfer_v8.py'
+      - 'integrations/opentakeoff/pipe_reconcile_v8.py'
+      - 'integrations/opentakeoff/profiles/family4.json'
+      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-v8-6-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-v8-6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Run strict parser and topology regressions
+        working-directory: integrations/opentakeoff
+        run: |
+          python test_strict_pipe_tags_v8.py
+          python test_layer_topology_v8.py
+          python test_leader_association_v8.py
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Generate v8.5 control
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_5.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/v8-5-control.json
+      - name: Generate corrected v8.6 diagnostic
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_6.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/v8-6.json
+      - name: Assert parser safety, source fence and no pipe publication
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('.generated/v8-5-control.json').read_text())
+          n=json.loads(Path('.generated/v8-6.json').read_text())
+          assert c['source_policy']['reference_used_for_generation'] is False
+          assert n['source_policy']['reference_used_for_generation'] is False
+          assert len(c['rows']) == len(n['rows']) == 19
+          assert not any(str(r.get('id','')).startswith('SAN-PIPE-') for r in n['rows'])
+          d=next(x for x in n['diagnostics'] if x.get('detector')=='sanitary_pipe_network_v8_6')
+          assert d['composition']['tag_parser']=='STRICT_STANDALONE_SYSTEM_TOKENS'
+          assert d['reconciliation']['cross_view_policy_status']=='PASS_NON_ADDITIVE_BY_VIEW_ROLE'
+          assert d['reconciliation']['full_pipe_boq_publication_status'].startswith('WITHHELD_')
+          for p in d['pages']:
+              for t in p.get('tags_direct',[]):
+                  text=str(t.get('text') or '').upper()
+                  assert not ('PASS' in text and t.get('system')=='S'), t
+          cp={p['sheet']:p['diameter_coverage']['assigned_fraction'] for p in next(x for x in c['diagnostics'] if x.get('detector')=='sanitary_pipe_network_v8_5')['pages'] if p.get('contribution_policy')=='PRIMARY_PLAN_HORIZONTAL'}
+          np={p['sheet']:p['diameter_coverage']['assigned_fraction'] for p in d['pages'] if p.get('contribution_policy')=='PRIMARY_PLAN_HORIZONTAL'}
+          print('AUTO_BOQ_V8_6_COMPOSITION_PASS', {
+              'v8_5_control':cp,
+              'v8_6':np,
+              'primary_leaders':d.get('primary_leader_association_count',{}),
+              'detail_summary':d.get('detail_leader_transfer_summary',{}),
+              'pipe_rows':0,
+          })
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-6-evidence
+          path: |
+            .generated/v8-5-control.json
+            .generated/v8-6.json
+          if-no-files-found: warn
+          retention-days: 30

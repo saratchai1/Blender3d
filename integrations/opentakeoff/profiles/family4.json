@@ -1,6 +1,6 @@
 {
-  "id": "dpt-family4-vector-v7",
-  "version": 7,
+  "id": "dpt-family4-vector-v8",
+  "version": 8,
   "source_page_max": 71,
   "roof": {"page": 13, "scale_ratio": 100, "slope_deg": 6},
   "doors": {
@@ -52,6 +52,97 @@
         "reason":"four physical Ø2\"FD tags are readable on SN-07, but BOQ reference is five; do not count the fixture schedule row as a physical drain"
       }
     ]
+  },
+  "sanitary_pipe_network": {
+    "page_specs": [
+      {
+        "page":57,
+        "sheet":"SN-04",
+        "view_role":"vertical_schematic",
+        "scale_ratio":50,
+        "scale_evidence":"title block states 1:50",
+        "contribution_policy":"DIAGNOSTIC_VERTICAL_ONLY_DO_NOT_ADD_WHOLE_VIEW"
+      },
+      {
+        "page":58,
+        "sheet":"SN-05",
+        "view_role":"ground_floor_plan",
+        "scale_ratio":100,
+        "scale_evidence":"title block and drawing caption state 1:100",
+        "contribution_policy":"PRIMARY_PLAN_HORIZONTAL"
+      },
+      {
+        "page":59,
+        "sheet":"SN-06",
+        "view_role":"upper_floor_plan",
+        "scale_ratio":100,
+        "scale_evidence":"title block and drawing caption state 1:100",
+        "contribution_policy":"PRIMARY_PLAN_HORIZONTAL"
+      },
+      {
+        "page":60,
+        "sheet":"SN-07",
+        "view_role":"enlarged_bathroom_details",
+        "scale_ratio":50,
+        "scale_evidence":"all three enlarged bathroom plans state 1:50",
+        "contribution_policy":"DETAIL_OVERLAY_DO_NOT_ADD_TO_PRIMARY_PLANS"
+      }
+    ],
+    "fixture_branch_schedule": {
+      "page": 60,
+      "sheet": "SN-07",
+      "bounds_pt": [530, 300, 680, 540],
+      "coordinate_basis": "unrotated PDF text coordinates",
+      "evidence_role": "FIXTURE_BRANCH_SIZE_SCHEDULE",
+      "publication_policy": "EVIDENCE_ONLY_NO_PIPE_LENGTH_ADDITION"
+    },
+    "detail_view_links": [
+      {
+        "id": "BATHROOM-1",
+        "detail_page": 60,
+        "target_page": 58,
+        "match_rect_rotated_pt": [256.67, 200.00, 370.00, 333.33],
+        "detail_pipe_rect_rotated_pt": [213.33, 160.00, 426.67, 413.33],
+        "target_roi_rotated_pt": [266.67, 333.33, 413.33, 506.67],
+        "expected_scale_ratio": 0.5,
+        "min_match_score": 0.38,
+        "transfer_snap_pt": 8.0,
+        "max_angle_diff_deg": 15.0,
+        "publication_policy": "DIAGNOSTIC_TRANSFER_ONLY_NO_QUANTITY"
+      },
+      {
+        "id": "BATHROOM-2",
+        "detail_page": 60,
+        "target_page": 59,
+        "match_rect_rotated_pt": [243.33, 496.67, 393.33, 596.67],
+        "detail_pipe_rect_rotated_pt": [200.00, 453.33, 433.33, 653.33],
+        "target_roi_rotated_pt": [400.00, 413.33, 586.67, 566.67],
+        "expected_scale_ratio": 0.5,
+        "min_match_score": 0.38,
+        "transfer_snap_pt": 8.0,
+        "max_angle_diff_deg": 15.0,
+        "publication_policy": "DIAGNOSTIC_TRANSFER_ONLY_NO_QUANTITY"
+      },
+      {
+        "id": "BATHROOM-3",
+        "detail_page": 60,
+        "target_page": 59,
+        "match_rect_rotated_pt": [630.00, 200.00, 726.67, 336.67],
+        "detail_pipe_rect_rotated_pt": [566.67, 160.00, 786.67, 413.33],
+        "target_roi_rotated_pt": [493.33, 253.33, 653.33, 413.33],
+        "expected_scale_ratio": 0.5,
+        "min_match_score": 0.38,
+        "transfer_snap_pt": 8.0,
+        "max_angle_diff_deg": 15.0,
+        "publication_policy": "DIAGNOSTIC_TRANSFER_ONLY_NO_QUANTITY"
+      }
+    ],
+    "min_segment_pt": 3.0,
+    "max_stroke_width_pt": 3.0,
+    "endpoint_snap_pt": 1.5,
+    "tag_snap_max_pt": 30.0,
+    "publication": "diagnostic-only until view overlap, pipe-class attribution and vertical/horizontal reconciliation are validated",
+    "non_additive_rule": "SN-04 vertical schematic, SN-05/SN-06 plans and SN-07 enlarged details overlap; whole-view lengths must never be summed across these sources"
   },
   "electrical": {
     "legend_page": 64,

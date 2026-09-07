@@ -1,0 +1,52 @@
+name: Automatic BOQ riser token probe
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/probe_riser_tokens_v8.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-riser-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-riser-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned takeoff dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Probe shared sanitary tokens
+        run: >-
+          python integrations/opentakeoff/probe_riser_tokens_v8.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/riser-token-probe.json
+      - name: Assert source-only diagnostic contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.generated/riser-token-probe.json').read_text())
+          assert d['status']=='DIAGNOSTIC_ONLY_NO_QUANTITY_CHANGE'
+          assert d['source_pages']==[57,58,59,60]
+          assert all(p['page'] <= 71 for p in d['pages'])
+          print('RISER_TOKEN_PROBE_CONTRACT_PASS',{'shared':len(d['shared_tokens'])})
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: automatic-boq-riser-token-probe
+          path: .generated/riser-token-probe.json
+          retention-days: 30

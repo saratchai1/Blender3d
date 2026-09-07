@@ -6,6 +6,16 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 EXPECTED_SHA256='f6db0f85e12113b31a545a5e881a75173938e011908ba1a4491016f77b302175'; EXPECTED_SIZE=13_058_241
+PIPE_EXPECTED={
+    'SAN-PIPE-CW-DN15':8.524,
+    'SAN-PIPE-CW-DN20':26.112,
+    'SAN-PIPE-RL-DN65':3.57,
+    'SAN-PIPE-S-DN100':2.27,
+    'SAN-PIPE-SW-DN100':19.455,
+    'SAN-PIPE-V-DN50':14.665,
+    'SAN-PIPE-W-DN50':10.746,
+    'SAN-PIPE-W-DN65':7.158,
+}
 READ_DB='''async (kind) => { const name=kind==='demo'?'blender3d-opentakeoff-poc-v2-demo':'blender3d-opentakeoff-poc-v1-user'; const db=await new Promise((yes,no)=>{const r=indexedDB.open(name);r.onsuccess=()=>yes(r.result);r.onerror=()=>no(r.error)}); try{return await new Promise((yes,no)=>{const t=db.transaction(['meta','pdfs'],'readonly');const a=t.objectStore('meta').get('annotations');const p=t.objectStore('pdfs').getAll();t.oncomplete=()=>yes({annotations:a.result,pdfs:p.result.map(x=>({name:x.name,size:x.bytes.byteLength,head:Array.from(new Uint8Array(x.bytes.slice(0,5)))}))});t.onerror=()=>no(t.error)})}finally{db.close()}}'''
 
 def large_canvas(frame):
@@ -19,7 +29,7 @@ def main():
     sample=a.root/'takeoff/demo/family4.pdf'; auto=json.loads((a.root/'takeoff/auto-boq.json').read_text()); bench=json.loads((a.root/'takeoff/auto-boq-benchmark.json').read_text())
     assert sample.stat().st_size==EXPECTED_SIZE and hashlib.sha256(sample.read_bytes()).hexdigest()==EXPECTED_SHA256
     assert auto['source_policy']['reference_used_for_generation'] is False and all(max(r['source_pages'])<=71 for r in auto['rows'])
-    assert len(auto['rows'])==19; assert bench['reference_rows']==20 and bench['detected_reference_rows']==19; assert bench['coverage_pct']>=95.0; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<0.15
+    assert len(auto['rows'])==27; assert bench['reference_rows']==20 and bench['detected_reference_rows']==19; assert bench['coverage_pct']>=95.0; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<0.15
     by={r['id']:r for r in auto['rows']}
     assert 'SAN-FLOOR-DRAIN-2' not in by
     assert by['SAN-BOOSTER-PUMP']['quantity']==1 and by['SAN-WATER-METER']['quantity']==1 and by['SAN-FLOAT-VALVE']['quantity']==1
@@ -30,20 +40,36 @@ def main():
         assert by[k]['method']=='raster:line-stripped CAD label sweep'
     for k,q in {'SAN-FCO-4':2,'SAN-CO-2.5':1,'SAN-RFD-2.5':2,'SAN-AVC-2':2}.items():
         assert by[k]['quantity']==q and by[k]['method']=='text:positioned sanitary drawing tag'
+    for k,q in PIPE_EXPECTED.items():
+        assert abs(by[k]['quantity']-q)<1e-6 and by[k]['unit']=='m' and by[k]['category']=='Sanitary',by[k]
+        assert by[k]['evidence']['release_gate_status']=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE',by[k]
+    assert set(by['SAN-PIPE-CW-DN15']['source_pages'])=={57,58},by['SAN-PIPE-CW-DN15']
+    assert 13 in by['SAN-PIPE-V-DN50']['source_pages'] and 57 in by['SAN-PIPE-V-DN50']['source_pages'],by['SAN-PIPE-V-DN50']
+    assert abs(sum(by[k]['quantity'] for k in PIPE_EXPECTED)-92.5)<1e-6
     fd=next(d for d in auto['diagnostics'] if d.get('detector')=='positioned_tag_diagnostic:SAN-FLOOR-DRAIN-2')
     assert fd['status']=='WITHHELD_DIAGNOSTIC_ONLY' and fd['detections']==4
+    pipe=next(d for d in auto['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_19')
+    assert pipe['reconciliation']['full_pipe_boq_publication_status']=='PUBLISHED_VALIDATED_PIPE_ROWS',pipe
+    assert pipe['pipe_release_candidate']['release_blocker_count']==0,pipe
+    assert pipe['vertical_level_bounded_reconciliation']['valve_leader_promoted_count']==1,pipe
+    corroboration=pipe['equipment_valve_corroboration']
+    assert corroboration['status']=='CORROBORATED_EQUIPMENT_VALVE_CLASS',corroboration
+    assert corroboration['source_pages']==[57,58] and corroboration['diameter_key']=='DN15',corroboration
+    assert corroboration['primary_plan_label']=='FLOAT VALVE Ø1/2"',corroboration
+    assert corroboration['schematic_label']=='BALL VALVE Ø1/2"',corroboration
+    assert corroboration['nearby_main_label']=='Ø3/4"CW' and corroboration['nearby_main_role']=='AUDIT_ONLY_NOT_BRANCH_SIZING_EVIDENCE',corroboration
     handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/'; evidence={'checks':[],'page_errors':[]}
     with sync_playwright() as p:
       browser=p.chromium.launch(headless=True);ctx=browser.new_context(viewport={'width':1512,'height':982},accept_downloads=True);page=ctx.new_page();page.on('pageerror',lambda e:evidence['page_errors'].append(str(e)))
       try:
-        page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='19'")
-        assert page.locator('#auto-rows-body tr').count()==19; assert float(page.locator('#auto-coverage').inner_text())>=95.0; assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<0.15
+        page.goto(url,wait_until='domcontentloaded',timeout=60000);page.locator('#auto-rows-body tr').first.wait_for(timeout=30000);page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='27'")
+        assert page.locator('#auto-rows-body tr').count()==27; assert float(page.locator('#auto-coverage').inner_text())>=95.0; assert page.locator('#auto-accuracy').inner_text()=='100'; assert float(page.locator('#auto-mae').inner_text())<0.15
         text=page.locator('#auto-rows-body').inner_text(); assert 'หลังคาเหล็กรีดลอน' in text and '128.349' in text and '37' in text
-        for needle in ('Booster Pump','มาตรวัดน้ำ','Float Valve','WC.1','อ่างล้างหน้า','ฝักบัวอาบน้ำสายอ่อน','ฝักบัวชำระพร้อมสาย','ที่ใส่กระดาษชำระ','ราวแขวนผ้า','Floor Cleanout','Cleanout','Roof Floor Drain','Air Vent Cap'):
+        for needle in ('Booster Pump','มาตรวัดน้ำ','Float Valve','WC.1','อ่างล้างหน้า','ฝักบัวอาบน้ำสายอ่อน','ฝักบัวชำระพร้อมสาย','ที่ใส่กระดาษชำระ','ราวแขวนผ้า','Floor Cleanout','Cleanout','Roof Floor Drain','Air Vent Cap','Cold Water DN15','Cold Water DN20','Vent DN50','Waste DN65'):
             assert needle in text
-        hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and all(p in pages for p in (23,24,25,58,59,60))
+        hrefs=page.locator('#auto-rows-body .page-link').evaluate_all('(a)=>a.map(x=>x.getAttribute("href"))'); pages=[int(re.search(r'%23(\d+)',h).group(1)) for h in hrefs]; assert pages and max(pages)<=71 and all(p in pages for p in (13,23,24,25,57,58,59,60))
         assert page.locator('#withheld-list .withheld').count()>=6
-        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders nineteen scored rows; audit subset coverage 95%; all detected rows within ±5%; sanitary fitting tags are evidence-backed on drawing pages 59-60; floor drain remains withheld with four explicit tags; no evidence link exceeds page 71')
+        page.screenshot(path=str(a.out/'01-automatic-boq.png'),full_page=True);evidence['checks'].append('Automatic BOQ renders 27 rows: 19 scored reference-subset rows plus eight validated sanitary pipe rows totaling 92.500 m; tank-side DN15 is independently corroborated by SN-04 BALL VALVE and SN-05 FLOAT VALVE half-inch evidence; audit subset remains 95% coverage and 100% detected-row accuracy; no evidence link exceeds page 71')
         page.locator('[data-tab="plan"]').click();page.locator('#status[data-state="ready"]').wait_for(timeout=120000);engine=page.frames[1];engine.locator('canvas').first.wait_for(timeout=120000)
         fit=engine.locator('button').filter(has_text=re.compile(r'^\s*fit\s*$',re.I))
         if fit.count() and fit.first.is_visible():fit.first.click()

@@ -1,0 +1,91 @@
+name: Automatic BOQ v8.7 short branch CI
+
+on:
+  push:
+    branches:
+      - feat/auto-boq-v8-pipe-network
+    paths:
+      - 'integrations/opentakeoff/auto_boq_v8_7.py'
+      - 'integrations/opentakeoff/detail_short_branch_v8.py'
+      - 'integrations/opentakeoff/test_detail_short_branch_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_6.py'
+      - 'integrations/opentakeoff/strict_pipe_tags_v8.py'
+      - 'integrations/opentakeoff/layer_topology_v8.py'
+      - 'integrations/opentakeoff/auto_boq_v8_3.py'
+      - 'integrations/opentakeoff/detail_view_transfer_v8.py'
+      - 'integrations/opentakeoff/leader_association_v8.py'
+      - 'integrations/opentakeoff/profiles/family4.json'
+      - 'integrations/opentakeoff/fetch_sample.py'
+      - 'integrations/opentakeoff/requirements-auto-boq.txt'
+      - '.github/workflows/automatic-boq-v8-7-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family4-v8-7:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r integrations/opentakeoff/requirements-auto-boq.txt
+      - name: Run short-branch regression
+        working-directory: integrations/opentakeoff
+        run: |
+          python test_detail_short_branch_v8.py
+          python test_strict_pipe_tags_v8.py
+      - name: Fetch exact Family4 source PDF
+        run: python integrations/opentakeoff/fetch_sample.py --output .generated/samples/family4.pdf
+      - name: Generate v8.6 control
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_6.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/v8-6-control.json
+      - name: Generate v8.7 short-branch diagnostic
+        run: >-
+          python integrations/opentakeoff/auto_boq_v8_7.py
+          --pdf .generated/samples/family4.pdf
+          --profile integrations/opentakeoff/profiles/family4.json
+          --output .generated/v8-7.json
+      - name: Assert no regression and constrained recovery
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('.generated/v8-6-control.json').read_text()); n=json.loads(Path('.generated/v8-7.json').read_text())
+          assert c['source_policy']['reference_used_for_generation'] is False and n['source_policy']['reference_used_for_generation'] is False
+          assert len(c['rows'])==len(n['rows'])==19
+          assert not any(str(r.get('id','')).startswith('SAN-PIPE-') for r in n['rows'])
+          dc=next(d for d in c['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_6'); dn=next(d for d in n['diagnostics'] if d.get('detector')=='sanitary_pipe_network_v8_7')
+          cp={p['sheet']:p['diameter_coverage']['assigned_fraction'] for p in dc['pages'] if p.get('contribution_policy')=='PRIMARY_PLAN_HORIZONTAL'}
+          np={p['sheet']:p['diameter_coverage']['assigned_fraction'] for p in dn['pages'] if p.get('contribution_policy')=='PRIMARY_PLAN_HORIZONTAL'}
+          assert all(np[k]>=cp[k] for k in cp),(cp,np)
+          recovered=sum(int(p.get('short_branch_recovered_count',0)) for p in dn['detail_view_reconciliation'])
+          assert recovered>=1,recovered
+          for probe in dn['detail_view_reconciliation']:
+              for row in probe.get('transfer_candidates',[]):
+                  if row.get('transfer_basis')=='SHORT_BRANCH_UNIQUE_ENDPOINT_GAP':
+                      assert row['short_branch_source_length_pt']<=6.0
+                      assert row['short_branch_target_length_pt']<=12.0
+                      assert row['short_branch_best_gap_pt']<=12.0
+          assert dn['reconciliation']['cross_view_policy_status']=='PASS_NON_ADDITIVE_BY_VIEW_ROLE'
+          assert dn['reconciliation']['full_pipe_boq_publication_status'].startswith('WITHHELD_')
+          print('AUTO_BOQ_V8_7_AB_PASS',{'control':cp,'short_branch':np,'recovered':recovered,'pipe_rows':0})
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-boq-v8-7-evidence
+          path: |
+            .generated/v8-6-control.json
+            .generated/v8-7.json
+          if-no-files-found: warn
+          retention-days: 30

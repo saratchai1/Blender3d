@@ -1,0 +1,19 @@
+{
+  "schema": "blender3d.source_drawing_evidence.v1",
+  "document": "family4.pdf",
+  "evidence_id": "FAMILY4-ARCH-ROOF-LEVEL",
+  "source_page": 13,
+  "source_page_max": 71,
+  "sheet": "A-06",
+  "drawing": "roof plan",
+  "roof_elevation_m": 6.65,
+  "evidence_basis": "VISUAL_SOURCE_PAGE_LEVEL_TAG_IN_RASTER_ARCHITECTURAL_DRAWING",
+  "automatic_text_extraction_status": "RASTER_DRAWING_NO_USABLE_TEXT_LAYER",
+  "source_render_probe": "probe_arch_roof_levels_v8.py",
+  "reference_used": false,
+  "generation_allowed": true,
+  "role": "VERTICAL_TERMINAL_CORROBORATION_ONLY",
+  "allowed_systems": ["V"],
+  "max_calibrated_top_error_m": 0.15,
+  "note": "The A-06 roof-plan source drawing visibly marks +6.65. This source-page evidence is separate from the BOQ reference pages and may only corroborate a calibrated SN-04 vent riser whose reconstructed top independently lands within the stated tolerance. It does not add architectural or schematic geometry by itself."
+}
