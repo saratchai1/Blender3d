@@ -1,6 +1,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { tryPythonAutoBoq } from './browser-backend-runtime.mjs';
+import { configuredBackendUrl, DEFAULT_BACKEND_URL, tryPythonAutoBoq } from './browser-backend-runtime.mjs';
+
+test('verified Render backend is the default when no override is configured', () => {
+  assert.equal(configuredBackendUrl(), DEFAULT_BACKEND_URL);
+  assert.equal(DEFAULT_BACKEND_URL, 'https://blender3d-auto-boq.onrender.com/api/auto-boq');
+});
+
+test('query, global and stored backends override the default in that order', () => {
+  const storage = {
+    value: 'https://stored.example/api/auto-boq',
+    getItem() { return this.value; },
+    setItem(_key, value) { this.value = value; },
+  };
+  assert.equal(
+    configuredBackendUrl({ search: '?boq_backend=https%3A%2F%2Fquery.example%2Fapi', storage, globalValue: 'https://global.example/api' }),
+    'https://query.example/api',
+  );
+  assert.equal(configuredBackendUrl({ storage, globalValue: 'https://global.example/api' }), 'https://global.example/api');
+  assert.equal(configuredBackendUrl({ storage }), 'https://query.example/api');
+});
+
+test('boq_backend=off explicitly disables network for deterministic offline fallback', () => {
+  const storage = { getItem: () => DEFAULT_BACKEND_URL };
+  assert.equal(configuredBackendUrl({ search: '?boq_backend=off', storage }), '');
+  assert.equal(configuredBackendUrl({ search: '?boq_backend=disabled', storage }), '');
+});
 
 test('validated backend response is accepted', async () => {
   const fetchImpl = async () => ({ ok: true, json: async () => ({
