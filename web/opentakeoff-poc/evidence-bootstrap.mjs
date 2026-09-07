@@ -2,6 +2,7 @@ import { evidenceController } from './evidence-viewer.mjs';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const EVIDENCE_RUNTIME_EVENT = 'boq-evidence:runtime-result';
+const EVIDENCE_RUNTIME_STATE = '__BOQ_EVIDENCE_RUNTIME__';
 
 function svgEl(tag, attrs = {}) {
   const node = document.createElementNS(SVG_NS, tag);
@@ -132,6 +133,20 @@ function sameIds(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function normalizedRuntimeEvidence(detail) {
+  const data = detail?.result;
+  if (!data || data.source_policy?.reference_used_for_generation !== false) return null;
+  const bytes = detail.pdfBytes instanceof Uint8Array
+    ? detail.pdfBytes
+    : new Uint8Array(detail.pdfBytes || []);
+  return {
+    data,
+    name: detail.name || data.document?.name || 'uploaded.pdf',
+    pdfBytes: bytes,
+    fingerprint: detail.fingerprint || `${data.document?.sha256 || ''}:${detail.name || data.document?.name || ''}:${bytes.byteLength}`,
+  };
+}
+
 async function main() {
   const tbody = document.querySelector('#auto-rows-body');
   const workspace = document.querySelector('#workspace');
@@ -143,7 +158,7 @@ async function main() {
   if (demoAuto.source_policy?.reference_used_for_generation !== false) throw new Error('evidence viewer requires reference-isolated Automatic BOQ');
 
   let signature = '';
-  let pendingUserEvidence = null;
+  let pendingUserEvidence = normalizedRuntimeEvidence(globalThis[EVIDENCE_RUNTIME_STATE]);
 
   const bind = (data, context, key) => {
     const host = evidenceController.ensureHost();
@@ -161,23 +176,40 @@ async function main() {
     if (demo) {
       const expected = resultRowIds(demoAuto);
       const next = `demo:${ids.join('|')}`;
-      if (!ids.length || !sameIds(ids, expected) || next === signature) return;
+      if (!ids.length || !sameIds(ids, expected)) {
+        signature = '';
+        host.hidden = true;
+        return;
+      }
+      if (next === signature) {
+        host.hidden = false;
+        return;
+      }
       bind(demoAuto, { workspace: 'demo', pdfUrl: './demo/family4.pdf' }, next);
       return;
     }
 
+    // Extraction may publish its evidence state before the BOQ table mutation is
+    // observed. Recover from the page-level state on every sync so event ordering
+    // cannot leave the viewer permanently hidden.
+    pendingUserEvidence = normalizedRuntimeEvidence(globalThis[EVIDENCE_RUNTIME_STATE]) || pendingUserEvidence;
     if (!pendingUserEvidence) {
+      signature = '';
       host.hidden = true;
       return;
     }
 
     const expected = resultRowIds(pendingUserEvidence.data);
-    if (!expected.length) {
+    if (!expected.length || !ids.length || !sameIds(ids, expected)) {
+      signature = '';
       host.hidden = true;
       return;
     }
     const next = `user:${pendingUserEvidence.fingerprint}:${ids.join('|')}`;
-    if (!ids.length || !sameIds(ids, expected) || next === signature) return;
+    if (next === signature) {
+      host.hidden = false;
+      return;
+    }
     bind(pendingUserEvidence.data, {
       workspace: 'user',
       pdfBytes: pendingUserEvidence.pdfBytes,
@@ -186,18 +218,9 @@ async function main() {
   };
 
   globalThis.addEventListener(EVIDENCE_RUNTIME_EVENT, event => {
-    const detail = event?.detail || {};
-    const data = detail.result;
-    if (!data || data.source_policy?.reference_used_for_generation !== false) return;
-    const bytes = detail.pdfBytes instanceof Uint8Array
-      ? detail.pdfBytes
-      : new Uint8Array(detail.pdfBytes || []);
-    pendingUserEvidence = {
-      data,
-      name: detail.name || data.document?.name || 'uploaded.pdf',
-      pdfBytes: bytes,
-      fingerprint: `${data.document?.sha256 || ''}:${detail.name || data.document?.name || ''}:${bytes.byteLength}`,
-    };
+    const latest = normalizedRuntimeEvidence(event?.detail || {});
+    if (!latest) return;
+    pendingUserEvidence = latest;
     signature = '';
     if (workspace.value === 'user') queueMicrotask(sync);
   });
@@ -205,10 +228,9 @@ async function main() {
   new MutationObserver(sync).observe(tbody, { childList: true, subtree: true });
   workspace.addEventListener('change', () => {
     signature = '';
-    pendingUserEvidence = null;
     evidenceController.resetPdf();
     const host = evidenceController.ensureHost();
-    host.hidden = workspace.value !== 'demo';
+    host.hidden = true;
     queueMicrotask(sync);
   });
   sync();
