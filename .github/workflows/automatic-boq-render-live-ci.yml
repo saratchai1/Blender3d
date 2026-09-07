@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/auto-boq-live-backend
+      - ci/render-exact-evidence-gate
     paths:
       - '.github/workflows/automatic-boq-render-live-ci.yml'
       - 'integrations/opentakeoff/**'
@@ -77,7 +78,7 @@ jobs:
           assert 'access-control-allow-methods: post, options' in headers,headers
           print('RENDER_PUBLIC_HEALTH_CORS_PASS',health)
           PY
-      - name: POST Family4 through public Render endpoint
+      - name: POST Family4 through public Render endpoint with exact source geometry
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error \
@@ -93,6 +94,7 @@ jobs:
           from pathlib import Path
           value=json.loads(Path('.generated/render-live-qa/family4.json').read_text())
           pipes=[r for r in value.get('rows',[]) if str(r.get('id','')).startswith('SAN-PIPE-')]
+          pipe_by_id={r['id']:r for r in pipes}
           assert value['runtime_status']=='PUBLISHED_VALIDATED_PROFILE_BOQ',value.get('runtime_status')
           assert value['runtime_profile']=='family4-v8.19',value.get('runtime_profile')
           assert len(value['rows'])==27,len(value['rows'])
@@ -100,7 +102,53 @@ jobs:
           assert abs(sum(float(r['quantity']) for r in pipes)-92.5)<1e-6
           assert value['source_policy']['reference_used_for_generation'] is False
           assert all(max(r.get('source_pages') or [0])<=71 for r in value['rows'])
-          print('RENDER_PUBLIC_FAMILY4_PASS',{'rows':27,'pipe_rows':8,'pipe_total_m':92.5})
+
+          for row in pipes:
+              evidence=row.get('evidence') or {}
+              assert evidence.get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED',(row['id'],evidence)
+              horizontal=float(evidence.get('horizontal_length_m') or 0.0)
+              vertical=float(evidence.get('vertical_length_m') or 0.0)
+              assert abs(float(evidence.get('exact_horizontal_length_m') or 0.0)-horizontal)<1e-9,(row['id'],evidence)
+              assert abs(float(evidence.get('exact_vertical_length_m') or 0.0)-vertical)<1e-9,(row['id'],evidence)
+              segments=evidence.get('published_segments') or []
+              runs=evidence.get('published_vertical_runs') or []
+              assert int(evidence.get('exact_horizontal_segment_count') or 0)==len(segments),(row['id'],evidence)
+              assert int(evidence.get('exact_vertical_run_count') or 0)==len(runs),(row['id'],evidence)
+              assert bool(segments)==(horizontal>0.0),(row['id'],horizontal,len(segments))
+              assert bool(runs)==(vertical>0.0),(row['id'],vertical,len(runs))
+              for segment in segments:
+                  assert int(segment['page'])<=71,(row['id'],segment)
+                  assert segment['source_role']=='PRIMARY_PLAN_HORIZONTAL',(row['id'],segment)
+                  assert all(key in segment for key in ('x0_pt','y0_pt','x1_pt','y1_pt','segment_index','segment_length_m')),(row['id'],segment)
+              for run in runs:
+                  assert int(run['source_page'])<=71,(row['id'],run)
+                  assert run['quantity_basis']=='RUN_LEVEL_CALIBRATED_PHYSICAL_SPAN_NOT_SUM_OF_DRAWN_STROKES',(row['id'],run)
+                  assert run.get('source_segments'),(row['id'],run)
+                  assert all(int(segment['page'])<=71 for segment in run['source_segments']),(row['id'],run)
+
+          cw20=pipe_by_id['SAN-PIPE-CW-DN20']
+          evidence=cw20['evidence']
+          assert abs(float(evidence['horizontal_length_m'])-19.812)<1e-9,evidence
+          assert abs(float(evidence['vertical_length_m'])-6.300)<1e-9,evidence
+          assert abs(float(cw20['quantity'])-26.112)<1e-9,cw20
+          assert len(evidence['published_segments'])>0,evidence
+          assert len(evidence['published_vertical_runs'])>0,evidence
+
+          diag=next(d for d in value.get('diagnostics',[]) if d.get('detector')=='sanitary_pipe_network_v8_19')
+          release=diag.get('pipe_release_candidate') or {}
+          assert release.get('exact_segment_evidence_required') is True,release
+          assert release.get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED',release
+          assert release.get('exact_segment_evidence_errors')==[],release
+          print('RENDER_PUBLIC_FAMILY4_EXACT_EVIDENCE_PASS',{
+              'rows':27,
+              'pipe_rows':8,
+              'pipe_total_m':92.5,
+              'cw20_horizontal_m':19.812,
+              'cw20_vertical_m':6.3,
+              'cw20_total_m':26.112,
+              'cw20_horizontal_segments':len(evidence['published_segments']),
+              'cw20_vertical_runs':len(evidence['published_vertical_runs']),
+          })
           PY
       - name: POST unseen generic vector PDF through public Render endpoint
         run: |
