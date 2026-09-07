@@ -38,20 +38,32 @@ test('validated backend response is accepted', async () => {
   assert.equal(out.result.rows.length, 1);
 });
 
-test('unknown profile returns no backend rows so caller can fall back', async () => {
+test('generic inferred backend response is accepted', async () => {
   const fetchImpl = async () => ({ ok: true, json: async () => ({
-    runtime_status: 'WITHHELD_UNREGISTERED_DRAWING_PROFILE',
+    runtime_status: 'PUBLISHED_GENERIC_INFERRED_BOQ',
+    runtime_profile: 'generic-inferred-vector-sanitary-v0',
+    source_policy: { reference_used_for_generation: false },
+    rows: [{ id: 'GEN-SAN-PIPE-CW-DN20', quantity: 7.056, unit: 'm' }],
+  }) });
+  const out = await tryPythonAutoBoq({ endpoint: 'https://example.com/api/auto-boq', bytes: new Uint8Array([1]), name: 'generic.pdf', fetchImpl });
+  assert.equal(out.status, 'PUBLISHED_GENERIC_INFERRED_BOQ');
+  assert.equal(out.result.rows[0].id, 'GEN-SAN-PIPE-CW-DN20');
+});
+
+test('withheld generic inference returns no backend rows so caller can fall back', async () => {
+  const fetchImpl = async () => ({ ok: true, json: async () => ({
+    runtime_status: 'WITHHELD_GENERIC_INFERENCE',
     source_policy: { reference_used_for_generation: false },
     rows: [],
   }) });
   const out = await tryPythonAutoBoq({ endpoint: 'https://example.com/api/auto-boq', bytes: new Uint8Array([1]), name: 'x.pdf', fetchImpl });
-  assert.equal(out.status, 'WITHHELD_UNREGISTERED_DRAWING_PROFILE');
+  assert.equal(out.status, 'WITHHELD_GENERIC_INFERENCE');
   assert.equal(out.result, null);
 });
 
 test('reference leakage is rejected before any backend result can be used', async () => {
   const fetchImpl = async () => ({ ok: true, json: async () => ({
-    runtime_status: 'PUBLISHED_VALIDATED_PROFILE_BOQ',
+    runtime_status: 'PUBLISHED_GENERIC_INFERRED_BOQ',
     source_policy: { reference_used_for_generation: true },
     rows: [{ id: 'BAD' }],
   }) });
