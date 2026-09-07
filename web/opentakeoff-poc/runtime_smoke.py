@@ -23,17 +23,24 @@ def main():
     assert sample.stat().st_size==EXPECTED_SIZE
     assert hashlib.sha256(sample.read_bytes()).hexdigest()==EXPECTED_SHA256
     manifest=json.loads((root/'takeoff/browser-runtime-info.json').read_text())
-    assert manifest['network_dependency'] is False
+    assert manifest['network_dependency'] is True
+    assert manifest['offline_browser_fallback'] is True
     assert manifest['reference_data_dependency'] is False
+    assert manifest['default_backend_url']=='https://blender3d-auto-boq.onrender.com/api/auto-boq'
     assert manifest['pdfjs_version'].startswith('4.10.')
     assert (root/'takeoff/browser-auto-boq.mjs').is_file()
+    assert (root/'takeoff/browser-auto-boq-hybrid.mjs').is_file()
+    assert (root/'takeoff/browser-backend-runtime.mjs').is_file()
     assert (root/'takeoff/vendor/pdf.mjs').is_file()
     assert (root/'takeoff/vendor/pdf.worker.mjs').is_file()
 
     handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(root))
     server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler)
     threading.Thread(target=server.serve_forever,daemon=True).start()
-    url=f'http://127.0.0.1:{server.server_port}/takeoff/'
+    # Explicitly force the offline/browser-only path. Production defaults to the
+    # validated Render backend first; this regression test proves fallback remains
+    # deterministic and does not depend on network availability.
+    url=f'http://127.0.0.1:{server.server_port}/takeoff/?boq_backend=off'
     report={'status':'IN_PROGRESS','checks':[],'page_errors':[]}
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True)
@@ -83,9 +90,10 @@ def main():
             assert page.locator('#accuracy-download').is_hidden()
             assert page.locator('#auto-json-download').is_hidden()
             page.screenshot(path=str(a.out/'user-runtime-alpha.png'),full_page=True)
+            report['checks'].append('boq_backend=off forces the deterministic browser-only fallback even though production has a default live backend')
             report['checks'].append('User-uploaded Family4 is processed client-side with pinned PDF.js: RFD/AVC retain explicit sizes while FCO/CO counts publish only with size WITHHELD')
             report['checks'].append('Schematic/detail duplicate AVC evidence is reconciled non-additively; Floor Drain, pipe length, FCO/CO size and non-explicit BOQ remain WITHHELD')
-            report['checks'].append('No reference quantity is loaded in user runtime; all published runtime evidence links resolve only to drawing-like pages 59/60')
+            report['checks'].append('No reference quantity is loaded in fallback runtime; all published runtime evidence links resolve only to drawing-like pages 59/60')
             report['status']='PASS'
             assert not report['page_errors'],report['page_errors']
         except Exception as exc:
