@@ -1,1 +1,0 @@
-Hybrid backend-first runtime validated by GitHub Actions run 34078913249. This marker keeps the final tested head explicit for PR merge provenance.
