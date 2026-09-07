@@ -5,7 +5,7 @@ function cleanEndpoint(raw) {
   const value = String(raw || '').trim();
   if (!value) return '';
   try {
-    const url = new URL(value, location?.href || 'https://example.invalid/');
+    const url = new URL(value, globalThis.location?.href || 'https://example.invalid/');
     if (!/^https?:$/.test(url.protocol)) return '';
     return url.href;
   } catch {
@@ -29,11 +29,12 @@ export function configuredBackendUrl({ search = '', storage = null, globalValue 
   }
 }
 
-export async function tryPythonAutoBoq({ endpoint, bytes, name, fetchImpl = fetch, timeoutMs = TIMEOUT_MS }) {
+export async function tryPythonAutoBoq({ endpoint, bytes, name, fetchImpl = globalThis.fetch, timeoutMs = TIMEOUT_MS }) {
   const url = cleanEndpoint(endpoint);
   if (!url) return { status: 'SKIPPED_NO_BACKEND', result: null };
   const payload = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
   if (!payload.byteLength) return { status: 'SKIPPED_EMPTY_PDF', result: null };
+  if (typeof fetchImpl !== 'function') throw new Error('Python backend fetch is unavailable');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
