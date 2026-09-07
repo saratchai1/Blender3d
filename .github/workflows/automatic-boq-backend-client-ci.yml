@@ -9,8 +9,10 @@ on:
       - 'web/opentakeoff-poc/browser-auto-boq-hybrid*'
       - 'web/opentakeoff-poc/browser-backend-runtime*'
       - 'web/opentakeoff-poc/runtime_smoke.py'
+      - 'web/opentakeoff-poc/live_smoke.py'
       - 'web/opentakeoff-poc/index.html'
       - 'integrations/opentakeoff/install_browser_runtime.py'
+      - '.github/workflows/pages.yml'
       - '.github/workflows/automatic-boq-backend-client-ci.yml'
   workflow_dispatch:
 
@@ -73,6 +75,8 @@ jobs:
           assert auto['source_policy']['reference_used_for_generation'] is False
           print('HYBRID_RUNTIME_PACKAGE_PASS', {'rows':27,'pipe_total_m':92.5,'default_backend':info['default_backend_url']})
           PY
+      - name: Compile live/browser QA scripts
+        run: python -m py_compile web/opentakeoff-poc/runtime_smoke.py web/opentakeoff-poc/live_smoke.py
       - name: Install Chromium QA runtime
         run: |
           python -m pip install playwright==1.57.0
