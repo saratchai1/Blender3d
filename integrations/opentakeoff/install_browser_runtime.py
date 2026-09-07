@@ -16,6 +16,13 @@ RUNTIME_MODULES = (
 )
 
 
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f"expected one {label}, found {count}")
+    return text.replace(old, new, 1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--upstream", type=Path, required=True)
@@ -45,11 +52,55 @@ def main() -> None:
     if not poc.is_file():
         raise SystemExit("generated poc.js is missing; build the POC first")
     text = poc.read_text(encoding="utf-8")
-    old = "import('./browser-auto-boq.mjs')"
-    new = "import('./browser-auto-boq-hybrid.mjs')"
-    if text.count(old) != 1:
-        raise SystemExit(f"expected one browser runtime import, found {text.count(old)}")
-    poc.write_text(text.replace(old, new), encoding="utf-8")
+    text = replace_once(
+        text,
+        "import('./browser-auto-boq.mjs')",
+        "import('./browser-auto-boq-hybrid.mjs')",
+        "browser runtime import",
+    )
+
+    old_note = """  const backend = data.runtime_execution?.mode === 'BACKEND_VALIDATED_PROFILE';
+  if (backend) {
+    const pipeRows = (data.rows || []).filter(r => String(r.id || '').startsWith('SAN-PIPE-'));
+    const pipeTotal = pipeRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+    $('#auto-note').textContent = `Python v8.19 backend · ${d.name || 'PDF'} · validated profile ${data.runtime_profile || 'validated'} · ${data.rows.length} รายการ · pipe ${fmt(pipeTotal, 3)} m · reference isolation = true`;
+  } else {
+    const scanned = d.scanned_pages != null && d.pages != null ? ` · อ่าน ${d.scanned_pages}/${d.pages} หน้า` : '';
+    $('#auto-note').textContent = `Browser Runtime Alpha · ${d.name || 'PDF'}${scanned} · reference isolation = true · fail-closed fallback`;
+  }
+"""
+    new_note = """  const mode = data.runtime_execution?.mode;
+  const validatedBackend = mode === 'BACKEND_VALIDATED_PROFILE';
+  const genericBackend = mode === 'BACKEND_GENERIC_INFERRED';
+  if (validatedBackend || genericBackend) {
+    const pipeRows = (data.rows || []).filter(r => String(r.id || '').includes('SAN-PIPE-'));
+    const pipeTotal = pipeRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+    if (genericBackend) {
+      $('#auto-note').textContent = `Python Generic Vector backend · ${d.name || 'PDF'} · ${data.runtime_profile || 'generic-inferred-vector-sanitary-v0'} · sanitary pipe ${fmt(pipeTotal, 3)} m · reference isolation = true`;
+    } else {
+      $('#auto-note').textContent = `Python v8.19 backend · ${d.name || 'PDF'} · validated profile ${data.runtime_profile || 'validated'} · ${data.rows.length} รายการ · pipe ${fmt(pipeTotal, 3)} m · reference isolation = true`;
+    }
+  } else {
+    const scanned = d.scanned_pages != null && d.pages != null ? ` · อ่าน ${d.scanned_pages}/${d.pages} หน้า` : '';
+    $('#auto-note').textContent = `Browser Runtime Alpha · ${d.name || 'PDF'}${scanned} · reference isolation = true · fail-closed fallback`;
+  }
+"""
+    text = replace_once(text, old_note, new_note, "user runtime note block")
+
+    old_status = """    const backend = result.runtime_execution?.mode === 'BACKEND_VALIDATED_PROFILE';
+    setStatus(backend
+      ? `Python v8.19 backend เสร็จ · ${result.rows.length} รายการ validated`
+      : `Browser Automatic Alpha เสร็จ · ${result.rows.length} รายการปลอดภัย`, 'ready');
+"""
+    new_status = """    const mode = result.runtime_execution?.mode;
+    setStatus(mode === 'BACKEND_VALIDATED_PROFILE'
+      ? `Python v8.19 backend เสร็จ · ${result.rows.length} รายการ validated`
+      : mode === 'BACKEND_GENERIC_INFERRED'
+        ? `Python Generic Vector backend เสร็จ · ${result.rows.length} รายการ sanitary pipe`
+        : `Browser Automatic Alpha เสร็จ · ${result.rows.length} รายการปลอดภัย`, 'ready');
+"""
+    text = replace_once(text, old_status, new_status, "user runtime status block")
+    poc.write_text(text, encoding="utf-8")
 
     vendor = output / "vendor"
     vendor.mkdir(parents=True, exist_ok=True)
@@ -66,7 +117,7 @@ def main() -> None:
         "runtime": "browser-auto-boq-hybrid.mjs",
         "runtime_modules": list(RUNTIME_MODULES),
         "worker": "vendor/pdf.worker.mjs",
-        "backend_policy": "PYTHON_VALIDATED_PROFILE_FIRST_BROWSER_FAIL_CLOSED_FALLBACK",
+        "backend_policy": "PYTHON_VALIDATED_PROFILE_THEN_GENERIC_VECTOR_INFERENCE_THEN_BROWSER_FAIL_CLOSED_FALLBACK",
         "default_backend_url": DEFAULT_BACKEND_URL,
         "backend_configuration": "default Render backend; override with ?boq_backend=https://.../api/auto-boq, localStorage/global runtime value; use ?boq_backend=off for deterministic offline/browser-only mode",
         "network_dependency": True,
