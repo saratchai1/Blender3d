@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'blender3d.auto_boq_backend_url';
 const TIMEOUT_MS = 120000;
+export const DEFAULT_BACKEND_URL = 'https://blender3d-auto-boq.onrender.com/api/auto-boq';
 
 function cleanEndpoint(raw) {
   const value = String(raw || '').trim();
@@ -13,7 +14,7 @@ function cleanEndpoint(raw) {
   }
 }
 
-export function configuredBackendUrl({ search = '', storage = null, globalValue = '' } = {}) {
+export function configuredBackendUrl({ search = '', storage = null, globalValue = '', defaultValue = DEFAULT_BACKEND_URL } = {}) {
   const query = new URLSearchParams(String(search || '').replace(/^\?/, '')).get('boq_backend');
   const fromQuery = cleanEndpoint(query);
   if (fromQuery) {
@@ -23,10 +24,10 @@ export function configuredBackendUrl({ search = '', storage = null, globalValue 
   const fromGlobal = cleanEndpoint(globalValue);
   if (fromGlobal) return fromGlobal;
   try {
-    return cleanEndpoint(storage?.getItem?.(STORAGE_KEY));
-  } catch {
-    return '';
-  }
+    const fromStorage = cleanEndpoint(storage?.getItem?.(STORAGE_KEY));
+    if (fromStorage) return fromStorage;
+  } catch {}
+  return cleanEndpoint(defaultValue);
 }
 
 export async function tryPythonAutoBoq({ endpoint, bytes, name, fetchImpl = globalThis.fetch, timeoutMs = TIMEOUT_MS }) {
