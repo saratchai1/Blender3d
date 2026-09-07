@@ -40,7 +40,10 @@ def main():
     sample=a.root/'takeoff/demo/family4.pdf'; auto=json.loads((a.root/'takeoff/auto-boq.json').read_text()); bench=json.loads((a.root/'takeoff/auto-boq-benchmark.json').read_text())
     assert sample.stat().st_size==EXPECTED_SIZE and hashlib.sha256(sample.read_bytes()).hexdigest()==EXPECTED_SHA256
     runtime_manifest=json.loads((a.root/'takeoff/browser-runtime-info.json').read_text())
-    assert runtime_manifest['network_dependency'] is False and runtime_manifest['reference_data_dependency'] is False
+    assert runtime_manifest['network_dependency'] is True
+    assert runtime_manifest['offline_browser_fallback'] is True
+    assert runtime_manifest['reference_data_dependency'] is False
+    assert runtime_manifest['default_backend_url']=='https://blender3d-auto-boq.onrender.com/api/auto-boq'
     assert runtime_manifest['pdfjs_version'].startswith('4.10.')
     assert auto['source_policy']['reference_used_for_generation'] is False and all(max(r['source_pages'])<=71 for r in auto['rows'])
     assert len(auto['rows'])==27; assert bench['reference_rows']==20 and bench['detected_reference_rows']==19; assert bench['coverage_pct']>=95.0; assert bench['detected_rows_accuracy_pct']==100 and bench['mean_absolute_error_pct']<0.15
@@ -72,7 +75,7 @@ def main():
     assert corroboration['primary_plan_label']=='FLOAT VALVE Ø1/2"',corroboration
     assert corroboration['schematic_label']=='BALL VALVE Ø1/2"',corroboration
     assert corroboration['nearby_main_label']=='Ø3/4"CW' and corroboration['nearby_main_role']=='AUDIT_ONLY_NOT_BRANCH_SIZING_EVIDENCE',corroboration
-    handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/'; evidence={'checks':[],'page_errors':[]}
+    handler=functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(a.root.resolve()));server=http.server.ThreadingHTTPServer(('127.0.0.1',0),handler);threading.Thread(target=server.serve_forever,daemon=True).start();url=f'http://127.0.0.1:{server.server_port}/takeoff/?boq_backend=off'; evidence={'checks':[],'page_errors':[]}
     with sync_playwright() as p:
       browser=p.chromium.launch(headless=True);ctx=browser.new_context(viewport={'width':1512,'height':982},accept_downloads=True);page=ctx.new_page();page.on('pageerror',lambda e:evidence['page_errors'].append(str(e)))
       try:
@@ -106,7 +109,7 @@ def main():
         assert 'Browser Runtime Alpha' in page.locator('#auto-note').inner_text()
         withheld_text=page.locator('#withheld-list').inner_text();assert 'SAN-PIPE-LENGTH' in withheld_text and 'SAN-FLOOR-DRAIN-2' in withheld_text and 'SAN-FCO/CO-SIZE' in withheld_text and 'NON-EXPLICIT-BOQ' in withheld_text
         assert not page.locator('#user-auto-json').is_disabled();assert page.locator('#auto-json-download').is_hidden();assert page.locator('#accuracy-download').is_hidden()
-        evidence['checks'].append('Arbitrary-user workspace runs Browser Automatic Alpha after upload; RFD/AVC keep explicit sizes, FCO/CO counts publish with size WITHHELD, and cross-view duplicates are not added')
+        evidence['checks'].append('Arbitrary-user workspace runs Browser Automatic Alpha after upload with backend explicitly disabled for deterministic local QA; RFD/AVC keep explicit sizes, FCO/CO counts publish with size WITHHELD, and cross-view duplicates are not added')
 
         page.locator('#workspace').select_option('demo');page.locator('[data-tab="auto"]').click();page.wait_for_function("document.querySelector('#auto-rows')?.textContent==='27'");page.set_viewport_size({'width':390,'height':844});page.screenshot(path=str(a.out/'02-automatic-boq-mobile.png'),full_page=True);assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2');assert not evidence['page_errors'],evidence['page_errors'];evidence['status']='passed'
       except Exception as e:
