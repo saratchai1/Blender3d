@@ -127,6 +127,7 @@ def extract(
         max_excludable_cw_offset_m=0.5,
     )
     if final.get('status')=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE':
+        final['exact_segment_evidence_required']=True
         final=segment_evidence.attach_exact_pipe_segment_evidence(
             pdf_path,
             profile_path,
@@ -143,6 +144,7 @@ def extract(
     diag['status']=(
         'VALIDATED_CROSS_SHEET_VALVE_PIPE_RELEASE_READY'
         if final.get('status')=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE'
+        and final.get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED'
         else 'WITHHELD_CROSS_SHEET_VALVE_PIPE_RELEASE_BLOCKERS'
     )
     diag['reconciliation']['full_pipe_boq_publication_status']=final.get('status')
@@ -153,7 +155,10 @@ def extract(
         'All previous horizontal, roof, non-additive, residual-run and reference-page-fence guards remain active.'
     )
 
-    if final.get('status')!='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE':
+    if not (
+        final.get('status')=='PASS_VALIDATED_PIPE_RELEASE_CANDIDATE'
+        and final.get('exact_segment_evidence_status')=='PASS_EXACT_SOURCE_GEOMETRY_RECONCILED'
+    ):
         return result
 
     published=publish.publish_validated_pipe_rows(result,final)
