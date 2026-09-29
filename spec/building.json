@@ -1,0 +1,12 @@
+{
+  "name": "Teaching Tower",
+  "description": "Sample modern office for the Blender Architecture GitHub template",
+  "storeys": 6,
+  "floor_height_m": 3.6,
+  "footprint": {"width_m": 24.0, "depth_m": 18.0},
+  "slab_thickness_m": 0.25,
+  "column_size_m": 0.45,
+  "facade": {"fin_spacing_m": 1.5, "fin_depth_m": 0.8, "glass_transmission": 0.18},
+  "site": {"width_m": 60.0, "depth_m": 50.0},
+  "pv": {"rows": 4, "columns": 8, "panel_watt": 450}
+}

@@ -1,0 +1,25 @@
+name: Export IFC4
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['spec/**','bim/**','.github/workflows/export-ifc.yml']
+permissions:
+  contents: read
+jobs:
+  ifc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Build conceptual IFC4 from the same source spec
+        run: python bim/export_ifc.py --spec spec/building.json --output dist/building.ifc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: building-ifc4
+          path: dist/building.ifc
+          if-no-files-found: error

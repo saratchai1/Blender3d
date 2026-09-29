@@ -1,1 +1,0 @@
-SOLSTICE 14 Concept BOQ is generated from the validated procedural model / IFC4. Use the spreadsheet distributed with the presentation as a concept quantity takeoff only, not for tender or construction.

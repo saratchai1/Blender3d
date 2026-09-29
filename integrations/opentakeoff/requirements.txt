@@ -1,1 +1,0 @@
--r requirements-auto-boq.txt

@@ -1,258 +1,95 @@
-# Blender3d — MCP + 3D Gaussian Splat Control
+# Blender Architecture Teaching Template
 
-Control Blender through MCP with a modern 3D Gaussian Splat (3DGS) compatibility layer.
+Template สำหรับสอน workflow **GitHub → Blender → GLB/Web 3D → Animation → IFC4 → BOQ** โดยไม่ต้อง commit โปรแกรม Blender เข้า repository
 
-This repository does **not** vendor Blender or copy the whole upstream MCP project. It pins [`sandraschi/blender-mcp`](https://github.com/sandraschi/blender-mcp) and launches it through `blender3d-control`, which patches current Blender/KIRI 3DGS behavior at runtime.
+> GitHub repository เก็บ source code และ workflow เท่านั้น เมื่อ Actions ทำงาน ระบบจะสร้าง Ubuntu runner ชั่วคราว ดาวน์โหลด Blender 4.5 LTS ทำงาน แล้วอัปโหลดผลลัพธ์เป็น artifact
 
-## Pinned components
+## สิ่งที่ผู้เรียนจะได้
 
-### Blender MCP
+- JSON building specification เป็น source of truth
+- Blender/Python procedural modeling
+- editable `.blend`
+- web-ready `.glb`
+- interactive Three.js viewer
+- real 3D camera animation → MP4
+- conceptual IFC4 hierarchy
+- transparent concept BOQ CSV
+- GitHub Actions automation
+- GitHub Pages deployment
 
-- Repository: `sandraschi/blender-mcp`
-- Commit: `6b51a6b302a149354d5c7820d077827f1129bb5c`
-- Upstream commit date: 2026-09-02
-- Python: 3.12+
+## Quick start บนเครื่อง
 
-### 3DGS
+ต้องมี Git, Blender 4.5 LTS, Python 3.12 และ FFmpeg
 
-- Add-on: KIRI `3DGS Render`
-- Release: `5.1.0`
-- Release date: 2026-08-26
-- Required for this 3DGS path: Blender 5.1+
-- Verified release SHA-256: `3965ef73904f15a56ea4cee65de64209faaacf7a018c1a70f7d6a4ed925f96ae`
-
-KIRI's 5.1.0 release notes state that the package was clean-installed and tested on Windows with Blender 5.1.1 and Blender 5.2.0 LTS.
-
-## Why this repo has a compatibility layer
-
-The pinned Blender MCP already exposes `blender_addons`, `blender_splatting`, mesh/material/scene tools, rendering, export, and a live bridge. However, its bundled 3DGS registry currently points at legacy GitHub URLs that no longer resolve, and its splat importer targets older Blender operators.
-
-Current KIRI uses:
-
-```python
-bpy.ops.sna.dgs_render_import_ply_e0a3a(...)
+```bash
+git clone <YOUR-REPO-URL>
+cd blender-architecture-template
+python -m unittest tests/test_spec.py
+BLENDER_BIN=blender ./scripts/build-local.sh
 ```
 
-Modern Blender native PLY import uses:
-
-```python
-bpy.ops.wm.ply_import(...)
-```
-
-`src/blender3d_control/compat.py` bridges those into the existing upstream MCP calls, so clients can continue using `blender_splatting(...)` instead of needing a separate MCP server.
-
-## Windows quick start
+Windows PowerShell:
 
 ```powershell
-git clone https://github.com/saratchai1/Blender3d.git
-cd Blender3d
-
-# If Git, uv and Blender are already installed:
-.\scripts\setup.ps1
-
-# Or allow setup to install missing prerequisites with winget:
-.\scripts\setup.ps1 -InstallPrereqs
+$env:BLENDER_BIN = "C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe"
+.\\scripts\\build-local.ps1
 ```
 
-If Blender is outside the normal install path:
+IFC:
 
-```powershell
-.\scripts\setup.ps1 -BlenderExecutable "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
+```bash
+pip install -r requirements.txt
+python bim/export_ifc.py --spec spec/building.json --output dist/building.ifc
 ```
 
-The setup script:
+Animation:
 
-1. checks Git and `uv`;
-2. finds Blender;
-3. runs `uv sync` against the pinned MCP dependency;
-4. creates local `.env` if needed;
-5. generates `.mcp.generated.json` with absolute executable/repo paths;
-6. runs a Blender MCP health check.
-
-## Install 3DGS
-
-```powershell
-.\scripts\install-3dgs.ps1
+```bash
+blender --background dist/building.blend --python blender/render_animation.py -- --output-dir dist/render --engine EEVEE --seconds 8 --fps 24
+ffmpeg -framerate 24 -i dist/render/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart dist/animation.mp4
 ```
 
-This downloads the pinned KIRI release (~771 MB), verifies its SHA-256, caches it locally, and installs/enables it with Blender's extension command-line interface.
+## GitHub Actions
 
-Then verify everything:
+| Workflow | Trigger | ผลลัพธ์ |
+|---|---|---|
+| CI | push / PR | ตรวจ spec + Python syntax |
+| Build 3D Model | main / manual | `.blend`, `.glb`, `boq.csv` |
+| Export IFC4 | main / manual | `building.ifc` |
+| Render Animation | manual | real 3D `animation.mp4` + animated `.blend` |
+| Deploy Interactive 3D | main / manual | GitHub Pages |
 
-```powershell
-.\scripts\doctor.ps1
-```
+Animation เป็น manual เพราะการ render ใช้ compute มาก โดยเฉพาะ Cycles
 
-Expected summary:
+## Repository structure
 
 ```text
-Core MCP: READY
-KIRI 3DGS: READY
+.
+├── spec/building.json
+├── blender/build_model.py
+├── blender/render_animation.py
+├── bim/export_ifc.py
+├── boq/export_boq.py
+├── web/
+├── tests/
+├── scripts/
+└── .github/workflows/
 ```
 
-## Start MCP
+## GitHub ลงอะไรให้ชั่วคราว
 
-### stdio
+- Blender 4.5 LTS — modeling / materials / cameras / Eevee / Cycles
+- Python 3.12 — tests / IFC tooling
+- IfcOpenShell — IFC4 export workflow
+- FFmpeg — MP4 encoding workflow
+- GitHub Pages Actions — interactive 3D deployment
 
-Use this for local MCP clients:
+Cycles และ Eevee มากับ Blender ไม่ต้องลงแยก
 
-```powershell
-.\scripts\start.ps1
-```
+Template นี้ไม่ต้องใช้ 3ds Max, Twinmotion, V-Ray, Corona, Lumion หรือ Unreal Engine
 
-### HTTP
+## Scope
 
-```powershell
-.\scripts\start.ps1 -Http -Port 10849
-```
+โมเดล, IFC และ BOQ ใน template เป็น **concept / educational output** เท่านั้น ไม่ใช่แบบก่อสร้าง, statutory GFA, tender quantity, structural design หรือ energy certification.
 
-HTTP defaults to `127.0.0.1`. Keep it local unless you deliberately add authentication/TLS through a proper gateway. Do not expose the raw MCP port directly to the internet.
-
-## MCP client config
-
-`setup.ps1` writes `.mcp.generated.json`. It uses this launcher:
-
-```json
-{
-  "mcpServers": {
-    "blender3d": {
-      "command": "C:\\path\\to\\uv.exe",
-      "args": [
-        "--directory",
-        "C:\\path\\to\\Blender3d",
-        "run",
-        "blender3d-control",
-        "--stdio"
-      ],
-      "env": {
-        "PYTHONUNBUFFERED": "1",
-        "BLENDER_EXECUTABLE": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe"
-      }
-    }
-  }
-}
-```
-
-The repository deliberately does not overwrite your global Claude/Cursor/VS Code configuration. Copy the generated `blender3d` server entry into the MCP client you want to use.
-
-## 3DGS MCP commands
-
-### Install through MCP
-
-The control launcher patches the legacy registry names to KIRI 5.1.0:
-
-```text
-blender_addons(
-  operation="install_known",
-  addon_name="gaussian_splat",
-  enable_on_install=true
-)
-```
-
-The aliases `gaussian_splat`, `3dgs_blender`, and `kiri_3dgs` all resolve to the pinned KIRI package inside this control process.
-
-### Import Gaussian Splat PLY
-
-```text
-blender_splatting(
-  operation="import_gs",
-  file_path="C:\\data\\tree_scan.ply",
-  setup_proxy=true
-)
-```
-
-The patched importer tries KIRI first, then legacy importers, then modern Blender PLY as a geometry-only fallback. The result tells you which engine actually succeeded.
-
-### Other existing upstream operations
-
-```text
-blender_splatting(operation="crop_and_clean", crop_type="sphere", radius=10.0)
-blender_splatting(operation="generate_collision_mesh", decimation_ratio=0.1)
-```
-
-See [`docs/3DGS.md`](docs/3DGS.md) for limitations. In particular, the pinned upstream `crop_and_clean` implementation is not yet a rigorous scientific 3DGS cleaning algorithm.
-
-## Diagnostics
-
-```powershell
-.\scripts\doctor.ps1
-```
-
-It checks:
-
-1. Git
-2. `uv`
-3. Blender executable/version
-4. Python package import
-5. Blender MCP discovery
-6. KIRI operator `sna.dgs_render_import_ply_e0a3a`
-7. modern native PLY fallback `wm.ply_import`
-
-Exit codes:
-
-- `0`: core + KIRI 3DGS ready
-- `1`: core setup problem
-- `2`: core ready, KIRI 3DGS not ready
-
-## Tree / point-cloud / DBH direction
-
-The next project-specific layer should live in this repository, not in the pinned upstream package. The intended architecture is:
-
-```text
-MCP client
-   |
-blender3d-control
-   |-- upstream Blender MCP tools
-   |-- modern 3DGS compatibility
-   `-- project-specific tree/DBH tools (next)
-            |
-          Blender
-            |
-    LAS / LAZ / PLY / 3DGS
-```
-
-For DBH, use the underlying metric point geometry as the source of truth. 3DGS is primarily the visual/context representation; Gaussian ellipse size should not be interpreted directly as trunk diameter.
-
-Candidate next tools:
-
-- import LAS/LAZ/PLY tree point clouds;
-- isolate tree by ID/ROI;
-- define standard or alternative measurement plane;
-- slice trunk points;
-- robust circle/ellipse/cylinder fitting;
-- compute diameter + residual/confidence;
-- store tree ID, method, measurement plane, coordinates and status as Blender properties;
-- show `standard`, `alternative`, and `not measured` states in the viewport;
-- export CSV/JSON/GeoJSON.
-
-## Pascal integration (parked for later)
-
-Pascal is recorded as an optional future integration, not a runtime dependency of the current Blender/3DGS stack.
-
-Pinned Pascal components and intended roles are documented in [`integrations/pascal/`](integrations/pascal/):
-
-- `pascalorg/editor` — semantic scene graph, plugin API, viewer, MCP and capture architecture;
-- `pascalorg/pascal-blender` — Pascal scene JSON -> editable Blender objects while retaining semantic metadata;
-- `pascalorg/plugin-trees` — reference for large tree sets, instancing and selection proxies.
-
-Exact upstream commits are stored in `integrations/pascal/pascal-lock.json`. To materialize those snapshots locally later:
-
-```powershell
-.\scripts\fetch-pascal.ps1
-```
-
-They are checked out under `.external/pascal/`, which is ignored by Git. This keeps this repository small while preserving a reproducible point-in-time Pascal integration baseline.
-
-The intended future semantic model uses a stable tree ID such as `TREE_0066` across Pascal, Blender, MCP, DBH results and exports.
-
-## Updating upstream
-
-Change the exact commit in `pyproject.toml`, then:
-
-```powershell
-uv lock --upgrade-package blender-mcp
-uv sync
-.\scripts\doctor.ps1
-```
-
-Review upstream changes before moving the pin because this repo intentionally patches specific compatibility gaps in the pinned implementation.
+ดูแผนการสอนได้ที่ `TEACHING_GUIDE.md`

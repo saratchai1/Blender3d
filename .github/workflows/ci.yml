@@ -1,153 +1,18 @@
-name: ci
-
+name: CI
 on:
   push:
-    branches: [main]
   pull_request:
-
 permissions:
-  contents: write
-
+  contents: read
 jobs:
-  python-static:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-python@v5
         with:
-          enable-cache: true
-
-      - name: Install Python
-        run: uv python install 3.12
-
-      - name: Sync pinned environment
-        run: uv sync
-
-      - name: Compile Python sources
-        run: uv run python -m compileall -q src blender models
-
-      - name: Verify runtime patch registration
+          python-version: '3.12'
+      - name: Validate teaching spec and Python sources
         run: |
-          uv run python - <<'PY'
-          from blender3d_control.compat import KIRI_RELEASE_URL, apply_compatibility_patches
-          from blender_mcp.handlers import addon_handler
-
-          apply_compatibility_patches()
-          assert addon_handler.KNOWN_ADDONS["gaussian_splat"][0] == KIRI_RELEASE_URL
-          assert addon_handler.KNOWN_ADDONS["3dgs_blender"][0] == KIRI_RELEASE_URL
-          assert addon_handler.KNOWN_ADDONS["kiri_3dgs"][0] == KIRI_RELEASE_URL
-          print("compatibility patch registration: OK")
-          PY
-
-      - name: Generate Pascal house scene
-        run: |
-          uv run python models/house_200sqm/pascal/generate_scene.py \
-            --spec models/house_200sqm/house_spec.json \
-            --output .generated/house_200sqm/house_200sqm.pascal.json
-
-      - name: Validate Pascal house scene
-        run: uv run python models/house_200sqm/pascal/validate_scene.py .generated/house_200sqm/house_200sqm.pascal.json
-
-      - name: Check launcher help
-        run: uv run blender3d-control --help
-
-  powershell-static:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Parse PowerShell scripts
-        shell: pwsh
-        run: |
-          $failed = $false
-          Get-ChildItem scripts -Filter *.ps1 | ForEach-Object {
-            $tokens = $null
-            $errors = $null
-            [void][System.Management.Automation.Language.Parser]::ParseFile(
-              $_.FullName,
-              [ref]$tokens,
-              [ref]$errors
-            )
-            if ($errors.Count -gt 0) {
-              $failed = $true
-              Write-Error ("PowerShell parse errors in {0}:`n{1}" -f $_.Name, ($errors | Out-String))
-            } else {
-              Write-Host ("{0}: OK" -f $_.Name)
-            }
-          }
-          if ($failed) { exit 1 }
-
-  house-blender-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Generate and validate Pascal scene with system Python
-        run: |
-          python3 models/house_200sqm/pascal/generate_scene.py \
-            --spec models/house_200sqm/house_spec.json \
-            --output .generated/house_200sqm/house_200sqm.pascal.json
-          python3 models/house_200sqm/pascal/validate_scene.py \
-            .generated/house_200sqm/house_200sqm.pascal.json
-
-      - name: Install Blender runtime dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglx-mesa0
-          blender --version | head -n 1
-          python3 -c "import numpy; print('system numpy', numpy.__version__)"
-
-      - name: Build and export visual v2 house
-        run: |
-          mkdir -p models/house_200sqm/output
-          env -u PYTHONHOME -u PYTHONPATH blender --background \
-            --python models/house_200sqm/blender/build_house_v2.py \
-            -- \
-            --input .generated/house_200sqm/house_200sqm.pascal.json \
-            --output models/house_200sqm/output/house_200sqm.blend \
-            --export-glb models/house_200sqm/output/house_200sqm.glb
-          test -s models/house_200sqm/output/house_200sqm.blend
-          test -s models/house_200sqm/output/house_200sqm.glb
-
-      - name: Render visual preview under Xvfb
-        run: |
-          xvfb-run -a env -u PYTHONHOME -u PYTHONPATH blender --background \
-            models/house_200sqm/output/house_200sqm.blend \
-            --render-output "//house_200sqm-preview" \
-            --render-format PNG \
-            --render-frame 1
-          mv models/house_200sqm/output/house_200sqm-preview0001.png \
-             models/house_200sqm/output/house_200sqm-preview.png
-          test -s models/house_200sqm/output/house_200sqm-preview.png
-
-      - name: Upload house artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: house-200sqm-blender-pascal
-          path: |
-            .generated/house_200sqm/house_200sqm.pascal.json
-            models/house_200sqm/output/house_200sqm.blend
-            models/house_200sqm/output/house_200sqm.glb
-            models/house_200sqm/output/house_200sqm-preview.png
-          if-no-files-found: error
-
-      - name: Publish reviewed web assets
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          set -euo pipefail
-          publish="$(mktemp -d)"
-          cp models/house_200sqm/output/house_200sqm.glb "$publish/house_200sqm.glb"
-          cp models/house_200sqm/output/house_200sqm-preview.png "$publish/house_200sqm-preview.png"
-          cp .generated/house_200sqm/house_200sqm.pascal.json "$publish/house_200sqm.pascal.json"
-          printf '%s\n' "$GITHUB_SHA" > "$publish/source-main-sha.txt"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin generated-assets || true
-          git switch --orphan generated-assets
-          git rm -rf . 2>/dev/null || true
-          cp -a "$publish/." .
-          git add house_200sqm.glb house_200sqm-preview.png house_200sqm.pascal.json source-main-sha.txt
-          git commit -m "generated: reviewed house assets for ${GITHUB_SHA}"
-          git push --force origin HEAD:generated-assets
+          python -m unittest tests/test_spec.py
+          python -m py_compile blender/build_model.py blender/render_animation.py bim/export_ifc.py boq/export_boq.py

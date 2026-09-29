@@ -1,0 +1,52 @@
+name: Render Animation
+on:
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: Renderer
+        type: choice
+        options: [EEVEE, CYCLES]
+        default: EEVEE
+      seconds:
+        description: Animation seconds
+        type: string
+        default: '8'
+      samples:
+        description: Cycles samples
+        type: string
+        default: '32'
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          BLENDER_VERSION=4.5.14 ./scripts/install_blender.sh > .blender-path
+          echo "$(cat .blender-path)" >> "$GITHUB_PATH"
+      - name: Build source model
+        run: blender --background --python blender/build_model.py -- --spec spec/building.json --output-dir dist
+      - name: Render real 3D camera frames
+        run: |
+          blender --background dist/building.blend --python blender/render_animation.py -- \
+            --output-dir dist/render \
+            --engine '${{ inputs.engine }}' \
+            --seconds '${{ inputs.seconds }}' \
+            --fps 24 \
+            --samples '${{ inputs.samples }}'
+      - name: Encode H.264 MP4
+        run: |
+          ffmpeg -y -framerate 24 -i dist/render/frames/frame_%04d.png \
+            -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart dist/animation.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: building-animation-${{ inputs.engine }}
+          path: |
+            dist/animation.mp4
+            dist/render/building-animated.blend
+          if-no-files-found: error

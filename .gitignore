@@ -1,32 +1,10 @@
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-
-# Local settings / generated MCP config
-.env
-.env.local
-.mcp.generated.json
+dist/
 .generated/
-
-# Reproducible external source snapshots (see integrations/* lock files)
-.external/
-
-# Blender local files / large scene data
+render/
 *.blend1
-*.blend2
-*.blend@
-*.autosave
-*.ply
-*.spz
-*.las
-*.laz
-models/house_200sqm/output/
-
-# OS/editor
+__pycache__/
+*.pyc
+.venv/
 .DS_Store
-Thumbs.db
-.vscode/settings.json
+.vscode/
 .idea/

@@ -1,0 +1,31 @@
+name: Build 3D Model
+on:
+  push:
+    branches: [main]
+    paths: ['spec/**','blender/**','boq/**','.github/workflows/build-model.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest tests/test_spec.py
+      - name: Install Blender 4.5 LTS
+        run: |
+          BLENDER_VERSION=4.5.14 ./scripts/install_blender.sh > .blender-path
+          echo "$(cat .blender-path)" >> "$GITHUB_PATH"
+      - name: Build BLEND and GLB
+        run: blender --background --python blender/build_model.py -- --spec spec/building.json --output-dir dist
+      - name: Export concept BOQ
+        run: python boq/export_boq.py --spec spec/building.json --output dist/boq.csv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: building-model
+          path: dist/
+          if-no-files-found: error
